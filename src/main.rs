@@ -1,16 +1,18 @@
 use std::{
-    fs, io::{BufRead, BufReader, Write},
-    net::{TcpListener, TcpStream},
-    thread,
-    time::Duration,
+    env, fs, io::{BufRead, BufReader, Write}, net::{TcpListener, TcpStream}, thread, time::Duration
 };
 
 use http_server::pool::ThreadPool;
 
+use crate::config::Config;
+pub mod config;
+
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878")
+    let conf = Config::parse(env::args());
+    let address = format!("127.0.0.1:{}", conf.port());
+    let listener = TcpListener::bind(address)
                                .expect("Could not bind to specified port");
-    println!("Sever listening on port 7878");
+    println!("Sever listening on port {}", conf.port());
     let pool = ThreadPool::new(4).unwrap();
     for stream in listener.incoming() {
         let stream = stream.unwrap();
