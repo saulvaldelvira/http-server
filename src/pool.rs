@@ -1,8 +1,8 @@
-pub mod error;
 mod worker;
 
 use std::sync::{mpsc,Arc,Mutex};
-use error::{Result, ThreadPoolError};
+pub use super::error::ServerError as ThreadPoolError;
+pub type Result<T> = std::result::Result<T,ThreadPoolError>;
 use worker::{Job, Worker};
 
 pub struct ThreadPool {
@@ -20,7 +20,7 @@ impl ThreadPool {
     ///
     pub fn new(size: usize) -> Result<ThreadPool> {
         if size == 0 {
-            return Err(ThreadPoolError::new("Invalid size: 0"));
+            return Err(ThreadPoolError::from_str("Invalid size: 0"));
         }
         let (sender,receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
