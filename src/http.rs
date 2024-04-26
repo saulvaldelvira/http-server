@@ -45,7 +45,8 @@ impl Request {
         let url = space.next().unwrap().to_owned();
         let version: f32 = space.next().unwrap()
                                .replace("HTTP/", "")
-                               .parse().unwrap();
+                               .parse()
+                               .or_else(|_| HttpError::from_str("Could not parse HTTP Version").err())?;
         Ok(Self { method, url, version, stream, status:200 })
     }
     pub fn url(&self) -> &str { &self.url }
@@ -78,20 +79,21 @@ impl Request {
         }
     }
 
-    pub fn respond(&mut self, buf: String) -> Result<()> {
-        let buf = format!("HTTP/{} {} {}\r\n\
+    pub fn respond(&mut self, buf: Vec<u8>) -> Result<()> {
+        let header = format!("HTTP/{} {} {}\r\n\
                           Content-Length: {}\r\n\
-                          \r\n{buf}", self.version, self.status,
+                          \r\n", self.version, self.status,
                                       self.status_msg(), buf.len());
-        self.stream.write_all(buf.as_bytes())?;
+        self.stream.write_all(header.as_bytes())?;
+        self.stream.write_all(&buf)?;
         Ok(())
     }
     fn get(&mut self) -> Result<()> {
         let filename = self.filename()?;
-        let contents = fs::read_to_string(&filename).unwrap_or_else(|_| {
+        let contents = fs::read(&filename).unwrap_or_else(|_| {
             println!("Error reading {}", &filename);
             self.status = 404;
-            fs::read_to_string("404.html").expect("Error reading file 404.html")
+            fs::read("404.html").expect("Error reading file 404.html")
         });
         self.respond(contents)?;
         Ok(())

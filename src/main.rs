@@ -11,7 +11,9 @@ fn main() {
     let conf = Config::parse(env::args());
     let address = format!("127.0.0.1:{}", conf.port());
     let listener = TcpListener::bind(address)
-                               .expect("Could not bind to specified port");
+                                .unwrap_or_else(|err| {
+                                    panic!("Could not bind to port {}: {}", conf.port(), err);
+                                });
     println!("Sever listening on port {}", conf.port());
     let pool = ThreadPool::new(4).unwrap();
     for stream in listener.incoming() {
