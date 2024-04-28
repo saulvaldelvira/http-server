@@ -15,7 +15,7 @@ fn main() {
                                     panic!("Could not bind to port {}: {}", conf.port(), err);
                                 });
     println!("Sever listening on port {}", conf.port());
-    let pool = ThreadPool::new(4).unwrap();
+    let pool = ThreadPool::new(32).unwrap();
     for stream in listener.incoming() {
         let stream = stream.unwrap();
         pool.execute(|| handle_connection(stream));

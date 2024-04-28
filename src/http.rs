@@ -1,4 +1,4 @@
-use std::{env, ffi::OsStr, fmt::Display, fs, io::{BufRead, BufReader, Write}, net::TcpStream, path::Path};
+use std::{env, ffi::OsStr, fmt::Display, fs, io::{BufRead, BufReader, Write}, net::TcpStream, path::Path, thread, time::Duration};
 
 pub use super::error::ServerError as HttpError;
 pub type Result<T> = std::result::Result<T,HttpError>;
@@ -66,7 +66,7 @@ impl Request {
     pub fn process(&mut self) -> Result<()> {
         match self.method {
             RequestMethod::GET => self.get(),
-            _ => panic!("Unsupported")
+            _ => self.not_implemented(),
         }
     }
     pub fn method(&self) -> &RequestMethod { &self.method }
@@ -75,16 +75,19 @@ impl Request {
         match self.status {
             200 => "OK",
             404 => "NOT FOUND",
+            501 => "NOT IMPLEMENTED",
             _ => "?"
         }
     }
 
-    pub fn respond(&mut self, buf: Vec<u8>) -> Result<()> {
-        let header = format!("HTTP/{} {} {}\r\n\
-                          Content-Length: {}\r\n\
-                          \r\n", self.version, self.status,
-                                      self.status_msg(), buf.len());
-        self.stream.write_all(header.as_bytes())?;
+    pub fn respond(&mut self, buf: &[u8]) -> Result<()> {
+        let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
+        self.stream.write_all(response_line.as_bytes())?;
+        if buf.len() == 0 {
+            return Ok(());
+        }
+        let headers = format!("Content-Length: {}\r\n\r\n", buf.len());
+        self.stream.write_all(headers.as_bytes())?;
         self.stream.write_all(&buf)?;
         Ok(())
     }
@@ -95,7 +98,13 @@ impl Request {
             self.status = 404;
             fs::read("404.html").expect("Error reading file 404.html")
         });
-        self.respond(contents)?;
+        self.respond(&contents)?;
+        Ok(())
+    }
+    fn not_implemented(&mut self) -> Result<()> {
+        let buf = "<h1>Not Implemented</h1>";
+        self.status = 501;
+        self.respond(buf.as_bytes())?;
         Ok(())
     }
 }
