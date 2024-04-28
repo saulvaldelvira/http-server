@@ -35,6 +35,7 @@ pub struct Request {
 }
 
 impl Request {
+    /* PUBLIC */
     pub fn parse(stream: TcpStream) -> Result<Self>  {
         let req = BufReader::new(&stream);
         let mut lines = req.lines();
@@ -79,8 +80,8 @@ impl Request {
             _ => "?"
         }
     }
-
-    pub fn respond(&mut self, buf: &[u8]) -> Result<()> {
+    /* PRIVATE */
+    fn respond(&mut self, buf: &[u8]) -> Result<()> {
         let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
         self.stream.write_all(response_line.as_bytes())?;
         if buf.len() == 0 {
