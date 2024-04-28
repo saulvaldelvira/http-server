@@ -1,4 +1,4 @@
-use std::{env, ffi::OsStr, fmt::Display, fs, io::{BufRead, BufReader, Write}, net::TcpStream, path::Path, thread, time::Duration};
+use std::{env, ffi::OsStr, fmt::Display, fs, io::{BufRead, BufReader, Write}, net::TcpStream, path::Path};
 
 pub use super::error::ServerError as HttpError;
 pub type Result<T> = std::result::Result<T,HttpError>;
@@ -96,15 +96,29 @@ impl Request {
         let contents = fs::read(&filename).unwrap_or_else(|_| {
             println!("Error reading {}", &filename);
             self.status = 404;
-            fs::read("404.html").expect("Error reading file 404.html")
+            self.error_page()
         });
         self.respond(&contents)?;
         Ok(())
     }
+    fn error_page(&mut self) -> Vec<u8> {
+        let code = self.status;
+        let msg = self.status_msg();
+        format!("<!DOCTYPE html>
+                <html lang=\"en\">
+                    <head>
+                        <meta charset=\"utf-8\">
+                        <title>{code} {msg}</title>
+                    </head>
+                <body>
+                    <h1>{code} {msg}</h1>
+                </body>
+                </html>").as_bytes().to_vec()
+    }
     fn not_implemented(&mut self) -> Result<()> {
-        let buf = "<h1>Not Implemented</h1>";
         self.status = 501;
-        self.respond(buf.as_bytes())?;
+        let buf = self.error_page();
+        self.respond(&buf)?;
         Ok(())
     }
 }
