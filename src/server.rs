@@ -1,6 +1,6 @@
 use std::net::{TcpListener, TcpStream};
 
-use crate::{http::Request, pool::ThreadPool};
+use crate::{config::Config, http::Request, pool::ThreadPool};
 
 pub struct HttpServer {
     listener: TcpListener,
@@ -14,14 +14,15 @@ fn handle_connection(stream: TcpStream) {
 }
 
 impl HttpServer {
-    pub fn new(port: u16) -> Self {
-        let address = format!("127.0.0.1:{}", port);
+    pub fn new(conf: &Config) -> Self {
+        let address = format!("127.0.0.1:{}", conf.port());
         let listener = TcpListener::bind(address)
             .unwrap_or_else(|err| {
-                panic!("Could not bind to port {}: {}", port, err);
+                panic!("Could not bind to port {}: {}", conf.port(), err);
             });
-        println!("Sever listening on port {}", port);
-        let pool = ThreadPool::new(32).unwrap();
+        let pool = ThreadPool::new(conf.n_threads())
+                              .expect("Error initializing thread pool");
+        println!("Sever listening on port {}", conf.port());
         Self {listener,pool}
     }
     pub fn run(&self) {
