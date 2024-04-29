@@ -1,9 +1,10 @@
-use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, fs, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path};
+pub mod handler;
 
-pub use super::error::ServerError as HttpError;
-pub type Result<T> = std::result::Result<T,HttpError>;
+use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path};
+use crate::{Result,ServerError};
 
-#[derive(Debug)]
+
+#[derive(Debug,Eq,Hash,PartialEq,Clone,Copy)]
 pub enum RequestMethod {
     GET, POST, PUT, DELETE
 }
@@ -15,7 +16,7 @@ impl RequestMethod {
             "POST" => Ok(Self::POST),
             "PUT" => Ok(Self::PUT),
             "DELETE" => Ok(Self::DELETE),
-            _ => HttpError::from_str("Error parsing request method").err()
+            _ => ServerError::from_str("Error parsing request method").err()
         }
     }
 }
@@ -26,7 +27,7 @@ impl Display for RequestMethod {
     }
 }
 
-pub struct Request {
+pub struct HttpRequest {
     method: RequestMethod,
     url: String,
     headers: HashMap<String,String>,
@@ -36,8 +37,7 @@ pub struct Request {
     status: u16,
 }
 
-impl Request {
-    /* PUBLIC */
+impl HttpRequest {
     pub fn parse(stream: TcpStream) -> Result<Self>  {
         let mut reader = BufReader::new(&stream);
         let mut line = String::new();
@@ -45,12 +45,12 @@ impl Request {
         /* Parse request line */
         reader.read_line(&mut line)?;
         let mut space = line.split_whitespace().take(3);
-        let method = RequestMethod::from_str(space.next().unwrap())?;
+        let method = RequestMethod::from_str(space.next().unwrap_or(""))?;
         let url = space.next().unwrap().to_owned();
         let version: f32 = space.next().unwrap()
                                .replace("HTTP/", "")
                                .parse()
-                               .or_else(|_| HttpError::from_str("Could not parse HTTP Version").err())?;
+                               .or_else(|_| ServerError::from_str("Could not parse HTTP Version").err())?;
         line.clear();
         /* Parse Headers */
         let mut headers = HashMap::new();
@@ -91,23 +91,18 @@ impl Request {
                 }[1..]
             ))
         );
-        let cwd = cwd.to_str().ok_or_else(|| HttpError::from_str("Error getting cwd"))?;
+        let cwd = cwd.to_str().ok_or_else(|| ServerError::from_str("Error getting cwd"))?;
         Ok(cwd.to_owned())
-    }
-    pub fn process(&mut self) -> Result<()> {
-        match self.method {
-            RequestMethod::GET => self.get(),
-            RequestMethod::POST => self.post(),
-            _ => self.not_implemented(),
-        }
     }
     pub fn method(&self) -> &RequestMethod { &self.method }
     pub fn status(&self) -> u16 { self.status }
+    pub fn set_status(&mut self, status: u16) { self.status = status;  }
     pub fn status_msg(&self) -> &'static str {
         match self.status {
             200 => "OK",
             404 => "NOT FOUND",
             501 => "NOT IMPLEMENTED",
+            403 => "FORBIDDEN",
             _ => "?"
         }
     }
@@ -120,8 +115,8 @@ impl Request {
     pub fn header(&self, key: &str) -> Option<&String> {
         self.headers.get(key)
     }
-    /* PRIVATE */
-    fn respond(&mut self, buf: &[u8]) -> Result<()> {
+    pub fn data(&self) -> &[u8] { &self.data }
+    pub fn respond(&mut self, buf: &[u8]) -> Result<()> {
         let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
         self.stream.write_all(response_line.as_bytes())?;
         if buf.len() == 0 {
@@ -132,22 +127,19 @@ impl Request {
         self.stream.write_all(&buf)?;
         Ok(())
     }
-    fn get(&mut self) -> Result<()> {
-        let filename = self.filename()?;
-        let contents = fs::read(&filename).unwrap_or_else(|_| {
-            println!("Error reading {}", &filename);
-            self.status = 404;
-            self.error_page()
-        });
-        self.respond(&contents)?;
-        Ok(())
+    pub fn ok(&mut self) -> Result<()> {
+        self.status = 200;
+        self.respond(&[])
     }
-    fn post(&mut self) -> Result<()> {
-        fs::write(self.filename()?, &self.data)?;
-        self.respond(&[])?;
-        Ok(())
+    pub fn forbidden(&mut self) -> Result<()> {
+        self.send_error_page(403)
     }
-    fn error_page(&mut self) -> Vec<u8> {
+    pub fn send_error_page(&mut self, error: u16) -> Result<()> {
+        self.status = error;
+        let buf = self.error_page();
+        self.respond(&buf)
+    }
+    pub fn error_page(&mut self) -> Vec<u8> {
         let code = self.status;
         let msg = self.status_msg();
         format!("<!DOCTYPE html>
@@ -160,11 +152,5 @@ impl Request {
                     <h1>{code} {msg}</h1>
                 </body>
                 </html>").as_bytes().to_vec()
-    }
-    fn not_implemented(&mut self) -> Result<()> {
-        self.status = 501;
-        let buf = self.error_page();
-        self.respond(&buf)?;
-        Ok(())
     }
 }

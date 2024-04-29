@@ -21,13 +21,10 @@ impl Worker {
 
             match message {
                 Ok(job) => {
-                    println!("Worker {id} got a job. executing.");
+                    println!("Worker {id} got a job.");
                     job();
                 }
-                Err(_) => {
-                    println!("Worker {id} shutting down.");
-                    break;
-                }
+                Err(_) => break,
             }
         });
         Worker { id, thread:Some(thread) }
