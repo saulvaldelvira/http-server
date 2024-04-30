@@ -134,6 +134,9 @@ impl HttpRequest {
     pub fn forbidden(&mut self) -> Result<()> {
         self.send_error_page(403)
     }
+    pub fn not_found(&mut self) -> Result<()> {
+        self.send_error_page(404)
+    }
     pub fn send_error_page(&mut self, error: u16) -> Result<()> {
         self.status = error;
         let buf = self.error_page();

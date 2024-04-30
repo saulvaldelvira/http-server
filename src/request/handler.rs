@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::ErrorKind::*;
 
 use crate::request::HttpRequest;
 use crate::request::RequestMethod;
@@ -18,6 +19,18 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
 pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
     fs::write(req.filename()?, req.data())?;
     req.ok()
+}
+
+pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
+    match fs::remove_file(req.filename()?) {
+       Ok(_) => req.ok(),
+       Err(err) => {
+           match err.kind() {
+                PermissionDenied => req.forbidden(),
+                _ => req.not_found(),
+           }
+       }
+    }
 }
 
 pub trait HandlerFunc : Fn(&mut HttpRequest) -> Result<()> + Send + Sync + 'static { }

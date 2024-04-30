@@ -11,6 +11,7 @@ fn main() {
 
     server.add_default(RequestMethod::GET, handler::cat_handler);
     server.add_default(RequestMethod::POST, handler::post_handler);
+    server.add_default(RequestMethod::DELETE, handler::delete_handler);
     server.get("/sleep", |req| {
         thread::sleep(Duration::from_secs(5));
         req.ok()
