@@ -33,9 +33,13 @@ impl HttpServer {
         let handler = Arc::new(RwLock::new(self.handler.take().unwrap()));
         println!("Sever listening on port {}", self.port);
         for stream in self.listener.incoming() {
-            let stream = stream.unwrap();
-            let handler = Arc::clone(&handler);
-            self.pool.execute(|| handle_connection(stream, handler));
+            match stream {
+                Ok(stream) => {
+                    let handler = Arc::clone(&handler);
+                    self.pool.execute(|| handle_connection(stream, handler));
+                },
+                Err(_) => continue, /* eprintln!("{err}"), */
+            }
         }
         println!("Shutting down.");
     }
