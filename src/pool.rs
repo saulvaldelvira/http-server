@@ -1,10 +1,21 @@
 mod worker;
 
 use std::sync::{mpsc,Arc,Mutex};
-pub use super::error::ServerError as ThreadPoolError;
-pub type Result<T> = std::result::Result<T,ThreadPoolError>;
 use worker::{Job, Worker};
+use crate::{ServerError,Result};
 
+/// Thread Pool
+///
+/// A thread pool coordinates a group of threads to run
+/// taks in parallel.
+///
+/// # Example
+/// ```
+/// use http_server::pool::ThreadPool;
+///
+/// let pool = ThreadPool::new(32).expect("Error creating pool");
+/// pool.execute(|| println!("Hello world!"));
+/// ```
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: Option<mpsc::Sender<Job>>,
@@ -16,11 +27,10 @@ impl ThreadPool {
     /// The size is the number of threads in the pool.
     ///
     /// # Returns
-    /// A Result<ThreadPool,ThreadPoolError>
-    ///
+    /// A [Result]<[ThreadPool],[ServerError]>
     pub fn new(size: usize) -> Result<ThreadPool> {
         if size == 0 {
-            return Err(ThreadPoolError::from_str("Invalid size: 0"));
+            return Err(ServerError::from_str("Invalid size: 0"));
         }
         let (sender,receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));

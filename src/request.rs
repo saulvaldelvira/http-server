@@ -4,6 +4,9 @@ use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, io::{BufRead, Buf
 use crate::{Result,ServerError};
 
 
+/// Request Method
+///
+/// Represents the method of the HTTP request
 #[derive(Debug,Eq,Hash,PartialEq,Clone,Copy)]
 pub enum RequestMethod {
     GET, POST, PUT, DELETE
@@ -27,6 +30,9 @@ impl Display for RequestMethod {
     }
 }
 
+/// HTTP Request
+///
+/// Represents an HTTP request
 pub struct HttpRequest {
     method: RequestMethod,
     url: String,
@@ -38,6 +44,7 @@ pub struct HttpRequest {
 }
 
 impl HttpRequest {
+    /// Read and parse an HTTP request from the given [TcpStream]
     pub fn parse(stream: TcpStream) -> Result<Self>  {
         let mut reader = BufReader::new(&stream);
         let mut line = String::new();
@@ -65,7 +72,6 @@ impl HttpRequest {
             headers.insert(key, value);
             line.clear();
         }
-
         /* Get body (if present) */
         let len =
             match headers.get("Content-Length") {
@@ -80,7 +86,13 @@ impl HttpRequest {
 
         Ok(Self { method, url, headers, data, version, stream, status:200 })
     }
+    /// Url of the request
     pub fn url(&self) -> &str { &self.url }
+    /// Get the filename for the request
+    ///
+    /// It computes the path in the server corresponding to the
+    /// request's url.
+    ///
     pub fn filename(&self) -> Result<String> {
         let mut cwd = env::current_dir()?;
         cwd.push(
@@ -97,6 +109,7 @@ impl HttpRequest {
     pub fn method(&self) -> &RequestMethod { &self.method }
     pub fn status(&self) -> u16 { self.status }
     pub fn set_status(&mut self, status: u16) { self.status = status;  }
+    /// Get a human-readable description of the request's status code
     pub fn status_msg(&self) -> &'static str {
         match self.status {
             200 => "OK",
@@ -106,16 +119,24 @@ impl HttpRequest {
             _ => "?"
         }
     }
+    /// Get the value of the *Content-Length* HTTP header
+    ///
+    /// If the header is not present, or if it fails to parse
+    /// it's value, it returns 0
     pub fn content_length(&self) -> usize {
         match self.headers.get("Content-Length") {
             Some(l) => l.parse().unwrap_or(0),
             None => 0,
         }
     }
+    /// Get the value of the given header key, if present
     pub fn header(&self, key: &str) -> Option<&String> {
         self.headers.get(key)
     }
     pub fn data(&self) -> &[u8] { &self.data }
+    /// Respond to the request
+    ///
+    /// buf: Response bytes
     pub fn respond(&mut self, buf: &[u8]) -> Result<()> {
         let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
         self.stream.write_all(response_line.as_bytes())?;
@@ -127,21 +148,26 @@ impl HttpRequest {
         self.stream.write_all(&buf)?;
         Ok(())
     }
+    /// Respond to the request with an 200 OK status
     pub fn ok(&mut self) -> Result<()> {
         self.status = 200;
         self.respond(&[])
     }
+    /// Respond to the request with an 403 FORBIDDEN status
     pub fn forbidden(&mut self) -> Result<()> {
         self.send_error_page(403)
     }
+    /// Respond to the request with an 404 NOT FOUND status
     pub fn not_found(&mut self) -> Result<()> {
         self.send_error_page(404)
     }
+    /// Respond with a basic HTML error page of the given status
     pub fn send_error_page(&mut self, error: u16) -> Result<()> {
         self.status = error;
         let buf = self.error_page();
         self.respond(&buf)
     }
+    /// Returns a basic HTML error page of the given status
     pub fn error_page(&mut self) -> Vec<u8> {
         let code = self.status;
         let msg = self.status_msg();
@@ -155,5 +181,22 @@ impl HttpRequest {
                     <h1>{code} {msg}</h1>
                 </body>
                 </html>").as_bytes().to_vec()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::request::RequestMethod::{self,*};
+
+    #[test]
+    fn parse_method() {
+       assert!(RequestMethod::from_str("unknown").is_err());
+       let strs = vec!["GET","POST","PUT","DELETE"];
+       let methods = vec![GET,POST,PUT,DELETE];
+       let res:Vec<RequestMethod> =
+                     strs.iter()
+                     .map(|m| RequestMethod::from_str(m))
+                     .map(Result::unwrap).collect();
+       assert_eq!(methods,res);
     }
 }

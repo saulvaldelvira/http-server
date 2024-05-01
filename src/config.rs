@@ -16,6 +16,7 @@ impl MyArgs for Args {
 }
 
 impl Config {
+    /// Parse the configuration from the command line args
     pub fn parse(args: Args) -> Self {
         let mut conf = Self {
             port: 80,

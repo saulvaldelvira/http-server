@@ -1,7 +1,7 @@
 use std::{env,thread,time::Duration};
 use http_server::{
     request::{RequestMethod,handler},
-    server::HttpServer,
+    HttpServer,
     config::Config
 };
 
