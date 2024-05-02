@@ -37,20 +37,20 @@ pub struct HttpRequest {
     method: RequestMethod,
     url: String,
     headers: HashMap<String,String>,
-    data: Vec<u8>,
+    response_headers: HashMap<String,String>,
     version: f32,
-    stream: TcpStream,
+    stream: BufReader<TcpStream>,
     status: u16,
 }
 
 impl HttpRequest {
     /// Read and parse an HTTP request from the given [TcpStream]
     pub fn parse(stream: TcpStream) -> Result<Self>  {
-        let mut reader = BufReader::new(&stream);
+        let mut stream = BufReader::new(stream);
         let mut line = String::new();
 
         /* Parse request line */
-        reader.read_line(&mut line)?;
+        stream.read_line(&mut line)?;
         let mut space = line.split_whitespace().take(3);
         let method = RequestMethod::from_str(space.next().unwrap_or(""))?;
         let url = space.next().unwrap().to_owned();
@@ -61,7 +61,7 @@ impl HttpRequest {
         line.clear();
         /* Parse Headers */
         let mut headers = HashMap::new();
-        while let Ok(_) = reader.read_line(&mut line) {
+        while let Ok(_) = stream.read_line(&mut line) {
             if line == "\r\n" { break; }
             let mut splt = line.split(":");
             let key = splt.next().unwrap_or("").to_string();
@@ -72,19 +72,8 @@ impl HttpRequest {
             headers.insert(key, value);
             line.clear();
         }
-        /* Get body (if present) */
-        let len =
-            match headers.get("Content-Length") {
-                Some(l) => l.parse().unwrap_or(0),
-                None => 0,
-            };
-        let mut data:Vec<u8> = Vec::new();
-        if len > 0 {
-            data.resize(len, 0);
-            reader.read_exact(&mut data)?;
-        };
-
-        Ok(Self { method, url, headers, data, version, stream, status:200 })
+        let response_headers = HashMap::new();
+        Ok(Self { method, url, headers, response_headers, version, stream, status:200 })
     }
     /// Url of the request
     pub fn url(&self) -> &str { &self.url }
@@ -108,7 +97,10 @@ impl HttpRequest {
     }
     pub fn method(&self) -> &RequestMethod { &self.method }
     pub fn status(&self) -> u16 { self.status }
-    pub fn set_status(&mut self, status: u16) { self.status = status;  }
+    pub fn set_status(&mut self, status: u16) -> &mut Self {
+        self.status = status;
+        self
+    }
     /// Get a human-readable description of the request's status code
     pub fn status_msg(&self) -> &'static str {
         match self.status {
@@ -133,25 +125,72 @@ impl HttpRequest {
     pub fn header(&self, key: &str) -> Option<&String> {
         self.headers.get(key)
     }
-    pub fn data(&self) -> &[u8] { &self.data }
-    /// Respond to the request
-    ///
-    /// buf: Response bytes
-    pub fn respond(&mut self, buf: &[u8]) -> Result<()> {
-        let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
-        self.stream.write_all(response_line.as_bytes())?;
-        if buf.len() == 0 {
-            return Ok(());
+    pub fn set_header(&mut self, key: &str, value: &str) {
+        self.response_headers.insert(key.to_string(), value.to_string());
+    }
+    pub fn data(&mut self) -> Vec<u8> {
+        let len = self.content_length();
+        let mut buf:Vec<u8> = Vec::with_capacity(len);
+        buf.resize(len, 0);
+        self.stream.read_exact(&mut buf).unwrap();
+        buf
+    }
+    pub fn read_data(&mut self, writer: &mut dyn Write) -> Result<()> {
+        const CHUNK_SIZE:usize = 1024 * 1024;
+        let mut buf:[u8;CHUNK_SIZE] = [0;CHUNK_SIZE];
+        let len = self.content_length();
+        let n = len / CHUNK_SIZE;
+        let remainder = len % CHUNK_SIZE;
+
+        for _ in 0..n {
+            self.stream.read_exact(&mut buf)?;
+            writer.write_all(&buf)?;
         }
-        let headers = format!("Content-Length: {}\r\n\r\n", buf.len());
-        self.stream.write_all(headers.as_bytes())?;
-        self.stream.write_all(&buf)?;
+
+        if remainder > 0 {
+            self.stream.read_exact(&mut buf[0..remainder])?;
+            writer.write_all(&buf[0..remainder])?;
+        }
+
+        Ok(())
+    }
+    /// Respond to the request without a body
+    pub fn respond(&mut self) -> Result<()> {
+        let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
+        self.stream.get_mut().write_all(response_line.as_bytes())?;
+        let mut headers = String::new();
+        for header in &self.response_headers {
+           headers.push_str(header.0);
+           headers.push_str(": ");
+           headers.push_str(header.1);
+           headers.push_str("\r\n");
+        }
+        headers += "\r\n";
+        self.stream.get_mut().write_all(headers.as_bytes())?;
+        Ok(())
+    }
+    /// Respond to the request with the data of buf as a body
+    pub fn respond_buf(&mut self, buf: &[u8]) -> Result<()> {
+        self.respond()?;
+        self.stream.get_mut().write_all(&buf)?;
+        Ok(())
+    }
+
+    /// Respond to the request with the data read from reader as a body
+    pub fn respond_reader(&mut self, reader: &mut dyn Read) -> Result<()> {
+        self.respond()?;
+        const CHUNK_SIZE:usize = 1024 * 1024;
+        let mut buf:[u8;CHUNK_SIZE] = [0;CHUNK_SIZE];
+
+        while let Ok(n) = reader.read(&mut buf) {
+            if n == 0 { break; }
+            self.stream.get_mut().write_all(&buf[0..n])?;
+        }
         Ok(())
     }
     /// Respond to the request with an 200 OK status
     pub fn ok(&mut self) -> Result<()> {
-        self.status = 200;
-        self.respond(&[])
+        self.set_status(200).respond()
     }
     /// Respond to the request with an 403 FORBIDDEN status
     pub fn forbidden(&mut self) -> Result<()> {
@@ -164,8 +203,8 @@ impl HttpRequest {
     /// Respond with a basic HTML error page of the given status
     pub fn send_error_page(&mut self, error: u16) -> Result<()> {
         self.status = error;
-        let buf = self.error_page();
-        self.respond(&buf)
+        let mut buf = self.error_page();
+        self.respond_buf(&mut buf)
     }
     /// Returns a basic HTML error page of the given status
     pub fn error_page(&mut self) -> Vec<u8> {

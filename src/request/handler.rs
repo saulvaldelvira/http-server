@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
+use std::fs::File;
+use std::io::BufReader;
 use std::io::ErrorKind::*;
 
 use crate::request::HttpRequest;
@@ -8,17 +10,36 @@ use crate::Result;
 
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
-    let contents = fs::read(&filename).unwrap_or_else(|_| {
-        println!("Error reading {}", &filename);
-        req.set_status(404);
-        req.error_page()
-    });
-    req.respond(&contents)
+    match File::open(&filename) {
+        Ok(file) => {
+            let mut reader = BufReader::new(file);
+            req.respond_reader(&mut reader)
+        },
+        Err(err) => {
+            println!("Error opening {}: {err}", &filename);
+            match err.kind() {
+                PermissionDenied => req.forbidden(),
+                _ => req.not_found(),
+            }
+        }
+    }
 }
 
 pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
-    fs::write(req.filename()?, req.data())?;
-    req.ok()
+    let filename = req.filename()?;
+    match File::create(&filename) {
+        Ok(mut file) => {
+            req.read_data(&mut file)?;
+            req.ok()
+        },
+        Err(err) => {
+            println!("Error opening {}: {err}", &filename);
+            match err.kind() {
+                PermissionDenied => req.forbidden(),
+                _ => req.not_found(),
+            }
+        }
+    }
 }
 
 pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
