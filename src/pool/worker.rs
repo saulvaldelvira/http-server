@@ -1,5 +1,6 @@
 use std::thread::{JoinHandle,spawn};
 use std::sync::{mpsc, Arc, Mutex};
+use super::Semaphore;
 
 /// Type of function ran by the [Worker]
 pub type Job = Box<dyn FnOnce() + Send + 'static>;
@@ -14,7 +15,8 @@ impl Worker {
     /// Creates a new [Worker]
     pub fn new(
         id: usize,
-        receiver: Arc<Mutex<mpsc::Receiver<Job>>>
+        receiver: Arc<Mutex<mpsc::Receiver<Job>>>,
+        semaphore: Semaphore,
     ) -> Worker {
         let thread = spawn(move || loop {
             let message = receiver
@@ -26,11 +28,15 @@ impl Worker {
                 Ok(job) => {
                     println!("Worker {id} got a job.");
                     job();
+                    let (lock,condv) = &*semaphore;
+                    let mut counter = lock.lock().unwrap();
+                    *counter -= 1;
+                    condv.notify_one();
                 }
                 Err(_) => break,
             }
         });
-        Worker { id, thread:Some(thread) }
+        Worker { id,thread:Some(thread)}
     }
     /// Shuts down the [Worker]
     pub fn shutdown(&mut self) {
