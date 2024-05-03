@@ -12,6 +12,8 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
     match File::open(&filename) {
         Ok(file) => {
+            let len = file.metadata()?.len();
+            req.set_header("Content-Length", len);
             let mut reader = BufReader::new(file);
             req.respond_reader(&mut reader)
         },

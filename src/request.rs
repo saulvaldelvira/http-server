@@ -125,7 +125,7 @@ impl HttpRequest {
     pub fn header(&self, key: &str) -> Option<&String> {
         self.headers.get(key)
     }
-    pub fn set_header(&mut self, key: &str, value: &str) {
+    pub fn set_header<V: ToString>(&mut self, key: &str, value: V) {
         self.response_headers.insert(key.to_string(), value.to_string());
     }
     pub fn data(&mut self) -> Vec<u8> {
