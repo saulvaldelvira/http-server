@@ -85,12 +85,9 @@ impl HttpRequest {
     pub fn filename(&self) -> Result<String> {
         let mut cwd = env::current_dir()?;
         cwd.push(
-            Path::new(OsStr::new(
-                &match self.url.as_str() {
-                    "/" => "/index.html",
-                    _ => &self.url,
-                }[1..]
-            ))
+            Path::new(
+                OsStr::new(&self.url[1..])
+            )
         );
         let cwd = cwd.to_str().ok_or_else(|| ServerError::from_str("Error getting cwd"))?;
         Ok(cwd.to_owned())
