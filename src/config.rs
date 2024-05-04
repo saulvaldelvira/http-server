@@ -1,4 +1,4 @@
-use std::{env::Args, str::FromStr};
+use std::{env::{self, Args}, path::Path, str::FromStr};
 
 pub struct Config {
     port: u16,
@@ -27,6 +27,10 @@ impl Config {
             match arg.as_str() {
                 "-p" => conf.port = args.next_parse().expect("Missing port for argument -p"),
                 "-n" => conf.n_threads = args.next_parse().expect("Missing number of threads for argument -n"),
+                "-d" | "--dir" => {
+                    let path = args.next().expect("Missing directory argument");
+                    env::set_current_dir(&Path::new(&path)).expect("Error changing cwd");
+                },
                 _ => {}
             }
         }
