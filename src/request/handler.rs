@@ -3,6 +3,7 @@ use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::ErrorKind::*;
+use std::path::Path;
 
 use crate::request::HttpRequest;
 use crate::request::RequestMethod;
@@ -56,6 +57,46 @@ pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
     }
 }
 
+fn file_exists(filename: &str) -> bool {
+    let path = Path::new(filename);
+    path.is_file() || path.is_symlink()
+}
+
+pub fn suffix_html(req: &mut HttpRequest) {
+    if file_exists(&req.url()[1..]) { return; }
+    for suffix in [".html",".php"] {
+        let mut filename = req.url().to_owned();
+        filename.push_str(suffix);
+        if file_exists(&filename[1..]) {
+            req.set_url(filename);
+            break;
+        }
+    }
+}
+
+pub fn log_request(req: &mut HttpRequest) {
+    println!("{} {} {} {}", req.method(), req.url(), req.status(), req.status_msg());
+}
+
+pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
+        if file_exists("index.html") {
+            req.set_url("/index.html".to_owned());
+            cat_handler(req)
+        } else {
+            req.respond_buf(
+            b"<!DOCTYPE html>
+              <html>
+                <head>
+                    <title>HTTP Server</title>
+                </head>
+                <body>
+                    <h1>HTTP Server</h1>
+                    <p>Hello world :)</p>
+                </body>
+              </html>")
+        }
+}
+
 /// HandlerFunc trait
 ///
 /// Represents a function that handles an [HttpRequest]
@@ -64,16 +105,32 @@ pub trait HandlerFunc : Fn(&mut HttpRequest) -> Result<()> + Send + Sync + 'stat
 impl<T> HandlerFunc for T
 where T: Fn(&mut HttpRequest) -> Result<()>  + Send + Sync + 'static { }
 
+/// Interceptor trait
+/// Represents a function that "intercepts" a request.
+/// It can change it's state or log it's output.
+pub trait Interceptor: Fn(&mut HttpRequest) + Send + Sync + 'static { }
+impl<T> Interceptor for T
+where T: Fn(&mut HttpRequest) + Send + Sync + 'static { }
+
 pub type HandlerTable = HashMap<RequestMethod,HashMap<String,Box<dyn HandlerFunc>>>;
 
 pub struct Handler {
     handlers: HandlerTable,
     defaults: HashMap<RequestMethod,Box<dyn HandlerFunc>>,
+    pre_interceptors: Vec<Box<dyn Interceptor>>,
+    post_interceptors: Vec<Box<dyn Interceptor>>,
 }
 
 impl Handler {
     pub fn new() -> Self {
-        Self { handlers: HashMap::new(), defaults: HashMap::new() }
+        Self { handlers: HashMap::new(), defaults: HashMap::new(),
+               pre_interceptors: Vec::new(), post_interceptors: Vec::new() }
+    }
+    pub fn get<F: HandlerFunc>(&mut self, url: &str, f: F) {
+        self.add(RequestMethod::GET,url,f);
+    }
+    pub fn post<F: HandlerFunc>(&mut self, url: &str, f: F) {
+        self.add(RequestMethod::POST,url,f);
     }
     /// Adds a handler for a request type
     ///
@@ -96,8 +153,16 @@ impl Handler {
     pub fn add_default<F: HandlerFunc>(&mut self, method: RequestMethod, f: F) {
         self.defaults.insert(method, Box::new(f));
     }
+    /// Add a function to run before the request is processed
+    pub fn pre_interceptor<F: Interceptor>(&mut self, f: F) {
+        self.pre_interceptors.push(Box::new(f));
+    }
+    /// Add a function to run after the request is processed
+    pub fn post_interceptor<F: Interceptor>(&mut self, f: F) {
+        self.post_interceptors.push(Box::new(f));
+    }
     /// Get the handler for a certain method and url
-    pub fn get(&self, method: &RequestMethod, url: &str) -> Option<&Box<dyn HandlerFunc>> {
+    pub fn get_handler(&self, method: &RequestMethod, url: &str) -> Option<&Box<dyn HandlerFunc>> {
         match self.handlers.get(method) {
             Some(map) => map.get(url).or_else(|| self.defaults.get(method)),
             None => self.defaults.get(method),
@@ -106,9 +171,12 @@ impl Handler {
     /// Handles a request if it finds a [HandlerFunc] for it.
     /// Else, it returns a 403 FORBIDDEN response
     pub fn handle(&self, req: &mut HttpRequest) -> Result<()> {
-        match self.get(req.method(), req.url()) {
+        self.pre_interceptors.iter().for_each(|f| f(req));
+        let ret = match self.get_handler(req.method(), req.url()) {
             Some(handler) => handler(req),
             None => req.forbidden(),
-        }
+        };
+        self.post_interceptors.iter().for_each(|f| f(req));
+        ret
     }
 }

@@ -26,7 +26,7 @@ impl Worker {
 
             match message {
                 Ok(job) => {
-                    println!("Worker {id} got a job.");
+                    /* println!("Worker {id} got a job."); */
                     job();
                     let (lock,condv) = &*semaphore;
                     let mut counter = lock.lock().unwrap();

@@ -77,6 +77,7 @@ impl HttpRequest {
     }
     /// Url of the request
     pub fn url(&self) -> &str { &self.url }
+    pub fn set_url(&mut self, url: String) { self.url = url; }
     /// Get the filename for the request
     ///
     /// It computes the path in the server corresponding to the

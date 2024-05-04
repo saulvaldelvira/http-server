@@ -1,4 +1,4 @@
-use crate::{pool::ThreadPool, request::{handler::{Handler, HandlerFunc}, HttpRequest, RequestMethod}};
+use crate::{pool::ThreadPool, request::{handler::Handler, HttpRequest}};
 use std::sync::{Arc,RwLock};
 use std::net::{TcpListener, TcpStream};
 
@@ -28,7 +28,6 @@ fn handle_connection(stream: TcpStream, handlers: Arc<RwLock<Handler>>) {
     handlers.read().unwrap().handle(&mut req).unwrap_or_else(|err| {
         eprintln!("{err}");
     });
-    println!("{} {} {} {}", req.method(), req.url(), req.status(), req.status_msg());
 }
 
 impl HttpServer {
@@ -67,37 +66,6 @@ impl HttpServer {
         }
         println!("Shutting down.");
     }
-    /// Adds a handler for GET requests
-    ///
-    /// - url: URL for the handler
-    /// - f: [handler](HandlerFunc) for the request
-    ///
-    pub fn get<F: HandlerFunc>(&mut self, url: &str, f: F) {
-        self.add(RequestMethod::GET, url, f);
-    }
-    /// Adds a handler for POST requests
-    ///
-    /// - url: URL for the handler
-    /// - f: [handler](HandlerFunc) for the request
-    ///
-    pub fn post<F: HandlerFunc>(&mut self, url: &str, f: F) {
-        self.add(RequestMethod::POST, url, f);
-    }
-    /// Adds a handler for a request type
-    ///
-    /// - method: HTTP [method](RequestMethod) to match
-    /// - url: URL for the handler
-    /// - f: [Handler](HandlerFunc) for the request
-    ///
-    pub fn add<F: HandlerFunc>(&mut self, method: RequestMethod, url: &str, f: F) {
-        self.handler.as_mut().unwrap().add(method, url, f);
-    }
-    /// Adds a default handler for all requests of a certain type
-    ///
-    /// - method: HTTP [method](RequestMethod) to match
-    /// - f: [Handler](HandlerFunc) for the requests
-    ///
-    pub fn add_default<F: HandlerFunc>(&mut self, method: RequestMethod, f: F) {
-        self.handler.as_mut().unwrap().add_default(method, f);
-    }
+    /// Set a [Handler] for all the [requests](HttpRequest) on this [server](HttpServer)
+    pub fn set_handler(&mut self, handler: Handler) { self.handler = Some(handler); }
 }
