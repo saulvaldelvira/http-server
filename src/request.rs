@@ -1,6 +1,6 @@
 pub mod handler;
 
-use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path};
+use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, hash::Hash, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path};
 use crate::{Result,ServerError};
 
 
@@ -37,6 +37,7 @@ pub struct HttpRequest {
     method: RequestMethod,
     url: String,
     headers: HashMap<String,String>,
+    params: HashMap<String,String>,
     response_headers: HashMap<String,String>,
     version: f32,
     stream: BufReader<TcpStream>,
@@ -53,7 +54,21 @@ impl HttpRequest {
         stream.read_line(&mut line)?;
         let mut space = line.split_whitespace().take(3);
         let method = RequestMethod::from_str(space.next().unwrap_or(""))?;
-        let url = space.next().unwrap().to_owned();
+        let mut url = space.next().unwrap().to_owned();
+        let mut params = HashMap::new();
+        if url.contains("?") {
+            /* Parse URL */
+            let mut split = url.split("?");
+            let new_url = split.next().unwrap().to_owned();
+            let query = split.next().unwrap_or("");
+            for arg in query.split("&") {
+                let mut arg = arg.split("=");
+                let k = arg.next().unwrap_or("").to_owned();
+                let v = arg.next().unwrap_or("").to_owned();
+                params.insert(k, v);
+            }
+            url = new_url;
+        }
         let version: f32 = space.next().unwrap()
                                .replace("HTTP/", "")
                                .parse()
@@ -73,11 +88,13 @@ impl HttpRequest {
             line.clear();
         }
         let response_headers = HashMap::new();
-        Ok(Self { method, url, headers, response_headers, version, stream, status:200 })
+        Ok(Self { method, url, headers, params, response_headers, version, stream, status:200 })
     }
     /// Url of the request
     pub fn url(&self) -> &str { &self.url }
     pub fn set_url(&mut self, url: String) { self.url = url; }
+    /// Get the query parameters
+    pub fn params(&self) -> &HashMap<String,String> { &self.params }
     /// Get the filename for the request
     ///
     /// It computes the path in the server corresponding to the
