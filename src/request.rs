@@ -106,6 +106,7 @@ impl HttpRequest {
             404 => "NOT FOUND",
             501 => "NOT IMPLEMENTED",
             403 => "FORBIDDEN",
+            500 => "INTERNAL SERVER ERROR",
             _ => "?"
         }
     }

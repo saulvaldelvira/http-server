@@ -48,12 +48,11 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
 pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
     match fs::remove_file(req.filename()?) {
        Ok(_) => req.ok(),
-       Err(err) => {
+       Err(err) =>
            match err.kind() {
                 PermissionDenied => req.forbidden(),
                 _ => req.not_found(),
            }
-       }
     }
 }
 
@@ -173,7 +172,7 @@ impl Handler {
     pub fn handle(&self, req: &mut HttpRequest) -> Result<()> {
         self.pre_interceptors.iter().for_each(|f| f(req));
         let ret = match self.get_handler(req.method(), req.url()) {
-            Some(handler) => handler(req),
+            Some(handler) => handler(req).or_else(|_| req.send_error_page(500)),
             None => req.forbidden(),
         };
         self.post_interceptors.iter().for_each(|f| f(req));
