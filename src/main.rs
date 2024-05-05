@@ -13,8 +13,10 @@ fn main() {
     handler.add_default(RequestMethod::GET, handler::cat_handler);
     handler.add_default(RequestMethod::POST, handler::post_handler);
     handler.add_default(RequestMethod::DELETE, handler::delete_handler);
+    handler.add_default(RequestMethod::HEAD, handler::head_handler);
 
     handler.get("/", handler::index_handler);
+    handler.add(RequestMethod::HEAD, "/", handler::index_handler);
     handler.get("/sleep", |req| {
         thread::sleep(Duration::from_secs(5));
         req.ok()

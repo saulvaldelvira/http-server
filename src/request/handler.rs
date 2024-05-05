@@ -9,23 +9,42 @@ use crate::request::HttpRequest;
 use crate::request::RequestMethod;
 use crate::Result;
 
-pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
+fn head_headers(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
     match File::open(&filename) {
         Ok(file) => {
             let len = file.metadata()?.len();
             req.set_header("Content-Length", len);
-            let mut reader = BufReader::new(file);
-            req.respond_reader(&mut reader)
         },
         Err(err) => {
             println!("Error opening {}: {err}", &filename);
-            match err.kind() {
-                PermissionDenied => req.forbidden(),
-                _ => req.not_found(),
-            }
+            let status = match err.kind() {
+                PermissionDenied => 403,
+                _ => 404,
+            };
+            req.set_status(status);
         }
+    };
+    Ok(())
+}
+
+pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
+    head_headers(req)?;
+    if req.status() != 200 {
+        req.respond_error_page()
+    }else {
+        req.respond()
     }
+}
+
+pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
+    head_headers(req)?;
+    if req.status() != 200 {
+        return req.respond_error_page();
+    };
+    let file = File::open(req.filename()?)?;
+    let mut reader = BufReader::new(file);
+    req.respond_reader(&mut reader)
 }
 
 pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
@@ -57,8 +76,7 @@ pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
 }
 
 fn file_exists(filename: &str) -> bool {
-    let path = Path::new(filename);
-    path.is_file() || path.is_symlink()
+    Path::new(filename).is_file()
 }
 
 pub fn suffix_html(req: &mut HttpRequest) {
@@ -105,6 +123,7 @@ impl<T> HandlerFunc for T
 where T: Fn(&mut HttpRequest) -> Result<()>  + Send + Sync + 'static { }
 
 /// Interceptor trait
+///
 /// Represents a function that "intercepts" a request.
 /// It can change it's state or log it's output.
 pub trait Interceptor: Fn(&mut HttpRequest) + Send + Sync + 'static { }
@@ -113,6 +132,23 @@ where T: Fn(&mut HttpRequest) + Send + Sync + 'static { }
 
 pub type HandlerTable = HashMap<RequestMethod,HashMap<String,Box<dyn HandlerFunc>>>;
 
+/// Handler
+///
+/// Matches [requests](HttpRequest) by their method and url, and
+/// executes different handler functions for them.
+///
+/// # Example
+/// ```
+/// use http_server::request::handler::{self,*};
+/// use http_server::request::RequestMethod;
+///
+/// let mut handler = Handler::new();
+/// handler.get("/", |req| {
+///     req.respond_buf(b"Hello world! :)")
+/// });
+/// handler.add_default(RequestMethod::GET, handler::cat_handler);
+/// handler.post_interceptor(handler::log_request);
+/// ```
 pub struct Handler {
     handlers: HandlerTable,
     defaults: HashMap<RequestMethod,Box<dyn HandlerFunc>>,
@@ -130,6 +166,9 @@ impl Handler {
     }
     pub fn post<F: HandlerFunc>(&mut self, url: &str, f: F) {
         self.add(RequestMethod::POST,url,f);
+    }
+    pub fn delete<F: HandlerFunc>(&mut self, url: &str, f: F) {
+        self.add(RequestMethod::DELETE,url,f);
     }
     /// Adds a handler for a request type
     ///
@@ -172,7 +211,7 @@ impl Handler {
     pub fn handle(&self, req: &mut HttpRequest) -> Result<()> {
         self.pre_interceptors.iter().for_each(|f| f(req));
         let ret = match self.get_handler(req.method(), req.url()) {
-            Some(handler) => handler(req).or_else(|_| req.send_error_page(500)),
+            Some(handler) => handler(req).or_else(|_| req.server_error()),
             None => req.forbidden(),
         };
         self.post_interceptors.iter().for_each(|f| f(req));

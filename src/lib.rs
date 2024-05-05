@@ -7,6 +7,7 @@ pub mod config;
 use error::ServerError;
 pub use server::HttpServer;
 pub use request::HttpRequest;
+pub use request::handler::Handler;
 
 /// Result type for the [http_server](self) crate
 ///

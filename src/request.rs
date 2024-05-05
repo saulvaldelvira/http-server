@@ -1,6 +1,6 @@
 pub mod handler;
 
-use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, hash::Hash, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path};
+use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, hash::Hash, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path, str::FromStr};
 use crate::{Result,ServerError};
 
 
@@ -9,16 +9,24 @@ use crate::{Result,ServerError};
 /// Represents the method of the HTTP request
 #[derive(Debug,Eq,Hash,PartialEq,Clone,Copy)]
 pub enum RequestMethod {
-    GET, POST, PUT, DELETE
+    GET, POST, PUT, DELETE,
+    HEAD, PATCH, CONNECT,
+    OPTIONS, TRACE,
 }
 
-impl RequestMethod {
+impl FromStr for RequestMethod {
+    type Err = ServerError;
     fn from_str(t: &str) -> Result<Self> {
         match t {
             "GET" => Ok(Self::GET),
             "POST" => Ok(Self::POST),
             "PUT" => Ok(Self::PUT),
             "DELETE" => Ok(Self::DELETE),
+            "HEAD" => Ok(Self::HEAD),
+            "PATCH" => Ok(Self::PATCH),
+            "CONNECT" => Ok(Self::CONNECT),
+            "OPTIONS" => Ok(Self::OPTIONS),
+            "TRACE" => Ok(Self::TRACE),
             _ => ServerError::from_str("Error parsing request method").err()
         }
     }
@@ -53,7 +61,7 @@ impl HttpRequest {
         /* Parse request line */
         stream.read_line(&mut line)?;
         let mut space = line.split_whitespace().take(3);
-        let method = RequestMethod::from_str(space.next().unwrap_or(""))?;
+        let method = space.next().unwrap_or("").parse()?;
         let mut url = space.next().unwrap().to_owned();
         let mut params = HashMap::new();
         if url.contains("?") {
@@ -120,9 +128,29 @@ impl HttpRequest {
     pub fn status_msg(&self) -> &'static str {
         match self.status {
             200 => "OK",
-            404 => "NOT FOUND",
-            501 => "NOT IMPLEMENTED",
+            201 => "CREATED",
+            202 => "ACCEPTED",
+            203 => "NON-AUTHORITATIVE INFORMATION",
+            204 => "NO CONTENT",
+            205 => "RESET CONTENT",
+            206 => "PARTIAL CONTENT",
+            300 => "MULTIPLE CHOICES",
+            301 => "MOVED PERMANENTLY",
+            302 => "FOUND",
+            303 => "SEE OTHER",
+            304 => "NOT MODIFIED",
+            307 => "TEMPORARY REDIRECT",
+            308 => "PERMANENT REDIRECT",
+            400 => "BAD REQUEST",
+            401 => "UNAUTHORIZED",
             403 => "FORBIDDEN",
+            404 => "NOT FOUND",
+            405 => "METHOD NOT ALLOWED",
+            406 => "NOT ACCEPTABLE",
+            407 => "PROXY AUTHENTICATION REQUIRED",
+            408 => "REQUEST TIMEOUT",
+            409 => "CONFLICT",
+            501 => "NOT IMPLEMENTED",
             500 => "INTERNAL SERVER ERROR",
             _ => "?"
         }
@@ -187,6 +215,7 @@ impl HttpRequest {
     }
     /// Respond to the request with the data of buf as a body
     pub fn respond_buf(&mut self, buf: &[u8]) -> Result<()> {
+        self.set_header("Content-Length", buf.len());
         self.respond()?;
         self.stream.get_mut().write_all(&buf)?;
         Ok(())
@@ -204,23 +233,26 @@ impl HttpRequest {
         }
         Ok(())
     }
+    /// Respond with a basic HTML error page
+    pub fn respond_error_page(&mut self) -> Result<()> {
+        let mut buf = self.error_page();
+        self.respond_buf(&mut buf)
+    }
     /// Respond to the request with an 200 OK status
     pub fn ok(&mut self) -> Result<()> {
         self.set_status(200).respond()
     }
     /// Respond to the request with an 403 FORBIDDEN status
     pub fn forbidden(&mut self) -> Result<()> {
-        self.send_error_page(403)
+        self.set_status(403).respond_error_page()
     }
     /// Respond to the request with an 404 NOT FOUND status
     pub fn not_found(&mut self) -> Result<()> {
-        self.send_error_page(404)
+        self.set_status(404).respond_error_page()
     }
-    /// Respond with a basic HTML error page of the given status
-    pub fn send_error_page(&mut self, error: u16) -> Result<()> {
-        self.status = error;
-        let mut buf = self.error_page();
-        self.respond_buf(&mut buf)
+    /// Respond to the request with an 500 INTERNAL SERVER ERROR status
+    pub fn server_error(&mut self) -> Result<()> {
+        self.set_status(500).respond_error_page()
     }
     /// Returns a basic HTML error page of the given status
     pub fn error_page(&mut self) -> Vec<u8> {
@@ -241,17 +273,19 @@ impl HttpRequest {
 
 #[cfg(test)]
 mod test {
+    use std::str::FromStr;
+
     use crate::request::RequestMethod::{self,*};
 
     #[test]
     fn parse_method() {
-       assert!(RequestMethod::from_str("unknown").is_err());
-       let strs = vec!["GET","POST","PUT","DELETE"];
-       let methods = vec![GET,POST,PUT,DELETE];
-       let res:Vec<RequestMethod> =
-                     strs.iter()
-                     .map(|m| RequestMethod::from_str(m))
-                     .map(Result::unwrap).collect();
-       assert_eq!(methods,res);
+        assert!(RequestMethod::from_str("unknown").is_err());
+        let strs = vec!["GET","POST","PUT","DELETE"];
+        let methods = vec![GET,POST,PUT,DELETE];
+        let res:Vec<RequestMethod> =
+            strs.iter()
+            .map(|m| RequestMethod::from_str(m))
+            .map(Result::unwrap).collect();
+        assert_eq!(methods,res);
     }
 }

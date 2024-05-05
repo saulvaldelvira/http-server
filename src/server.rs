@@ -9,11 +9,14 @@ use std::net::{TcpListener, TcpStream};
 /// # Example
 /// ```rust,no_run
 /// use http_server::server::HttpServer;
+/// use http_server::request::handler::Handler;
 ///
 /// let mut server = HttpServer::new(80, 32);
-/// server.get("/", |req| {
+/// let mut handler = Handler::new();
+/// handler.get("/", |req| {
 ///     req.ok()
 /// });
+/// server.set_handler(handler);
 /// server.run();
 /// ```
 pub struct HttpServer {
