@@ -13,8 +13,12 @@ fn head_headers(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
     match File::open(&filename) {
         Ok(file) => {
-            let len = file.metadata()?.len();
-            req.set_header("Content-Length", len);
+            let metadata = file.metadata()?;
+            if metadata.is_file() {
+                req.set_header("Content-Length", metadata.len());
+            } else {
+                req.set_status(404);
+            }
         },
         Err(err) => {
             println!("Error opening {}: {err}", &filename);
@@ -101,16 +105,17 @@ pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
             cat_handler(req)
         } else {
             req.respond_buf(
-            b"<!DOCTYPE html>
-              <html>
-                <head>
-                    <title>HTTP Server</title>
-                </head>
-                <body>
-                    <h1>HTTP Server</h1>
-                    <p>Hello world :)</p>
-                </body>
-              </html>")
+b"\
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>HTTP Server</title>
+    </head>
+    <body>
+        <h1>HTTP Server</h1>
+        <p>Hello world :)</p>
+    </body>
+</html>")
         }
 }
 

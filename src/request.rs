@@ -27,7 +27,7 @@ impl FromStr for RequestMethod {
             "CONNECT" => Ok(Self::CONNECT),
             "OPTIONS" => Ok(Self::OPTIONS),
             "TRACE" => Ok(Self::TRACE),
-            _ => ServerError::from_str("Error parsing request method").err()
+            _ => ServerError::from_string(format!("Couldn't parse request method ({t})")).err()
         }
     }
 }
@@ -52,52 +52,59 @@ pub struct HttpRequest {
     status: u16,
 }
 
+fn parse_request(mut stream: BufReader<TcpStream>) -> Result<HttpRequest> {
+    let mut line = String::new();
+    /* Parse request line */
+    stream.read_line(&mut line)?;
+    let mut space = line.split_whitespace().take(3);
+    let method = space.next().unwrap_or("").parse()?;
+    let mut url = space.next().unwrap().to_owned();
+    let mut params = HashMap::new();
+    if url.contains("?") {
+        /* Parse URL */
+        let mut split = url.split("?");
+        let new_url = split.next().unwrap().to_owned();
+        let query = split.next().unwrap_or("");
+        for arg in query.split("&") {
+            let mut arg = arg.split("=");
+            let k = arg.next().unwrap_or("").to_owned();
+            let v = arg.next().unwrap_or("").to_owned();
+            params.insert(k, v);
+        }
+        url = new_url;
+    }
+    let version: f32 = space.next().unwrap()
+                           .replace("HTTP/", "")
+                           .parse()
+                           .or_else(|_| ServerError::from_str("Could not parse HTTP Version").err())?;
+    line.clear();
+    /* Parse Headers */
+    let mut headers = HashMap::new();
+    while let Ok(_) = stream.read_line(&mut line) {
+        if line == "\r\n" { break; }
+        let mut splt = line.split(":");
+        let key = splt.next().unwrap_or("").to_string();
+        let value = splt.next().unwrap_or("")
+                        .strip_prefix(" ").unwrap_or("")
+                        .strip_suffix("\r\n").unwrap_or("")
+                        .to_string();
+        headers.insert(key, value);
+        line.clear();
+    }
+    let response_headers = HashMap::new();
+    Ok(HttpRequest { method, url, headers, params, response_headers, version, stream, status:200 })
+}
+
 impl HttpRequest {
     /// Read and parse an HTTP request from the given [TcpStream]
     pub fn parse(stream: TcpStream) -> Result<Self>  {
-        let mut stream = BufReader::new(stream);
-        let mut line = String::new();
-
-        /* Parse request line */
-        stream.read_line(&mut line)?;
-        let mut space = line.split_whitespace().take(3);
-        let method = space.next().unwrap_or("").parse()?;
-        let mut url = space.next().unwrap().to_owned();
-        let mut params = HashMap::new();
-        if url.contains("?") {
-            /* Parse URL */
-            let mut split = url.split("?");
-            let new_url = split.next().unwrap().to_owned();
-            let query = split.next().unwrap_or("");
-            for arg in query.split("&") {
-                let mut arg = arg.split("=");
-                let k = arg.next().unwrap_or("").to_owned();
-                let v = arg.next().unwrap_or("").to_owned();
-                params.insert(k, v);
-            }
-            url = new_url;
-        }
-        let version: f32 = space.next().unwrap()
-                               .replace("HTTP/", "")
-                               .parse()
-                               .or_else(|_| ServerError::from_str("Could not parse HTTP Version").err())?;
-        line.clear();
-        /* Parse Headers */
-        let mut headers = HashMap::new();
-        while let Ok(_) = stream.read_line(&mut line) {
-            if line == "\r\n" { break; }
-            let mut splt = line.split(":");
-            let key = splt.next().unwrap_or("").to_string();
-            let value = splt.next().unwrap_or("")
-                            .strip_prefix(" ").unwrap_or("")
-                            .strip_suffix("\r\n").unwrap_or("")
-                            .to_string();
-            headers.insert(key, value);
-            line.clear();
-        }
-        let response_headers = HashMap::new();
-        Ok(Self { method, url, headers, params, response_headers, version, stream, status:200 })
+        let stream = BufReader::new(stream);
+        parse_request(stream)
     }
+    pub fn keep_alive(self) -> Result<Self> {
+        parse_request(self.stream)
+    }
+    pub fn stream(&self) -> &TcpStream { self.stream.get_ref() }
     /// Url of the request
     pub fn url(&self) -> &str { &self.url }
     pub fn set_url(&mut self, url: String) { self.url = url; }
@@ -124,6 +131,7 @@ impl HttpRequest {
         self.status = status;
         self
     }
+    pub fn version(&self) -> f32 { self.version }
     /// Get a human-readable description of the request's status code
     pub fn status_msg(&self) -> &'static str {
         match self.status {
@@ -169,6 +177,7 @@ impl HttpRequest {
     pub fn header(&self, key: &str) -> Option<&String> {
         self.headers.get(key)
     }
+    pub fn headers(&self) -> &HashMap<String,String> { &self.headers }
     pub fn set_header<V: ToString>(&mut self, key: &str, value: V) {
         self.response_headers.insert(key.to_string(), value.to_string());
     }
@@ -258,16 +267,17 @@ impl HttpRequest {
     pub fn error_page(&mut self) -> Vec<u8> {
         let code = self.status;
         let msg = self.status_msg();
-        format!("<!DOCTYPE html>
-                <html lang=\"en\">
-                    <head>
-                        <meta charset=\"utf-8\">
-                        <title>{code} {msg}</title>
-                    </head>
-                <body>
-                    <h1>{code} {msg}</h1>
-                </body>
-                </html>").as_bytes().to_vec()
+        format!(
+"<!DOCTYPE html>
+<html lang=\"en\">
+    <head>
+        <meta charset=\"utf-8\">
+        <title>{code} {msg}</title>
+    </head>
+<body>
+    <h1>{code} {msg}</h1>
+</body>
+</html>").as_bytes().to_vec()
     }
 }
 
