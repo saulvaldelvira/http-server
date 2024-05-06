@@ -211,15 +211,14 @@ impl HttpRequest {
     pub fn respond(&mut self) -> Result<()> {
         let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
         self.stream.get_mut().write_all(response_line.as_bytes())?;
-        let mut headers = String::new();
-        for header in &self.response_headers {
-           headers.push_str(header.0);
-           headers.push_str(": ");
-           headers.push_str(header.1);
-           headers.push_str("\r\n");
+        let stream = self.stream.get_mut();
+        for (k,v) in &self.response_headers {
+           stream.write_all(k.as_bytes())?;
+           stream.write_all(b": ")?;
+           stream.write_all(v.as_bytes())?;
+           stream.write_all(b"\r\n")?;
         }
-        headers += "\r\n";
-        self.stream.get_mut().write_all(headers.as_bytes())?;
+        stream.write_all(b"\r\n")?;
         Ok(())
     }
     /// Respond to the request with the data of buf as a body

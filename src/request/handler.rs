@@ -21,7 +21,6 @@ fn head_headers(req: &mut HttpRequest) -> Result<()> {
             }
         },
         Err(err) => {
-            println!("Error opening {}: {err}", &filename);
             let status = match err.kind() {
                 PermissionDenied => 403,
                 _ => 404,
