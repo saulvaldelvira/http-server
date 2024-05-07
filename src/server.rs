@@ -78,7 +78,7 @@ impl HttpServer {
     /// - If the thread pool fails to initialize
     ///
     pub fn new(config: ServerConfig) -> Self {
-        let address = format!("localhost:{}", config.port());
+        let address = format!("0.0.0.0:{}", config.port());
         let listener = TcpListener::bind(address)
                         .unwrap_or_else(|err| {
                             panic!("Could not bind to port {}: {}", config.port(), err);
