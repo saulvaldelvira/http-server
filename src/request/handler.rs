@@ -34,10 +34,10 @@ fn head_headers(req: &mut HttpRequest) -> Result<()> {
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;
     if req.status() != 200 {
-        req.respond_error_page()
-    }else {
-        req.respond()
+        let page = req.error_page();
+        req.set_header("Content-Length", page.len());
     }
+    req.respond()
 }
 
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
