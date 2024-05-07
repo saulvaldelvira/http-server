@@ -1,8 +1,9 @@
 pub mod handler;
+mod encoding;
 
 use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, hash::Hash, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path, str::FromStr};
-use crate::{Result,ServerError};
-
+use crate::{Result, ServerError};
+use crate::request::encoding::Chunked;
 
 /// Request Method
 ///
@@ -222,24 +223,30 @@ impl HttpRequest {
         Ok(())
     }
     /// Respond to the request with the data of buf as a body
-    pub fn respond_buf(&mut self, buf: &[u8]) -> Result<()> {
+    pub fn respond_buf(&mut self, mut buf: &[u8]) -> Result<()> {
         self.set_header("Content-Length", buf.len());
-        self.respond()?;
-        self.stream.get_mut().write_all(&buf)?;
-        Ok(())
+        self.respond_reader(&mut buf)
     }
-
     /// Respond to the request with the data read from reader as a body
     pub fn respond_reader(&mut self, reader: &mut dyn Read) -> Result<()> {
         self.respond()?;
-        const CHUNK_SIZE:usize = 1024 * 1024;
-        let mut buf:[u8;CHUNK_SIZE] = [0;CHUNK_SIZE];
+        const CHUNK_SIZE: usize = 1024 * 1024;
+        let mut buf: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
 
+        let stream = self.stream.get_mut();
         while let Ok(n) = reader.read(&mut buf) {
             if n == 0 { break; }
-            self.stream.get_mut().write_all(&buf[0..n])?;
+            stream.write_all(&buf[0..n])?;
         }
         Ok(())
+    }
+    /// Respond to the request as a chunked transfer
+    ///
+    /// This means that the Content-Length of the request doen't need to be known.
+    pub fn respond_chunked(&mut self, reader: &mut dyn Read) -> Result<()> {
+        self.set_header("Transfer-Encoding", "chunked");
+        let mut reader = Chunked::new(reader);
+        self.respond_reader(&mut reader)
     }
     /// Respond with a basic HTML error page
     pub fn respond_error_page(&mut self) -> Result<()> {
