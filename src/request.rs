@@ -105,14 +105,19 @@ impl HttpRequest {
         let stream = BufReader::new(stream);
         parse_request(stream)
     }
+    #[inline]
     pub fn keep_alive(self) -> Result<Self> {
         parse_request(self.stream)
     }
+    #[inline]
     pub fn stream(&self) -> &TcpStream { self.stream.get_ref() }
     /// Url of the request
+    #[inline]
     pub fn url(&self) -> &str { &self.url }
+    #[inline]
     pub fn set_url(&mut self, url: String) { self.url = url; }
     /// Get the query parameters
+    #[inline]
     pub fn params(&self) -> &HashMap<String,String> { &self.params }
     /// Get the filename for the request
     ///
@@ -129,12 +134,16 @@ impl HttpRequest {
         let cwd = cwd.to_str().ok_or_else(|| ServerError::from_str("Error getting cwd"))?;
         Ok(cwd.to_owned())
     }
+    #[inline]
     pub fn method(&self) -> &RequestMethod { &self.method }
+    #[inline]
     pub fn status(&self) -> u16 { self.status }
+    #[inline]
     pub fn set_status(&mut self, status: u16) -> &mut Self {
         self.status = status;
         self
     }
+    #[inline]
     pub fn version(&self) -> f32 { self.version }
     /// Get a human-readable description of the request's status code
     pub fn status_msg(&self) -> &'static str {
@@ -178,10 +187,13 @@ impl HttpRequest {
         }
     }
     /// Get the value of the given header key, if present
+    #[inline]
     pub fn header(&self, key: &str) -> Option<&String> {
         self.headers.get(key)
     }
+    #[inline]
     pub fn headers(&self) -> &HashMap<String,String> { &self.headers }
+    #[inline]
     pub fn set_header<V: ToString>(&mut self, key: &str, value: V) {
         self.response_headers.insert(key.to_string(), value.to_string());
     }
@@ -257,18 +269,22 @@ impl HttpRequest {
         self.respond_buf(&mut buf)
     }
     /// Respond to the request with an 200 OK status
+    #[inline]
     pub fn ok(&mut self) -> Result<()> {
         self.set_status(200).respond()
     }
     /// Respond to the request with an 403 FORBIDDEN status
+    #[inline]
     pub fn forbidden(&mut self) -> Result<()> {
         self.set_status(403).respond_error_page()
     }
     /// Respond to the request with an 404 NOT FOUND status
+    #[inline]
     pub fn not_found(&mut self) -> Result<()> {
         self.set_status(404).respond_error_page()
     }
     /// Respond to the request with an 500 INTERNAL SERVER ERROR status
+    #[inline]
     pub fn server_error(&mut self) -> Result<()> {
         self.set_status(500).respond_error_page()
     }
