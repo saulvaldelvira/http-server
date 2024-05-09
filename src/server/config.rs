@@ -20,7 +20,7 @@ where I: Iterator<Item = String>
     }
 }
 
-/// [HttpServer] configuration
+/// [crate::HttpServer] configuration
 ///
 /// # Example
 /// ```

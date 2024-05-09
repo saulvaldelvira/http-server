@@ -1,10 +1,9 @@
 pub mod pool;
-pub mod error;
 pub mod request;
 pub mod server;
 pub mod url;
 
-use error::ServerError;
+use server::ServerError;
 pub use server::HttpServer;
 pub use request::HttpRequest;
 pub use request::handler::Handler;

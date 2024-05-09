@@ -43,7 +43,17 @@ fn main() {
         req.respond_reader(&mut reader)
     });
 
+    handler.get("/hello", |req| {
+        let name = req.param("name").unwrap_or("friend");
+        let msg = format!("Hello {name}!");
+        req.respond_buf(msg.as_bytes())
+    });
+
     handler.post_interceptor(handler::log_request);
+    /* For debugging
+    handler.post_interceptor(|req| {
+        println!("{:?}", req.headers());
+    }); */
 
     server.set_handler(handler);
     server.run();

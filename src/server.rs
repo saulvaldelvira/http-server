@@ -1,5 +1,7 @@
 pub mod config;
 pub use config::ServerConfig;
+pub mod error;
+pub use error::ServerError;
 
 use crate::{pool::ThreadPool, request::{handler::Handler, HttpRequest}, Result};
 use std::{sync::{Arc, RwLock}, time::{Duration, Instant}};

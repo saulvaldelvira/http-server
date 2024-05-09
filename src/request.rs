@@ -119,6 +119,8 @@ impl HttpRequest {
     /// Get the query parameters
     #[inline]
     pub fn params(&self) -> &HashMap<String,String> { &self.params }
+    #[inline]
+    pub fn param(&self, key: &str) -> Option<&str> { self.params.get(key).map(|s| s.as_str()) }
     /// Get the filename for the request
     ///
     /// It computes the path in the server corresponding to the

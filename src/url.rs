@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use crate::{error::ServerError, Result};
+use crate::{ServerError, Result};
 
 #[inline]
 fn from_hex_digit(digit: u8) -> Result<u8> {
