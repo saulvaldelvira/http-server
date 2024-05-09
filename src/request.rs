@@ -1,5 +1,5 @@
 pub mod handler;
-mod encoding;
+pub mod encoding;
 
 use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, hash::Hash, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path, str::FromStr};
 use crate::{url, Result, ServerError};

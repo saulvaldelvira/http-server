@@ -1,6 +1,6 @@
 use std::{env, thread, time::Duration};
 use http_server::{
-    ServerConfig, request::{handler::{self, Handler}, RequestMethod}, HttpServer
+    request::{encoding::StreamReader, handler::{self, Handler}, RequestMethod}, HttpServer, ServerConfig
 };
 
 fn main() {
@@ -29,6 +29,18 @@ fn main() {
             s.push_str(v);
         };
         req.respond_buf(s.as_bytes())
+    });
+
+    handler.get("/inf", |req| {
+        let mut i = 0;
+        let chars = b"hello, world!\n";
+        let inf = || {
+            if i >= chars.len() { i = 0; }
+            i += 1;
+            Some(chars[i - 1])
+        };
+        let mut reader = StreamReader::new(inf);
+        req.respond_reader(&mut reader)
     });
 
     handler.post_interceptor(handler::log_request);
