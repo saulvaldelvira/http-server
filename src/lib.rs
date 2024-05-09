@@ -2,6 +2,7 @@ pub mod pool;
 pub mod error;
 pub mod request;
 pub mod server;
+pub mod url;
 
 use error::ServerError;
 pub use server::HttpServer;

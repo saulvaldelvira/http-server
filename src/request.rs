@@ -2,7 +2,7 @@ pub mod handler;
 mod encoding;
 
 use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, hash::Hash, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path, str::FromStr};
-use crate::{Result, ServerError};
+use crate::{url, Result, ServerError};
 use crate::request::encoding::Chunked;
 
 /// Request Method
@@ -59,21 +59,24 @@ fn parse_request(mut stream: BufReader<TcpStream>) -> Result<HttpRequest> {
     stream.read_line(&mut line)?;
     let mut space = line.split_whitespace().take(3);
     let method = space.next().unwrap_or("").parse()?;
-    let mut url = space.next().unwrap().to_owned();
+    let mut url = space.next().unwrap();
     let mut params = HashMap::new();
     if url.contains("?") {
         /* Parse URL */
         let mut split = url.split("?");
-        let new_url = split.next().unwrap().to_owned();
+        let new_url = split.next().unwrap();
         let query = split.next().unwrap_or("");
         for arg in query.split("&") {
             let mut arg = arg.split("=");
-            let k = arg.next().unwrap_or("").to_owned();
-            let v = arg.next().unwrap_or("").to_owned();
+            let k = arg.next().unwrap_or("");
+            let v = arg.next().unwrap_or("");
+            let k = url::decode(k)?.into_owned();
+            let v = url::decode(v)?.into_owned();
             params.insert(k, v);
         }
         url = new_url;
     }
+    let url = url::decode(&url)?.into_owned();
     let version: f32 = space.next().unwrap()
                            .replace("HTTP/", "")
                            .parse()

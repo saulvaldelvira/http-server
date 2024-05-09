@@ -1,4 +1,4 @@
-use std::{fmt::{Debug, Display}, io};
+use std::{fmt::{Debug, Display}, io, string::FromUtf8Error};
 
 /// Server Error
 pub enum ServerError {
@@ -30,6 +30,11 @@ impl ServerError {
 
 impl From<io::Error> for ServerError {
     fn from(value: io::Error) -> Self {
+        Self::from_string(value.to_string())
+    }
+}
+impl From<FromUtf8Error> for ServerError {
+    fn from(value: FromUtf8Error) -> Self {
         Self::from_string(value.to_string())
     }
 }

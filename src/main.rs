@@ -21,6 +21,15 @@ fn main() {
         thread::sleep(Duration::from_secs(5));
         req.ok()
     });
+    handler.get("/params", |req| {
+        let mut s = "".to_string();
+        for (k,v) in req.params() {
+            s.push_str(k);
+            s.push_str(" = ");
+            s.push_str(v);
+        };
+        req.respond_buf(s.as_bytes())
+    });
 
     handler.post_interceptor(handler::log_request);
 
