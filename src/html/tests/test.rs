@@ -1,4 +1,4 @@
-use html::*;
+use rhtml::*;
 
 #[test]
 fn test() {

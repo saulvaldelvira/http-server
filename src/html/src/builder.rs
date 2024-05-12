@@ -1,12 +1,12 @@
 use crate::{HtmlNode,html};
 
+/// Html Builder
+///
+/// This struct represents an Html Document.
 pub struct HtmlBuilder {
     root: HtmlNode,
 }
 
-/// Html Builder
-///
-/// This struct represents an Html Document.
 impl HtmlBuilder {
     /// Create a new HTML Builder
     ///

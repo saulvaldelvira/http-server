@@ -24,7 +24,7 @@ where I: Iterator<Item = String>
 ///
 /// # Example
 /// ```
-/// use http_server::server::ServerConfig;
+/// use http_srv::server::ServerConfig;
 ///
 /// let mut conf = ServerConfig::default();
 /// conf.set_port(8080)

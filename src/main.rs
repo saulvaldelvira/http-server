@@ -1,11 +1,10 @@
 use std::{env, thread, time::Duration};
-use http_server::{
+use http_srv::{
     request::{encoding::StreamReader, handler::{self, Handler}, RequestMethod}, HttpServer, ServerConfig
 };
 
 fn main() {
     let config = ServerConfig::parse(env::args().skip(1));
-    let mut server = HttpServer::new(config);
 
     let mut handler = Handler::new();
     handler.pre_interceptor(handler::suffix_html);
@@ -55,6 +54,7 @@ fn main() {
         println!("{:?}", req.headers());
     }); */
 
+    let mut server = HttpServer::new(config);
     server.set_handler(handler);
     server.run();
 }

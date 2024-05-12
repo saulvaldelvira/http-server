@@ -37,8 +37,8 @@ pub type HandlerTable = HashMap<RequestMethod,HashMap<String,Box<dyn HandlerFunc
 ///
 /// # Example
 /// ```
-/// use http_server::request::handler::{self,*};
-/// use http_server::request::RequestMethod;
+/// use http_srv::request::handler::{self,*};
+/// use http_srv::request::RequestMethod;
 ///
 /// let mut handler = Handler::new();
 /// handler.get("/", |req| {

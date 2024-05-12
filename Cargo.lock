@@ -3,22 +3,22 @@
 version = 3
 
 [[package]]
-name = "html"
-version = "0.1.0"
-
-[[package]]
-name = "http-server"
+name = "http-srv"
 version = "0.1.0"
 dependencies = [
- "html",
- "pool",
- "url",
+ "job-pool",
+ "rhtml",
+ "url-utils",
 ]
 
 [[package]]
-name = "pool"
-version = "0.1.0"
+name = "job-pool"
+version = "0.1.1"
 
 [[package]]
-name = "url"
+name = "rhtml"
+version = "0.1.2"
+
+[[package]]
+name = "url-utils"
 version = "0.1.0"

@@ -1,6 +1,20 @@
-pub mod node;
+//! This crate contains code to build Html Pages
+//!
+//! # Example
+//! ```
+//! use rhtml::*;
+//!
+//! let mut builder = HtmlBuilder::with_title("My page");
+//! let body = builder.body();
+//! html!("h1", {text: "Hello world!"}).append_to(body);
+//! html!("a", {"href": "http://www.web.net"},
+//!            {text: "My link"}).append_to(body);
+//! let page = builder.to_string();
+//! ```
+
+mod node;
 pub use node::HtmlNode;
-pub mod builder;
+mod builder;
 pub use builder::HtmlBuilder;
 
 #[macro_export]

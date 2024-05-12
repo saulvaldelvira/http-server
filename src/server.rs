@@ -14,9 +14,9 @@ use pool::ThreadPool;
 ///
 /// # Example
 /// ```rust,no_run
-/// use http_server::server::HttpServer;
-/// use http_server::server::ServerConfig;
-/// use http_server::request::handler::Handler;
+/// use http_srv::server::HttpServer;
+/// use http_srv::server::ServerConfig;
+/// use http_srv::request::handler::Handler;
 ///
 /// let config = ServerConfig::default();
 /// let mut server = HttpServer::new(config);

@@ -6,7 +6,7 @@ use std::collections::HashMap;
 ///
 /// # Example
 /// ```rust
-/// use crate::html::*;
+/// use rhtml::*;
 ///
 /// let node = html!("ul", [
 ///     html!("li", {text: "Element1"}),
@@ -39,6 +39,10 @@ impl HtmlNode {
     pub fn append_iter(&mut self, node: impl Iterator<Item=HtmlNode>) -> &mut Self {
         node.for_each(|n| { self.append(n); });
         self
+    }
+    pub fn append_to(self, other: &mut Self) -> &mut Self {
+        other.append(self);
+        other
     }
     /// Create an [HtmlNode] with a given name
     pub fn with_name(name: &str) -> Self {
