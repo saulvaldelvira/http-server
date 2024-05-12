@@ -1,3 +1,5 @@
+pub mod indexing;
+
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
@@ -8,6 +10,7 @@ use std::path::Path;
 use crate::request::HttpRequest;
 use crate::request::RequestMethod;
 use crate::Result;
+use self::indexing::index_of;
 
 /// HandlerFunc trait
 ///
@@ -127,8 +130,6 @@ fn head_headers(req: &mut HttpRequest) -> Result<()> {
             let metadata = file.metadata()?;
             if metadata.is_file() {
                 req.set_header("Content-Length", metadata.len());
-            } else {
-                req.set_status(404);
             }
         },
         Err(err) => {
@@ -148,6 +149,11 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
         let page = req.error_page();
         req.set_header("Content-Length", page.len());
     }
+    let filename = req.filename()?;
+    if dir_exists(&filename) {
+        let page = index_of(&filename)?;
+        req.set_header("Content-Length", page.len());
+    }
     req.respond()
 }
 
@@ -156,6 +162,11 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     if req.status() != 200 {
         return req.respond_error_page();
     };
+    let filename = req.filename()?;
+    if dir_exists(&filename) {
+        let page = index_of(&filename)?;
+        return req.respond_buf(page.as_bytes());
+    }
     let file = File::open(req.filename()?)?;
     let mut reader = BufReader::new(file);
     req.respond_reader(&mut reader)
@@ -193,6 +204,10 @@ fn file_exists(filename: &str) -> bool {
     Path::new(filename).is_file()
 }
 
+fn dir_exists(filename: &str) -> bool {
+    Path::new(filename).is_dir()
+}
+
 pub fn suffix_html(req: &mut HttpRequest) {
     if file_exists(&req.url()[1..]) { return; }
     for suffix in [".html",".php"] {
@@ -212,19 +227,6 @@ pub fn log_request(req: &mut HttpRequest) {
 pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
         if file_exists("index.html") {
             req.set_url("/index.html".to_owned());
-            cat_handler(req)
-        } else {
-            req.respond_buf(
-b"\
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>HTTP Server</title>
-    </head>
-    <body>
-        <h1>HTTP Server</h1>
-        <p>Hello world :)</p>
-    </body>
-</html>")
         }
+        cat_handler(req)
 }

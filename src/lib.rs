@@ -1,7 +1,5 @@
-pub mod pool;
 pub mod request;
 pub mod server;
-pub mod url;
 
 use server::ServerError;
 pub use server::HttpServer;

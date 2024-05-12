@@ -1,9 +1,6 @@
-mod worker;
 use std::sync::{mpsc, Arc, Condvar, Mutex};
-use worker::{Job, Worker};
-use crate::{ServerError,Result};
-
-type Semaphore = Arc<(Mutex<u16>,Condvar)>;
+use crate::worker::{Job, Worker};
+use crate::{PoolError, Result, Semaphore};
 
 /// Thread Pool
 ///
@@ -12,7 +9,7 @@ type Semaphore = Arc<(Mutex<u16>,Condvar)>;
 ///
 /// # Example
 /// ```
-/// use http_server::pool::ThreadPool;
+/// use crate::pool::ThreadPool;
 ///
 /// let pool = ThreadPool::new(32).expect("Error creating pool");
 /// pool.execute(|| println!("Hello world!"));
@@ -29,11 +26,11 @@ impl ThreadPool {
     /// The size is the number of threads in the pool.
     ///
     /// # Returns
-    /// A [Result]<[ThreadPool],[ServerError]>
+    /// A [Result]<[ThreadPool],[PoolError]>
     ///
     pub fn new(size: usize) -> Result<ThreadPool> {
         if size == 0 {
-            return Err(ServerError::from_str("Invalid size: 0"));
+            return Err(PoolError::from_str("Invalid size: 0"));
         }
         let (sender,receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
@@ -72,49 +69,5 @@ impl Drop for ThreadPool  {
         self.workers
             .iter_mut()
             .for_each(Worker::shutdown);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use std::sync::{Arc, Mutex};
-    use super::ThreadPool;
-
-    #[test]
-    fn pool_size_0() {
-        match ThreadPool::new(0) {
-            Ok(_) => panic!("Expected Err value"),
-            Err(err) => assert_eq!(err.get_message(),"Invalid size: 0"),
-        };
-    }
-
-    #[test]
-    fn pool_counter() {
-        static N:i16 = 1024;
-        let pool = ThreadPool::new(32).expect("Expected Ok value");
-        let count = Arc::new(Mutex::new(0));
-
-        let inc = |i:i16| {
-            for _ in 0..N {
-                let count = Arc::clone(&count);
-                pool.execute(move || {
-                    let mut n = count.lock().unwrap();
-                    *n += i;
-                })
-            }
-        };
-
-        let check = |i:i16| {
-            let n = count.lock().unwrap();
-            assert_eq!(*n,i);
-        };
-
-        inc(1);
-        pool.join();
-        check(N);
-
-        inc(-1);
-        pool.join();
-        check(0);
     }
 }

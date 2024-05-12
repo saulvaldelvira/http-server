@@ -3,5 +3,22 @@
 version = 3
 
 [[package]]
+name = "html"
+version = "0.1.0"
+
+[[package]]
 name = "http-server"
+version = "0.1.0"
+dependencies = [
+ "html",
+ "pool",
+ "url",
+]
+
+[[package]]
+name = "pool"
+version = "0.1.0"
+
+[[package]]
+name = "url"
 version = "0.1.0"

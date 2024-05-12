@@ -1,11 +1,11 @@
 use std::thread::{JoinHandle,spawn};
 use std::sync::{mpsc, Arc, Mutex};
-use super::Semaphore;
+use crate::Semaphore;
 
 /// Type of function ran by the [Worker]
 pub type Job = Box<dyn FnOnce() + Send + 'static>;
 
-/// Worker for the [ThreadPool]
+/// Worker for the [ThreadPool](crate::ThreadPool)
 pub struct Worker {
     id: usize,
     thread: Option<JoinHandle<()>>,

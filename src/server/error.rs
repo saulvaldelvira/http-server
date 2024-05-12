@@ -1,8 +1,10 @@
-use std::{fmt::{Debug, Display}, io, string::FromUtf8Error};
+use std::{fmt::{Debug, Display}, io, path::StripPrefixError, string::FromUtf8Error};
 
 /// Server Error
 pub enum ServerError {
+    /// [ServerError] containing an &'static [str]
     Str(&'static str),
+    /// [ServerError] containing an owned [String]
     String(String),
 }
 
@@ -36,6 +38,16 @@ impl From<io::Error> for ServerError {
 impl From<FromUtf8Error> for ServerError {
     fn from(value: FromUtf8Error) -> Self {
         Self::from_string(value.to_string())
+    }
+}
+impl From<StripPrefixError> for ServerError {
+    fn from(value: StripPrefixError) -> Self {
+        Self::from_string(value.to_string())
+    }
+}
+impl From<String> for ServerError {
+    fn from(value: String) -> Self {
+        ServerError::from_string(value)
     }
 }
 
