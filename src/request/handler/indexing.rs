@@ -14,7 +14,7 @@ pub fn index_of(filename: &str) -> Result<String> {
     let cwd = path_to_str!(&cwd_path)?;
 
     let title = Path::new(filename).strip_prefix(cwd)?;
-    let title = "Index of ".to_owned() + path_to_str!(title)?;
+    let title = "Index of /".to_owned() + path_to_str!(title)?;
     let mut html = HtmlBuilder::with_title(&title);
     html.body()
         .append(html!("h1",{text: &title}));

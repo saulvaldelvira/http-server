@@ -2,9 +2,11 @@ pub mod handler;
 pub mod encoding;
 mod status;
 mod method;
+mod parse;
+use parse::parse_request;
 pub use method::RequestMethod;
 
-use std::{collections::HashMap, env, ffi::OsStr, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path};
+use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, net::TcpStream, path::Path};
 use crate::{Result, ServerError};
 use crate::request::encoding::Chunked;
 
@@ -20,52 +22,6 @@ pub struct HttpRequest {
     version: f32,
     stream: BufReader<TcpStream>,
     status: u16,
-}
-
-fn parse_request(mut stream: BufReader<TcpStream>) -> Result<HttpRequest> {
-    let mut line = String::new();
-    /* Parse request line */
-    stream.read_line(&mut line)?;
-    let mut space = line.split_whitespace().take(3);
-    let method = space.next().unwrap_or("").parse()?;
-    let mut url = space.next().unwrap();
-    let mut params = HashMap::new();
-    if url.contains("?") {
-        /* Parse URL */
-        let mut split = url.split("?");
-        let new_url = split.next().unwrap();
-        let query = split.next().unwrap_or("");
-        for arg in query.split("&") {
-            let mut arg = arg.split("=");
-            let k = arg.next().unwrap_or("");
-            let v = arg.next().unwrap_or("");
-            let k = url::decode(k)?.into_owned();
-            let v = url::decode(v)?.into_owned();
-            params.insert(k, v);
-        }
-        url = new_url;
-    }
-    let url = url::decode(&url)?.into_owned();
-    let version: f32 = space.next().unwrap()
-                           .replace("HTTP/", "")
-                           .parse()
-                           .or_else(|_| ServerError::from_str("Could not parse HTTP Version").err())?;
-    line.clear();
-    /* Parse Headers */
-    let mut headers = HashMap::new();
-    while let Ok(_) = stream.read_line(&mut line) {
-        if line == "\r\n" { break; }
-        let mut splt = line.split(":");
-        let key = splt.next().unwrap_or("").to_string();
-        let value = splt.next().unwrap_or("")
-                        .strip_prefix(" ").unwrap_or("")
-                        .strip_suffix("\r\n").unwrap_or("")
-                        .to_string();
-        headers.insert(key, value);
-        line.clear();
-    }
-    let response_headers = HashMap::new();
-    Ok(HttpRequest { method, url, headers, params, response_headers, version, stream, status:200 })
 }
 
 impl HttpRequest {
@@ -204,6 +160,7 @@ impl HttpRequest {
         self.respond_reader(&mut reader)
     }
     /// Respond with a basic HTML error page
+    #[inline]
     pub fn respond_error_page(&mut self) -> Result<()> {
         let mut buf = self.error_page();
         self.respond_buf(&mut buf)

@@ -30,14 +30,17 @@ impl HtmlBuilder {
         Self { root }
     }
     /// Create a new [HtmlBuilder] with a title
+    #[inline]
     pub fn with_title(title: &str) -> Self {
         let mut builder = Self::new();
         builder.head().append(html!("title", {text: title}));
         builder
     }
+    #[inline]
     pub fn head(&mut self) -> &mut HtmlNode {
         self.root.nth(0).unwrap()
     }
+    #[inline]
     pub fn body(&mut self) -> &mut HtmlNode {
         self.root.nth(1).unwrap()
     }
@@ -47,6 +50,7 @@ impl ToString for HtmlBuilder {
     /// To generate the [String] representation of the document, the
     /// builder conctenates the "!DOCTYPE html" string and then calls
     /// the [to_string](HtmlNode::to_string) method of the root node.
+    #[inline]
     fn to_string(&self) -> String {
         "<!DOCTYPE html>".to_string() + &self.root.to_string()
     }
