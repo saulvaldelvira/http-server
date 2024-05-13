@@ -49,10 +49,10 @@ fn main() {
     });
 
     handler.post_interceptor(handler::log_request);
-    /* For debugging
-    handler.post_interceptor(|req| {
-        println!("{:?}", req.headers());
-    }); */
+    /* For debugging */
+    /* handler.post_interceptor(|req| { */
+    /*     println!("{:?}", req.headers()); */
+    /* }); */
 
     let mut server = HttpServer::new(config);
     server.set_handler(handler);

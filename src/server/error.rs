@@ -1,4 +1,4 @@
-use std::{fmt::{Debug, Display}, io, path::StripPrefixError, string::FromUtf8Error};
+use std::{fmt::{Debug, Display}, io, num::ParseIntError, path::StripPrefixError, string::FromUtf8Error};
 
 /// Server Error
 pub enum ServerError {
@@ -30,6 +30,17 @@ impl ServerError {
     }
 }
 
+macro_rules! err {
+    ($lit:literal) => {
+        ServerError::from_str($lit)
+    };
+    ($e:expr) => {
+        ServerError::from_string($e)
+    };
+}
+
+pub (crate) use err;
+
 impl From<io::Error> for ServerError {
     fn from(value: io::Error) -> Self {
         Self::from_string(value.to_string())
@@ -40,17 +51,21 @@ impl From<FromUtf8Error> for ServerError {
         Self::from_string(value.to_string())
     }
 }
-impl From<StripPrefixError> for ServerError {
+impl From<std::path::StripPrefixError> for ServerError {
     fn from(value: StripPrefixError) -> Self {
+        Self::from_string(value.to_string())
+    }
+}
+impl From<ParseIntError> for ServerError {
+    fn from(value: ParseIntError) -> Self {
         Self::from_string(value.to_string())
     }
 }
 impl From<String> for ServerError {
     fn from(value: String) -> Self {
-        ServerError::from_string(value)
+        Self::from_string(value)
     }
 }
-
 impl Debug for ServerError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
        write!(f, "{}", self.get_message())

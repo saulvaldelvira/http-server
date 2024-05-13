@@ -1,16 +1,22 @@
-pub mod indexing;
+mod indexing;
+mod ranges;
 
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::ErrorKind::*;
+use std::io::Read;
+use std::io::Seek;
+use std::io::SeekFrom;
+use std::ops::Range;
 use std::path::Path;
 
 use crate::request::HttpRequest;
 use crate::request::RequestMethod;
 use crate::Result;
 use self::indexing::index_of;
+use self::ranges::get_range_for;
 
 /// HandlerFunc trait
 ///
@@ -115,7 +121,10 @@ impl Handler {
     pub fn handle(&self, req: &mut HttpRequest) -> Result<()> {
         self.pre_interceptors.iter().for_each(|f| f(req));
         let ret = match self.get_handler(req.method(), req.url()) {
-            Some(handler) => handler(req).or_else(|_| req.server_error()),
+            Some(handler) => handler(req).or_else(|err| {
+                eprintln!("ERROR: {err}");
+                req.server_error()
+            }),
             None => req.forbidden(),
         };
         self.post_interceptors.iter().for_each(|f| f(req));
@@ -123,14 +132,24 @@ impl Handler {
     }
 }
 
-fn head_headers(req: &mut HttpRequest) -> Result<()> {
+fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     let filename = req.filename()?;
     match File::open(&filename) {
         Ok(file) => {
             let metadata = file.metadata()?;
+            let len = metadata.len();
             if metadata.is_file() {
-                req.set_header("Content-Length", metadata.len());
+                req.set_header("Content-Length", len);
             }
+            let Some(range) = req.header("Range") else { return Ok(None); };
+            let range = get_range_for(range, len)?;
+            if range.end > len || range.end < range.start {
+                req.set_status(416);
+            } else {
+                req.set_header("Content-Length", range.end - range.start);
+                req.set_header("Content-Range", &format!("bytes {}-{}/{}", range.start, range.end, len));
+            }
+            return Ok(Some(range));
         },
         Err(err) => {
             let status = match err.kind() {
@@ -140,7 +159,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<()> {
             req.set_status(status);
         }
     };
-    Ok(())
+    Ok(None)
 }
 
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
@@ -158,7 +177,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
 }
 
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
-    head_headers(req)?;
+    let range = head_headers(req)?;
     if req.status() != 200 {
         return req.respond_error_page();
     };
@@ -167,9 +186,19 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
         let page = index_of(&filename)?;
         return req.respond_buf(page.as_bytes());
     }
-    let file = File::open(req.filename()?)?;
-    let mut reader = BufReader::new(file);
-    req.respond_reader(&mut reader)
+    let mut file = File::open(req.filename()?)?;
+    match range {
+        Some(range) => {
+            file.seek(SeekFrom::Start(range.start))?;
+            let mut reader = BufReader::new(file)
+                                       .take(range.end - range.start);
+            req.respond_reader(&mut reader)
+        },
+        None => {
+            let mut reader = BufReader::new(file);
+            req.respond_reader(&mut reader)
+        }
+    }
 }
 
 pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
