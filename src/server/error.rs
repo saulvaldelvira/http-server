@@ -32,10 +32,13 @@ impl ServerError {
 
 macro_rules! err {
     ($lit:literal) => {
-        ServerError::from_str($lit)
+        ServerError::from_str($lit).err()
     };
     ($e:expr) => {
-        ServerError::from_string($e)
+        ServerError::from_string($e).err()
+    };
+    ($($e:tt)*) => {
+        ServerError::from_string(format!($($e)*)).err()
     };
 }
 

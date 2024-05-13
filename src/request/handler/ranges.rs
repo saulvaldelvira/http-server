@@ -7,11 +7,11 @@ pub fn get_range_for(range: &str, len: u64) -> Result<Range<u64>> {
     let unit = range.next().ok_or_else(|| ServerError::from_str("Missing unit"))?;
     if unit != "bytes" {
         /* TODO */
-        return err!("Unknown unit").err();
+        return err!("Unknown unit");
     }
     /* TODO: Implement more ranges
      * -1024 (get the last 1024) */
-    let range = range.next().ok_or_else(|| err!("Missing range"))?;
+    let range = range.next().ok_or_else(|| ServerError::from_str("Missing range"))?;
     let mut range = range.split("-");
     let start = range.next().unwrap_or("").parse()?;
     let end = range.next().unwrap_or("").parse().unwrap_or(len);

@@ -1,43 +1,12 @@
 pub mod handler;
 pub mod encoding;
+mod status;
+mod method;
+pub use method::RequestMethod;
 
-use std::{collections::HashMap, env, ffi::OsStr, fmt::Display, hash::Hash, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path, str::FromStr};
+use std::{collections::HashMap, env, ffi::OsStr, io::{BufRead, BufReader, Read, Write}, net::TcpStream, path::Path};
 use crate::{Result, ServerError};
 use crate::request::encoding::Chunked;
-
-/// Request Method
-///
-/// Represents the method of the HTTP request
-#[derive(Debug,Eq,Hash,PartialEq,Clone,Copy)]
-pub enum RequestMethod {
-    GET, POST, PUT, DELETE,
-    HEAD, PATCH, CONNECT,
-    OPTIONS, TRACE,
-}
-
-impl FromStr for RequestMethod {
-    type Err = ServerError;
-    fn from_str(t: &str) -> Result<Self> {
-        match t {
-            "GET" => Ok(Self::GET),
-            "POST" => Ok(Self::POST),
-            "PUT" => Ok(Self::PUT),
-            "DELETE" => Ok(Self::DELETE),
-            "HEAD" => Ok(Self::HEAD),
-            "PATCH" => Ok(Self::PATCH),
-            "CONNECT" => Ok(Self::CONNECT),
-            "OPTIONS" => Ok(Self::OPTIONS),
-            "TRACE" => Ok(Self::TRACE),
-            _ => ServerError::from_string(format!("Couldn't parse request method ({t})")).err()
-        }
-    }
-}
-
-impl Display for RequestMethod {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
-    }
-}
 
 /// HTTP Request
 ///
@@ -147,37 +116,6 @@ impl HttpRequest {
     }
     #[inline]
     pub fn version(&self) -> f32 { self.version }
-    /// Get a human-readable description of the request's status code
-    pub fn status_msg(&self) -> &'static str {
-        match self.status {
-            200 => "OK",
-            201 => "CREATED",
-            202 => "ACCEPTED",
-            203 => "NON-AUTHORITATIVE INFORMATION",
-            204 => "NO CONTENT",
-            205 => "RESET CONTENT",
-            206 => "PARTIAL CONTENT",
-            300 => "MULTIPLE CHOICES",
-            301 => "MOVED PERMANENTLY",
-            302 => "FOUND",
-            303 => "SEE OTHER",
-            304 => "NOT MODIFIED",
-            307 => "TEMPORARY REDIRECT",
-            308 => "PERMANENT REDIRECT",
-            400 => "BAD REQUEST",
-            401 => "UNAUTHORIZED",
-            403 => "FORBIDDEN",
-            404 => "NOT FOUND",
-            405 => "METHOD NOT ALLOWED",
-            406 => "NOT ACCEPTABLE",
-            407 => "PROXY AUTHENTICATION REQUIRED",
-            408 => "REQUEST TIMEOUT",
-            409 => "CONFLICT",
-            501 => "NOT IMPLEMENTED",
-            500 => "INTERNAL SERVER ERROR",
-            _ => "?"
-        }
-    }
     /// Get the value of the *Content-Length* HTTP header
     ///
     /// If the header is not present, or if it fails to parse
