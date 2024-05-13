@@ -17,6 +17,8 @@ use std::ops::Range;
 use std::path::Path;
 use std::sync::Mutex;
 
+use mime::Mime;
+
 use crate::request::HttpRequest;
 use crate::request::RequestMethod;
 use crate::Result;
@@ -166,6 +168,9 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     let filename = req.filename()?;
     match File::open(&filename) {
         Ok(file) => {
+            if let Ok(mime) = Mime::from_filename(&filename) {
+                req.set_header("Content-Type", mime);
+            }
             let metadata = file.metadata()?;
             let len = metadata.len();
             if metadata.is_file() {
