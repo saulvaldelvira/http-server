@@ -2,22 +2,10 @@ use std::{env, path::Path, str::FromStr, time::Duration};
 
 #[derive(Clone, Copy)]
 pub struct ServerConfig {
-    port: u16,
-    n_threads: usize,
-    keep_alive_timeout: Duration,
-    keep_alive_requests: u16,
-}
-
-trait ParseIterator {
-    fn next_parse<T: FromStr>(&mut self) -> Option<T>;
-}
-
-impl<I> ParseIterator for I
-where I: Iterator<Item = String>
-{
-    fn next_parse<T: FromStr>(&mut self) -> Option<T> {
-        self.next()?.parse().ok()
-    }
+    pub port: u16,
+    pub n_workers: u16,
+    pub keep_alive_timeout: Duration,
+    pub keep_alive_requests: u16,
 }
 
 /// [crate::HttpServer] configuration
@@ -26,16 +14,18 @@ where I: Iterator<Item = String>
 /// ```
 /// use http_srv::server::ServerConfig;
 ///
-/// let mut conf = ServerConfig::default();
-/// conf.set_port(8080)
-///     .set_n_threads(1024);
+/// let mut conf =
+/// ServerConfig::default()
+///     .port(8080)
+///     .n_workers(1024);
 /// ```
 impl ServerConfig {
     /// Default configuration
+    #[inline]
     pub fn default() -> Self {
         Self {
             port: 80,
-            n_threads: 1024,
+            n_workers: 1024,
             keep_alive_timeout: Duration::from_secs(0),
             keep_alive_requests: 10000,
         }
@@ -56,7 +46,7 @@ impl ServerConfig {
         while let Some(arg) = args.next() {
             match arg.as_str() {
                 "-p" => conf.port = parse_next!("-p"),
-                "-n" => conf.n_threads = parse_next!("-n"),
+                "-n" => conf.n_workers = parse_next!("-n"),
                 "-d" | "--dir" => {
                     let path:String = parse_next!(arg.as_str());
                     env::set_current_dir(&Path::new(&path)).expect("Error changing cwd");
@@ -71,26 +61,39 @@ impl ServerConfig {
         }
         conf
     }
-    pub fn port(&self) -> u16 { self.port }
-    pub fn n_threads(&self) -> usize { self.n_threads }
+    #[inline]
     pub fn keep_alive(&self) -> bool { self.keep_alive_timeout.as_millis() > 0 }
-    pub fn keep_alive_timeout(&self) -> Duration { self.keep_alive_timeout }
-    pub fn keep_alive_requests(&self) -> u16 { self.keep_alive_requests }
-    pub fn set_port(&mut self, port:u16) -> &mut Self {
+    #[inline]
+    pub fn n_workers(mut self, n_workers: u16) -> Self {
+        self.n_workers = n_workers;
+        self
+    }
+    #[inline]
+    pub fn port(mut self, port:u16) -> Self {
         self.port = port;
         self
     }
-    pub fn set_n_threads(&mut self, n: usize) -> &mut Self {
-        self.n_threads = n;
-        self
-    }
-    pub fn set_keep_alive_timeout(&mut self, timeout: Duration) -> &mut Self {
+    #[inline]
+    pub fn keep_alive_timeout(mut self, timeout: Duration) -> Self {
         self.keep_alive_timeout = timeout;
         self
     }
-    pub fn set_keep_alive_requests(&mut self, n: u16) -> &mut Self {
+    #[inline]
+    pub fn keep_alive_requests(mut self, n: u16) -> Self {
         self.keep_alive_requests = n;
         self
+    }
+}
+
+trait ParseIterator {
+    fn next_parse<T: FromStr>(&mut self) -> Option<T>;
+}
+
+impl<I> ParseIterator for I
+where I: Iterator<Item = String>
+{
+    fn next_parse<T: FromStr>(&mut self) -> Option<T> {
+        self.next()?.parse().ok()
     }
 }
 

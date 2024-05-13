@@ -50,10 +50,10 @@ fn handle_connection(stream: TcpStream, handlers: Arc<RwLock<Handler>>, conf: Se
     handlers.read().unwrap().handle(&mut req)?;
     let connection = req.header("Connection");
     if connection.is_some() && connection.unwrap() == "keep-alive" && conf.keep_alive() {
-        let timeout = conf.keep_alive_timeout();
+        let timeout = conf.keep_alive_timeout;
         let start = Instant::now();
         let mut n = 1;
-        while start.elapsed() < timeout && n < conf.keep_alive_requests() {
+        while start.elapsed() < timeout && n < conf.keep_alive_requests {
             let offset = timeout - start.elapsed();
             if !peek_stream(req.stream(), offset) { break; }
 
@@ -81,12 +81,12 @@ impl HttpServer {
     /// - If the thread pool fails to initialize
     ///
     pub fn new(config: ServerConfig) -> Self {
-        let address = format!("0.0.0.0:{}", config.port());
+        let address = format!("0.0.0.0:{}", config.port);
         let listener = TcpListener::bind(address)
                         .unwrap_or_else(|err| {
-                            panic!("Could not bind to port {}: {}", config.port(), err);
+                            panic!("Could not bind to port {}: {}", config.port, err);
                         });
-        let pool = ThreadPool::new(config.n_threads())
+        let pool = ThreadPool::with_size(config.n_workers)
                               .expect("Error initializing thread pool");
         let handler = Some(Handler::new());
         Self {listener,pool,handler,config}
@@ -94,7 +94,7 @@ impl HttpServer {
     /// Starts the server
     pub fn run(&mut self) {
         let handler = Arc::new(RwLock::new(self.handler.take().unwrap()));
-        println!("Sever listening on port {}", self.config.port());
+        println!("Sever listening on port {}", self.config.port);
         for stream in self.listener.incoming() {
             match stream {
                 Ok(stream) => {

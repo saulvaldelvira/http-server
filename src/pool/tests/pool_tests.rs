@@ -2,17 +2,9 @@ use std::sync::{Arc, Mutex};
 use job_pool::ThreadPool;
 
 #[test]
-fn pool_size_0() {
-    match ThreadPool::new(0) {
-        Ok(_) => panic!("Expected Err value"),
-        Err(err) => assert_eq!(err.get_message(),"Invalid size: 0"),
-    };
-}
-
-#[test]
 fn pool_counter() {
     static N:i16 = 1024;
-    let pool = ThreadPool::new(32).expect("Expected Ok value");
+    let pool = ThreadPool::with_size(32).expect("Expected Ok value");
     let count = Arc::new(Mutex::new(0));
 
     let inc = |i:i16| {

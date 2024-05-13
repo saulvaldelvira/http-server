@@ -3,14 +3,14 @@ workspace = { members = ["src/html", "src/pool", "src/url"] }
 name = "http-srv"
 description = "Http Server"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
-readme = "README.adoc"
+readme = "README"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-html = { package = "rhtml", version = "0.1.0", path = "src/html" }
-pool = { package = "job-pool", version = "0.1.0", path = "src/pool" }
-url = { package = "url-utils", version = "0.1.0", path = "src/url" }
+html = { package = "rhtml", version = ">=0.1.0", path = "src/html" }
+pool = { package = "job-pool", version = ">=0.1.0", path = "src/pool" }
+url = { package = "url-utils", version = ">=0.1.0", path = "src/url" }

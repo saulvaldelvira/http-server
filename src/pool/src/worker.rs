@@ -7,14 +7,14 @@ pub type Job = Box<dyn FnOnce() + Send + 'static>;
 
 /// Worker for the [ThreadPool](crate::ThreadPool)
 pub struct Worker {
-    id: usize,
+    id: u16,
     thread: Option<JoinHandle<()>>,
 }
 
 impl Worker {
     /// Creates a new [Worker]
     pub fn new(
-        id: usize,
+        id: u16,
         receiver: Arc<Mutex<mpsc::Receiver<Job>>>,
         semaphore: Semaphore,
     ) -> Worker {

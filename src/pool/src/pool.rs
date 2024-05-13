@@ -1,6 +1,6 @@
 use std::sync::{mpsc, Arc, Condvar, Mutex};
 use crate::worker::{Job, Worker};
-use crate::{PoolError, Result, Semaphore};
+use crate::{PoolConfig, Result, Semaphore};
 
 /// Thread Pool
 ///
@@ -11,42 +11,60 @@ use crate::{PoolError, Result, Semaphore};
 /// ```
 /// use job_pool::ThreadPool;
 ///
-/// let pool = ThreadPool::new(32).expect("Error creating pool");
+/// let pool = ThreadPool::with_size(32).expect("Error creating pool");
 /// pool.execute(|| println!("Hello world!"));
 /// ```
 pub struct ThreadPool {
     workers: Vec<Worker>,
     sender: Option<mpsc::Sender<Job>>,
     semaphore: Semaphore,
+    max_jobs: Option<u16>,
 }
 
 impl ThreadPool {
     /// Create a new ThreadPool.
     ///
-    /// The size is the number of threads in the pool.
-    ///
     /// # Returns
-    /// A [Result]<[ThreadPool],[PoolError]>
+    /// A [Result]<[ThreadPool],[PoolError](crate::PoolError)>
     ///
-    pub fn new(size: usize) -> Result<ThreadPool> {
-        if size == 0 {
-            return Err(PoolError::from_str("Invalid size: 0"));
-        }
+    pub fn new(config: PoolConfig) -> Result<ThreadPool> {
+        config.validate()?;
+        let size = config.n_workers as usize;
         let (sender,receiver) = mpsc::channel();
         let receiver = Arc::new(Mutex::new(receiver));
         let semaphore = Arc::new((Mutex::new(0),Condvar::new()));
         let mut workers = Vec::with_capacity(size);
         for id in 0..size {
-            let worker = Worker::new(id,receiver.clone(),semaphore.clone());
+            let worker = Worker::new(id as u16,
+                                    receiver.clone(),
+                                    semaphore.clone());
             workers.push(worker);
         }
-        Ok(ThreadPool {workers,sender:Some(sender),semaphore})
+        Ok(ThreadPool {
+            workers, semaphore,
+            sender:Some(sender),
+            max_jobs: config.max_jobs
+        })
+    }
+    /// Create a [ThreadPool] with the default [configuration](PoolConfig)
+    #[inline]
+    pub fn default_config() -> Result<Self> {
+        Self::new(PoolConfig::default())
+    }
+    /// Create a [ThreadPool] with a given size
+    #[inline]
+    pub fn with_size(size: u16) -> Result<Self> {
+        Self::new(PoolConfig::with_size(size))
     }
     pub fn execute<F>(&self, f: F)
     where
         F: FnOnce() + Send + 'static
     {
-        let mut counter = self.semaphore.0.lock().unwrap();
+        let (lock,cvar) = &*self.semaphore;
+        let mut counter = lock.lock().unwrap();
+        if let Some(max) = self.max_jobs {
+            counter = cvar.wait_while(counter, |n| *n >= max).unwrap();
+        }
         *counter += 1;
         let job = Box::new(f);
         self.sender
