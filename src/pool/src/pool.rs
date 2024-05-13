@@ -9,7 +9,7 @@ use crate::{PoolError, Result, Semaphore};
 ///
 /// # Example
 /// ```
-/// use crate::pool::ThreadPool;
+/// use job_pool::ThreadPool;
 ///
 /// let pool = ThreadPool::new(32).expect("Error creating pool");
 /// pool.execute(|| println!("Hello world!"));

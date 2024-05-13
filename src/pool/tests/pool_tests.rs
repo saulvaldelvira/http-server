@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use pool::ThreadPool;
+use job_pool::ThreadPool;
 
 #[test]
 fn pool_size_0() {
