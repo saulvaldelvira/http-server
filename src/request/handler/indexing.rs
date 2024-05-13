@@ -1,4 +1,4 @@
-use std::{env, fs::read_dir};
+use std::{env, fs::read_dir, path::Path};
 
 use crate::{server::ServerError, Result};
 use html::*;
@@ -10,13 +10,14 @@ macro_rules! path_to_str {
 }
 
 pub fn index_of(filename: &str) -> Result<String> {
-    let title = "Index of ".to_owned() + filename;
+    let cwd_path = env::current_dir()?;
+    let cwd = path_to_str!(&cwd_path)?;
+
+    let title = Path::new(filename).strip_prefix(cwd)?;
+    let title = "Index of ".to_owned() + path_to_str!(title)?;
     let mut html = HtmlBuilder::with_title(&title);
     html.body()
         .append(html!("h1",{text: &title}));
-
-    let cwd_path = env::current_dir()?;
-    let cwd = path_to_str!(&cwd_path)?;
 
     let mut pairs = Vec::new();
     for file in read_dir(filename)? {
