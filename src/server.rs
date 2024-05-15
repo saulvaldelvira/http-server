@@ -4,7 +4,7 @@ pub mod error;
 pub use error::ServerError;
 
 use crate::{request::{handler::Handler, HttpRequest}, Result};
-use std::{sync::{Arc, RwLock}, time::{Duration, Instant}};
+use std::{sync::Arc, time::{Duration, Instant}};
 use std::net::{TcpListener, TcpStream};
 use pool::ThreadPool;
 
@@ -45,9 +45,9 @@ fn peek_stream(stream: &TcpStream, duration: Duration) -> bool {
     result
 }
 
-fn handle_connection(stream: TcpStream, handlers: Arc<RwLock<Handler>>, conf: ServerConfig) -> Result<()> {
+fn handle_connection(stream: TcpStream, handlers: Arc<Handler>, conf: ServerConfig) -> Result<()> {
     let mut req = HttpRequest::parse(stream)?;
-    handlers.read().unwrap().handle(&mut req)?;
+    handlers.handle(&mut req)?;
     let connection = req.header("Connection");
     if connection.is_some() && connection.unwrap() == "keep-alive" && conf.keep_alive() {
         let timeout = conf.keep_alive_timeout;
@@ -58,7 +58,7 @@ fn handle_connection(stream: TcpStream, handlers: Arc<RwLock<Handler>>, conf: Se
             if !peek_stream(req.stream(), offset) { break; }
 
             req = req.keep_alive()?;
-            handlers.read().unwrap().handle(&mut req)?;
+            handlers.handle(&mut req)?;
             n += 1;
 
             let connection = req.header("Connection");
@@ -93,7 +93,7 @@ impl HttpServer {
     }
     /// Starts the server
     pub fn run(&mut self) {
-        let handler = Arc::new(RwLock::new(self.handler.take().unwrap()));
+        let handler = Arc::new(self.handler.take().unwrap());
         println!("Sever listening on port {}", self.config.port);
         for stream in self.listener.incoming() {
             match stream {

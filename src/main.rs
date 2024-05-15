@@ -48,7 +48,8 @@ fn main() {
         req.respond_buf(msg.as_bytes())
     });
 
-    handler.post_interceptor(handler::log_request);
+    handler.post_interceptor(handler::log_stdout);
+    handler.post_interceptor(handler::log_file("/tmp/log.log"));
     /* For debugging */
     /* handler.post_interceptor(|req| { */
     /*     println!("{:?}", req.headers()); */

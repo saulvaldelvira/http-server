@@ -4,13 +4,17 @@ mod ranges;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
+use std::io::stdout;
 use std::io::BufReader;
 use std::io::ErrorKind::*;
 use std::io::Read;
 use std::io::Seek;
 use std::io::SeekFrom;
+use std::io::Write;
+use std::ops::DerefMut;
 use std::ops::Range;
 use std::path::Path;
+use std::sync::Mutex;
 
 use crate::request::HttpRequest;
 use crate::request::RequestMethod;
@@ -51,7 +55,7 @@ pub type HandlerTable = HashMap<RequestMethod,HashMap<String,Box<dyn HandlerFunc
 ///     req.respond_buf(b"Hello world! :)")
 /// });
 /// handler.add_default(RequestMethod::GET, handler::cat_handler);
-/// handler.post_interceptor(handler::log_request);
+/// handler.post_interceptor(handler::log_stdout);
 /// ```
 pub struct Handler {
     handlers: HandlerTable,
@@ -249,8 +253,22 @@ pub fn suffix_html(req: &mut HttpRequest) {
     }
 }
 
-pub fn log_request(req: &mut HttpRequest) {
-    println!("{} {} {} {}", req.method(), req.url(), req.status(), req.status_msg());
+#[inline]
+fn log(w: &mut dyn Write, req: &HttpRequest) {
+    write!(w, "{} {} {} {}\n", req.method(), req.url(), req.status(), req.status_msg()).unwrap();
+}
+
+pub fn log_stdout(req: &mut HttpRequest) {
+    log(&mut stdout(), req);
+}
+
+pub fn log_file(filename: &str) -> impl Interceptor {
+    let file = File::create(filename).expect(&format!("Error creating file: {filename}"));
+    let file = Mutex::new(file);
+    return move |req| {
+        let mut file = file.lock().unwrap();
+        log(file.deref_mut(), req);
+    }
 }
 
 pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
