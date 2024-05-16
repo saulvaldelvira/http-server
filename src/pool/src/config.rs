@@ -15,18 +15,6 @@ impl PoolConfig {
     pub fn with_size(size: u16) -> Self {
         Self::default().n_workers(size)
     }
-    /// Default configuration
-    ///
-    /// # Default Configuration
-    /// Nº Workers: 1024
-    /// Max Jobs: None
-    #[inline]
-    pub fn default() -> Self {
-        Self {
-            n_workers: 1024,
-            max_jobs: None,
-        }
-    }
     /// Set the pool to be blocking when receiving a
     /// given number of jobs
     #[inline]
@@ -69,5 +57,19 @@ impl PoolConfig {
             }
         }
         Ok(())
+    }
+}
+
+impl Default for PoolConfig {
+    /// Default configuration
+    ///
+    /// Nº Workers: 1024
+    /// Max Jobs: None
+    #[inline]
+    fn default() -> Self {
+        Self {
+            n_workers: 1024,
+            max_jobs: None,
+        }
     }
 }

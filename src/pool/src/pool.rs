@@ -48,7 +48,7 @@ impl ThreadPool {
     }
     /// Create a [ThreadPool] with the default [configuration](PoolConfig)
     #[inline]
-    pub fn default_config() -> Result<Self> {
+    pub fn default() -> Result<Self> {
         Self::new(PoolConfig::default())
     }
     /// Create a [ThreadPool] with a given size

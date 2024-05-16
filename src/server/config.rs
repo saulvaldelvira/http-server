@@ -20,16 +20,6 @@ pub struct ServerConfig {
 ///     .n_workers(1024);
 /// ```
 impl ServerConfig {
-    /// Default configuration
-    #[inline]
-    pub fn default() -> Self {
-        Self {
-            port: 80,
-            n_workers: 1024,
-            keep_alive_timeout: Duration::from_secs(0),
-            keep_alive_requests: 10000,
-        }
-    }
     /// Parse the configuration from the command line args
     pub fn parse<I>(args: I) -> Self
     where I: Iterator<Item = String>
@@ -131,5 +121,23 @@ mod test {
     fn parse_error() {
         let conf = vec!["-p","abc"];
         parse_from_vec(conf);
+    }
+}
+
+impl Default for ServerConfig {
+    /// Default configuration
+    ///
+    /// Port: 80
+    /// Nº Workers: 1024
+    /// Keep Alive Timeout: 0s (Disabled)
+    /// Keep Alove Requests: 10000
+    #[inline]
+    fn default() -> Self {
+        Self {
+            port: 80,
+            n_workers: 1024,
+            keep_alive_timeout: Duration::from_secs(0),
+            keep_alive_requests: 10000,
+        }
     }
 }
