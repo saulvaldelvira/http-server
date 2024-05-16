@@ -4,6 +4,7 @@ mod ranges;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::stdout;
 use std::io::BufReader;
 use std::io::ErrorKind::*;
@@ -263,9 +264,13 @@ pub fn log_stdout(req: &mut HttpRequest) {
 }
 
 pub fn log_file(filename: &str) -> impl Interceptor {
-    let file = File::create(filename).expect(&format!("Error creating file: {filename}"));
+    let file = OpenOptions::new()
+                .append(true)
+                .create(true)
+                .open(filename)
+                .expect(&format!("Error creating file: {filename}"));
     let file = Mutex::new(file);
-    return move |req| {
+    move |req| {
         let mut file = file.lock().unwrap();
         log(file.deref_mut(), req);
     }
