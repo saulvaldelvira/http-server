@@ -73,15 +73,12 @@ fn handle_connection(stream: TcpStream, handlers: Arc<Handler>, conf: ServerConf
 impl HttpServer {
     /// Create a new HTTP Server
     ///
-    /// - port: TCP port to listen in
-    /// - n_threads: Number of threads for the pool
-    ///
     /// # Panics
     /// - If the server fails to bind to the TCP port
     /// - If the thread pool fails to initialize
     ///
     pub fn new(config: ServerConfig) -> Self {
-        let address = format!("0.0.0.0:{}", config.port);
+        let address = format!("::0:{}", config.port);
         let listener = TcpListener::bind(address)
                         .unwrap_or_else(|err| {
                             panic!("Could not bind to port {}: {}", config.port, err);
