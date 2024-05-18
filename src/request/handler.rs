@@ -173,12 +173,12 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
             }
             let Some(range) = req.header("Range") else { return Ok(None); };
             let range = get_range_for(range, len)?;
-            if range.end > len || range.end < range.start {
+            if range.end > len || range.end <= range.start {
                 req.set_status(416);
             } else {
                 req.set_status(206);
                 req.set_header("Content-Length", range.end - range.start);
-                req.set_header("Content-Range", &format!("bytes {}-{}/{}", range.start, range.end, len));
+                req.set_header("Content-Range", &format!("bytes {}-{}/{}", range.start, range.end - 1, len));
             }
             return Ok(Some(range));
         },
