@@ -82,6 +82,10 @@ impl Handler {
     pub fn delete<F: HandlerFunc>(&mut self, url: &str, f: F) {
         self.add(RequestMethod::DELETE,url,f);
     }
+    #[inline]
+    pub fn head<F: HandlerFunc>(&mut self, url: &str, f: F) {
+        self.add(RequestMethod::HEAD,url,f);
+    }
     /// Adds a handler for a request type
     ///
     /// - method: HTTP [method](RequestMethod) to match
@@ -137,6 +141,27 @@ impl Handler {
     }
 }
 
+impl Default for Handler {
+    fn default() -> Self {
+        let mut handler = Self::new();
+        handler.pre_interceptor(suffix_html);
+        handler.pre_interceptor(|req| {
+            req.set_header("Accept-Ranges", "bytes");
+        });
+
+        handler.add_default(RequestMethod::GET, cat_handler);
+        handler.add_default(RequestMethod::POST, post_handler);
+        handler.add_default(RequestMethod::DELETE, delete_handler);
+        handler.add_default(RequestMethod::HEAD, head_handler);
+
+        handler.get("/", index_handler);
+        handler.head("/", index_handler);
+
+        handler.post_interceptor(log_stdout);
+        handler
+    }
+}
+
 fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     let filename = req.filename()?;
     match File::open(&filename) {
@@ -151,6 +176,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
             if range.end > len || range.end < range.start {
                 req.set_status(416);
             } else {
+                req.set_status(206);
                 req.set_header("Content-Length", range.end - range.start);
                 req.set_header("Content-Range", &format!("bytes {}-{}/{}", range.start, range.end, len));
             }
@@ -169,7 +195,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
 
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;
-    if req.status() != 200 {
+    if !(200..300).contains(&req.status())  {
         let page = req.error_page();
         req.set_header("Content-Length", page.len());
     }
@@ -183,7 +209,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
 
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let range = head_headers(req)?;
-    if req.status() != 200 {
+    if !(200..300).contains(&req.status())  {
         return req.respond_error_page();
     };
     let filename = req.filename()?;
@@ -268,7 +294,7 @@ pub fn log_file(filename: &str) -> impl Interceptor {
                 .append(true)
                 .create(true)
                 .open(filename)
-                .expect(&format!("Error creating file: {filename}"));
+                .unwrap_or_else(|_| panic!("Error creating file: {filename}"));
     let file = Mutex::new(file);
     move |req| {
         let mut file = file.lock().unwrap();

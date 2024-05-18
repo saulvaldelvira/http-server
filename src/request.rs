@@ -32,7 +32,9 @@ impl HttpRequest {
     }
     #[inline]
     pub fn keep_alive(self) -> Result<Self> {
-        parse_request(self.stream)
+        let mut req = parse_request(self.stream)?;
+        req.set_header("Connection", "keep-alive");
+        Ok(req)
     }
     #[inline]
     pub fn stream(&self) -> &TcpStream { self.stream.get_ref() }

@@ -1,25 +1,17 @@
 use std::{env, thread, time::Duration};
 use http_srv::{
-    request::{encoding::StreamReader, handler::{self, Handler}, RequestMethod}, HttpServer, ServerConfig
+    request::{encoding::StreamReader, handler::{self, Handler}}, HttpServer, ServerConfig
 };
 
 fn main() {
     let config = ServerConfig::parse(env::args().skip(1));
 
-    let mut handler = Handler::new();
-    handler.pre_interceptor(handler::suffix_html);
-
-    handler.add_default(RequestMethod::GET, handler::cat_handler);
-    handler.add_default(RequestMethod::POST, handler::post_handler);
-    handler.add_default(RequestMethod::DELETE, handler::delete_handler);
-    handler.add_default(RequestMethod::HEAD, handler::head_handler);
-
-    handler.get("/", handler::index_handler);
-    handler.add(RequestMethod::HEAD, "/", handler::index_handler);
+    let mut handler = Handler::default();
     handler.get("/sleep", |req| {
         thread::sleep(Duration::from_secs(5));
         req.ok()
     });
+
     handler.get("/params", |req| {
         let mut s = "".to_string();
         for (k,v) in req.params() {
@@ -48,7 +40,6 @@ fn main() {
         req.respond_buf(msg.as_bytes())
     });
 
-    handler.post_interceptor(handler::log_stdout);
     handler.post_interceptor(handler::log_file("/tmp/log.log"));
     /* For debugging */
     /* handler.post_interceptor(|req| { */
