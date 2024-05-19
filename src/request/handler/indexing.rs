@@ -24,7 +24,13 @@ pub fn index_of(filename: &str) -> Result<String> {
         let path = file?.path();
 
         let text = path.strip_prefix(filename)?;
-        let text = path_to_str!(text)?.to_owned();
+        let icon =
+            if path.is_dir() {
+                "&#128447; "
+            } else {
+                "&#128457; "
+            }.to_owned();
+        let text = icon + path_to_str!(text)?;
 
         let url = path.strip_prefix(&cwd)?;
         let mut encoded_url = "".to_owned();
