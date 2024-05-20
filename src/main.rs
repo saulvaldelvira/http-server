@@ -1,6 +1,6 @@
 use std::{env, thread, time::Duration};
 use http_srv::{
-    request::{encoding::StreamReader, handler::{self, Handler}}, HttpServer, ServerConfig
+    request::{encoding::StreamReader, handler::{AuthConfig, Handler}}, HttpServer, ServerConfig
 };
 
 fn main() {
@@ -40,11 +40,20 @@ fn main() {
         req.respond_buf(msg.as_bytes())
     });
 
-    handler.post_interceptor(handler::log_file("/tmp/log.log"));
+    /* handler.post_interceptor(handler::log_file("/tmp/log.log")); */
+
     /* For debugging */
     /* handler.post_interceptor(|req| { */
     /*     println!("{:?}", req.headers()); */
     /* }); */
+
+    let auth = AuthConfig::of_list(&[
+                                   ("test", "test"),
+                                   ("abc", "abc"),
+                                    ]);
+    handler.get("/priv", &auth + |req| {
+        req.respond_str("Secret message")
+    });
 
     let mut server = HttpServer::new(config);
     server.set_handler(handler);

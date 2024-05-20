@@ -1,5 +1,7 @@
 mod indexing;
 mod ranges;
+mod auth;
+pub use auth::AuthConfig;
 
 use std::collections::HashMap;
 use std::fs;
@@ -73,19 +75,19 @@ impl Handler {
                pre_interceptors: Vec::new(), post_interceptors: Vec::new() }
     }
     #[inline]
-    pub fn get<F: HandlerFunc>(&mut self, url: &str, f: F) {
+    pub fn get(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::GET,url,f);
     }
     #[inline]
-    pub fn post<F: HandlerFunc>(&mut self, url: &str, f: F) {
+    pub fn post(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::POST,url,f);
     }
     #[inline]
-    pub fn delete<F: HandlerFunc>(&mut self, url: &str, f: F) {
+    pub fn delete(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::DELETE,url,f);
     }
     #[inline]
-    pub fn head<F: HandlerFunc>(&mut self, url: &str, f: F) {
+    pub fn head(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::HEAD,url,f);
     }
     /// Adds a handler for a request type
@@ -94,7 +96,7 @@ impl Handler {
     /// - url: URL for the handler
     /// - f: [Handler](HandlerFunc) for the request
     ///
-    pub fn add<F: HandlerFunc>(&mut self, method: RequestMethod, url: &str, f: F) {
+    pub fn add(&mut self, method: RequestMethod, url: &str, f: impl HandlerFunc) {
         if !self.handlers.contains_key(&method) {
             self.handlers.insert(method, HashMap::new());
         }

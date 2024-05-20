@@ -4,9 +4,10 @@ version = 3
 
 [[package]]
 name = "http-srv"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "job-pool",
+ "rb64",
  "rhtml",
  "rmime",
  "url-utils",

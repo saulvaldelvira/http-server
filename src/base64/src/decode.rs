@@ -11,13 +11,7 @@ fn next(chars: &mut Chars<'_>) -> Result<Option<i8>> {
         '+' => '+' as i8 - 62,
         '/' => '/' as i8 - 63,
         '=' => return Ok(None),
-        '\r' | '\n' => {
-            loop {
-                if let Some(c) = next(chars)? {
-                    break c;
-                }
-            }
-        }
+        '\r' | '\n' => return next(chars),
         _ => return Err(format!("Unknown character to decode: '{c}'").into())
     };
     Ok(Some(c))
@@ -54,9 +48,17 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
 
         let mut offset = 4;
         for _ in 0..2 {
-            for _ in 0..2 {
-                let Some(c) = next(&mut chars)? else { break 'main; };
-                n = n << 6 | c as u32;
+            for i in 0..2 {
+                n = n << 6;
+                match next(&mut chars)? {
+                    Some(c) => n |= c as u32,
+                    None => {
+                        if i == 1 {
+                            push!( n >> offset );
+                        }
+                        break 'main;
+                    },
+                }
             }
             push!(n >> offset);
             offset *= 2;

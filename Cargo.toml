@@ -1,10 +1,17 @@
-workspace = { members = [ "src/base64","src/html", "src/pool", "src/url", "src/mime" ] }
+[workspace]
+members = [
+    "src/base64",
+    "src/html",
+    "src/pool",
+    "src/url",
+    "src/mime"
+]
 
 [package]
 name = "http-srv"
 description = "Http Server"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 license = "MIT"
 readme = "README"
@@ -16,3 +23,4 @@ html = { package = "rhtml", version = ">=0.1.0", path = "src/html" }
 pool = { package = "job-pool", version = ">=0.1.0", path = "src/pool" }
 url = { package = "url-utils", version = ">=0.1.0", path = "src/url" }
 mime = { package = "rmime", version = ">=0.1.0", path = "src/mime" }
+base64 = { package = "rb64", version = ">=0.1.0", path = "src/base64" }

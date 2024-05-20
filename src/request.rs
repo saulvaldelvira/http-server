@@ -86,8 +86,8 @@ impl HttpRequest {
     }
     /// Get the value of the given header key, if present
     #[inline]
-    pub fn header(&self, key: &str) -> Option<&String> {
-        self.headers.get(key)
+    pub fn header(&self, key: &str) -> Option<&str> {
+        self.headers.get(key).map(|s| s.as_str())
     }
     #[inline]
     pub fn headers(&self) -> &HashMap<String,String> { &self.headers }
@@ -140,6 +140,10 @@ impl HttpRequest {
         self.set_header("Content-Length", buf.len());
         self.respond_reader(&mut buf)
     }
+    /// Respond to the request with the given string
+    pub fn respond_str(&mut self, text: &str) -> Result<()> {
+        self.respond_buf(text.as_bytes())
+    }
     /// Respond to the request with the data read from reader as a body
     pub fn respond_reader(&mut self, reader: &mut dyn Read) -> Result<()> {
         self.respond()?;
@@ -176,6 +180,11 @@ impl HttpRequest {
     #[inline]
     pub fn forbidden(&mut self) -> Result<()> {
         self.set_status(403).respond_error_page()
+    }
+    /// Respond to the request with an 401 UNAUTHORIZED status
+    #[inline]
+    pub fn unauthorized(&mut self) -> Result<()> {
+        self.set_status(401).respond_error_page()
     }
     /// Respond to the request with an 404 NOT FOUND status
     #[inline]

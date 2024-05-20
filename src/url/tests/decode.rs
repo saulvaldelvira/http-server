@@ -1,4 +1,4 @@
-use url::decode;
+use url_utils::decode;
 
 #[test]
 fn valid() {
