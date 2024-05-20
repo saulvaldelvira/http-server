@@ -1,4 +1,5 @@
-workspace = { members = ["src/html", "src/pool", "src/url"] }
+workspace = { members = [ "src/base64","src/html", "src/pool", "src/url", "src/mime" ] }
+
 [package]
 name = "http-srv"
 description = "Http Server"

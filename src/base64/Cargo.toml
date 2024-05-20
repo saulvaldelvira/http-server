@@ -1,0 +1,8 @@
+[package]
+name = "rb64"
+description = "Base 64"
+version = "0.1.2"
+edition = "2021"
+authors = ["Saúl Valdelvira <saul@saulv.es>"]
+license = "MIT"
+readme = "README"
