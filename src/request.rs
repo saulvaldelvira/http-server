@@ -7,7 +7,7 @@ use parse::parse_request;
 pub use method::RequestMethod;
 
 use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, net::TcpStream, path::Path};
-use crate::{Result, ServerError};
+use crate::Result;
 use crate::request::encoding::Chunked;
 
 /// HTTP Request
@@ -60,7 +60,7 @@ impl HttpRequest {
                 OsStr::new(&self.url[1..])
             )
         );
-        let cwd = cwd.to_str().ok_or_else(|| ServerError::from_str("Error getting cwd"))?;
+        let cwd = cwd.to_str().ok_or_else(|| "Error getting cwd")?;
         Ok(cwd.to_owned())
     }
     #[inline]

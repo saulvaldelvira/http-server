@@ -1,17 +1,17 @@
 use std::ops::Range;
 
-use crate::{server::{error::err, ServerError}, Result};
+use crate::{server::error::err, Result};
 
 pub fn get_range_for(range: &str, len: u64) -> Result<Range<u64>> {
     let mut range = range.split("=");
-    let unit = range.next().ok_or_else(|| ServerError::from_str("Missing unit"))?;
+    let unit = range.next().ok_or_else(|| "Missing unit")?;
     if unit != "bytes" {
         /* TODO */
         return err!("Unknown unit");
     }
     /* TODO: Implement more ranges
      * -1024 (get the last 1024) */
-    let range = range.next().ok_or_else(|| ServerError::from_str("Missing range"))?;
+    let range = range.next().ok_or_else(|| "Missing range")?;
     let mut range = range.split("-");
     let start = range.next().unwrap_or("").parse()?;
     let end = range.next().unwrap_or("").parse().unwrap_or(len);

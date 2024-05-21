@@ -1,23 +1,18 @@
-use std::{fmt::{Debug, Display}, io, num::ParseIntError, path::StripPrefixError, string::FromUtf8Error};
+use std::{borrow::Cow, fmt::{Debug, Display}, io, num::ParseIntError, path::StripPrefixError, string::FromUtf8Error};
 
 /// Server Error
-pub enum ServerError {
-    /// [ServerError] containing an &'static [str]
-    Str(&'static str),
-    /// [ServerError] containing an owned [String]
-    String(String),
-}
+pub struct ServerError(Cow<'static,str>);
 
 impl ServerError {
     /// Creates a [ServerError] from a &'static [str]
     #[inline]
     pub fn from_str(msg: &'static str) -> Self {
-        Self::Str(msg)
+        Self(msg.into())
     }
     /// Creates a [ServerError] from a [String]
     #[inline]
     pub fn from_string(msg: String) -> Self {
-        Self::String(msg)
+        Self(msg.into())
     }
     /// Turns the [ServerError] into a [Result]<T,[ServerError]>
     #[inline]
@@ -27,10 +22,7 @@ impl ServerError {
     /// Gets the message inside the [ServerError]
     #[inline]
     pub fn get_message(&self) -> &str {
-        match &self {
-            Self::Str(msg) => msg,
-            Self::String(msg) => &msg,
-        }
+        &self.0
     }
 }
 
@@ -72,10 +64,10 @@ impl From<ParseIntError> for ServerError {
         Self::from_string(value.to_string())
     }
 }
-impl From<String> for ServerError {
+impl From<Cow<'static,str>> for ServerError {
     #[inline]
-    fn from(value: String) -> Self {
-        Self::from_string(value)
+    fn from(value: Cow<'static,str>) -> Self {
+        Self(value)
     }
 }
 impl Debug for ServerError {
@@ -89,6 +81,18 @@ impl Display for ServerError {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
        write!(f, "{}", self.get_message())
+    }
+}
+
+impl From<&'static str> for ServerError {
+    fn from(value: &'static str) -> Self {
+        Self(value.into())
+    }
+}
+
+impl From<String> for ServerError {
+    fn from(value: String) -> Self {
+        Self(value.into())
     }
 }
 

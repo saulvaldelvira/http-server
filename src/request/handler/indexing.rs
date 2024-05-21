@@ -1,11 +1,11 @@
 use std::{env, fs::read_dir, path::Path};
 
-use crate::{server::ServerError, Result};
+use crate::Result;
 use html::*;
 
 macro_rules! path_to_str {
     ($path:expr) => {
-        $path.to_str().ok_or_else(|| ServerError::from_str("Path is invalid Unicode"))
+        $path.to_str().ok_or_else(|| "Path is invalid Unicode")
     };
 }
 
