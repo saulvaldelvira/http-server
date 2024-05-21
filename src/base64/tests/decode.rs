@@ -17,7 +17,7 @@ fn padding() {
 #[test]
 fn invalid() {
     match decode("abcñ") {
-        Err(err) => assert_eq!(err,"Unknown character to decode: ñ"),
+        Err(err) => assert_eq!(err,"Unknown character to decode: 'ñ'"),
         Ok(_) => panic!("Expected Err")
     }
 }

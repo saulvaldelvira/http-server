@@ -2,18 +2,25 @@ use std::str::Chars;
 use super::Result;
 
 #[inline(always)]
-fn next(chars: &mut Chars<'_>) -> Result<i8> {
-    let c = chars.next().unwrap_or('=');
+fn next(chars: &mut Chars<'_>) -> Result<Option<i8>> {
+    let Some(c) = chars.next() else { return Ok(None); };
     let c = c as i8 - match c {
         'A'..='Z' => 'A' as i8,
         'a'..='z' => 'a' as i8 - 26,
         '0'..='9' => '0' as i8 - 52,
         '+' => '+' as i8 - 62,
         '/' => '/' as i8 - 63,
-        '=' => c as i8,
-        _ => return Err(format!("Unknown character to decode: {c}").into())
+        '=' => return Ok(None),
+        '\r' | '\n' => {
+            loop {
+                if let Some(c) = next(chars)? {
+                    break c;
+                }
+            }
+        }
+        _ => return Err(format!("Unknown character to decode: '{c}'").into())
     };
-    Ok(c)
+    Ok(Some(c))
 }
 
 /// Decode a Base64-encoded string
@@ -47,20 +54,15 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
 
         let mut offset = 4;
         for _ in 0..2 {
-            let mut c = 0;
-
             for _ in 0..2 {
-                c = next(&mut chars)?;
+                let Some(c) = next(&mut chars)? else { break 'main; };
                 n = n << 6 | c as u32;
             }
-
-            if c == 0 { break 'main; }
-
             push!(n >> offset);
             offset *= 2;
-
         }
         push!(n);
     }
+
     Ok(decoded)
 }

@@ -9,5 +9,5 @@ pub use decode::decode;
 mod encode;
 pub use encode::encode;
 
-type Result<T> = std::result::Result<T,Cow<'static,str>>;
+pub type Result<T> = std::result::Result<T,Cow<'static,str>>;
 
