@@ -22,42 +22,38 @@ pub fn encode(bytes: &[u8]) -> String {
     let capacity = capacity.ceil() as usize + 2;
     let mut result = String::with_capacity(capacity);
 
-    macro_rules! push {
-        ($e:expr) => {
+    bytes.chunks(3).for_each(|chunk| {
+        for c in encode_chunk(chunk) {
             if result.len() >= result.capacity() {
                 /* The capacity will always be enough */
                 unreachable!();
             }
-            result.push(TABLE[($e & 0b111111) as usize]);
+            result.push(c);
+        }
+    });
+
+    result
+}
+
+pub (crate) fn encode_chunk(bytes: &[u8]) -> [char; 4] {
+    let mut buf = ['='; 4];
+    macro_rules! set {
+        ($i:expr, $e:expr) => {
+            buf[$i] = TABLE[($e & 0b111111) as usize];
         };
     }
 
-    let remaining = bytes.len() % 3;
-    let len = bytes.len() - remaining;
-
-    let mut i = 0;
-    while i < len {
-        let buf = &bytes[i..i+3];
-        push!( buf[0] >> 2 );
-        push!( buf[0] << 4 | buf[1] >> 4 );
-        push!( buf[1] << 2 | buf[2] >> 6 );
-        push!( buf[2] );
-        i += 3;
+    set!(0, bytes[0] >> 2 );
+    if bytes.len() == 1 {
+        set!(1, bytes[0] << 4);
+        return buf;
     }
-
-    if remaining > 0 {
-        let buf = &bytes[i..];
-        push!( buf[0] >> 2 );
-        if remaining == 1 {
-            push!( buf[0] << 4 );
-            result.push_str("==");
-            return result;
-        }
-        push!( buf[0] << 4 | buf[1] >> 4 );
-
-        push!( buf[1] << 2 );
-        result.push('=');
+    set!(1, bytes[0] << 4 | bytes[1] >> 4 );
+    if bytes.len() == 2 {
+        set!(2, bytes[1] << 2);
+        return buf;
     }
-
-    result
+    set!(2, bytes[1] << 2 | bytes[2] >> 6 );
+    set!(3, bytes[2] );
+    buf
 }
