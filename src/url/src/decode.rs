@@ -1,6 +1,5 @@
 use std::borrow::Cow;
-
-use crate::{from_hex_digit,Result};
+use crate::Result;
 
 /// UrlDecode the given string
 pub fn decode(url: &str) -> Result<Cow<str>> {
@@ -28,3 +27,14 @@ pub fn decode(url: &str) -> Result<Cow<str>> {
     let result = String::from_utf8(result).or_else(|err| Err(err.to_string()))?;
     Ok(result.into())
 }
+
+#[inline(always)]
+fn from_hex_digit(digit: u8) -> Result<u8> {
+    match digit {
+        b'0'..=b'9' => Ok(digit - b'0'),
+        b'A'..=b'F' => Ok(digit - b'A' + 10),
+        b'a'..=b'f' => Ok(digit - b'a' + 10),
+        _ => Err(format!("{digit} is not a valid hex digit").into()),
+    }
+}
+
