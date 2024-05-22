@@ -18,8 +18,8 @@ pub fn decode(url: &str) -> Result<Cow<str>> {
             result.push(*b);
             continue;
         }
-        let first = it.next().ok_or_else(|| "Missing byte after '%'".to_string())?;
-        let second = it.next().ok_or_else(|| "Missing byte after '%'".to_string())?;
+        let first = it.next().ok_or("Missing byte after '%'")?;
+        let second = it.next().ok_or("Missing byte after '%'")?;
         let first = from_hex_digit(*first)?;
         let second = from_hex_digit(*second)?;
         let c = first << 4 | second;
