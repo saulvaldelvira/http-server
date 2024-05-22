@@ -190,11 +190,15 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
             return Ok(Some(range));
         },
         Err(err) => {
-            let status = match err.kind() {
-                PermissionDenied => 403,
-                _ => 404,
-            };
-            req.set_status(status);
+            /* On windows, File::open on a dir
+             * returns an error. */
+            if !dir_exists(&filename) {
+                let status = match err.kind() {
+                    PermissionDenied => 403,
+                    _ => 404,
+                };
+                req.set_status(status);
+            }
         }
     };
     Ok(None)
