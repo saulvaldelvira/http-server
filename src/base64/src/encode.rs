@@ -24,6 +24,10 @@ pub fn encode(bytes: &[u8]) -> String {
 
     macro_rules! push {
         ($e:expr) => {
+            if result.len() >= result.capacity() {
+                /* The capacity will always be enough */
+                unreachable!();
+            }
             result.push(TABLE[($e & 0b111111) as usize]);
         };
     }

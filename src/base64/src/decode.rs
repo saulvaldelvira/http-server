@@ -38,6 +38,10 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
     let mut decoded = Vec::<u8>::with_capacity(capacity);
     macro_rules! push {
         ($e:expr) => {
+            if decoded.len() >= decoded.capacity() {
+                /* The capacity will always be enough */
+                unreachable!();
+            }
             decoded.push((($e) & 0b11111111) as u8);
         };
     }
