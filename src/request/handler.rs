@@ -4,28 +4,18 @@ mod auth;
 pub use auth::AuthConfig;
 
 use std::collections::HashMap;
-use std::fs;
-use std::fs::File;
-use std::fs::OpenOptions;
-use std::io::stdout;
-use std::io::BufReader;
-use std::io::ErrorKind::*;
-use std::io::Read;
-use std::io::Seek;
-use std::io::SeekFrom;
-use std::io::Write;
-use std::ops::DerefMut;
-use std::ops::Range;
+use std::fs::{self, File, OpenOptions};
+use std::io::{stdout, BufReader, ErrorKind::*, Read, Seek, SeekFrom, Write};
+use std::ops::{DerefMut, Range};
 use std::path::Path;
 use std::sync::Mutex;
 
-use mime::Mime;
-
-use crate::request::HttpRequest;
-use crate::request::RequestMethod;
+use crate::request::{HttpRequest, RequestMethod};
 use crate::Result;
 use self::indexing::index_of;
 use self::ranges::get_range_for;
+
+use mime::Mime;
 
 /// HandlerFunc trait
 ///
@@ -74,18 +64,22 @@ impl Handler {
         Self { handlers: HashMap::new(), defaults: HashMap::new(),
                pre_interceptors: Vec::new(), post_interceptors: Vec::new() }
     }
+    /// Shortcut for [add](Handler::add)([RequestMethod::GET], ...)
     #[inline]
     pub fn get(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::GET,url,f);
     }
+    /// Shortcut for [add](Handler::add)([RequestMethod::POST], ...)
     #[inline]
     pub fn post(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::POST,url,f);
     }
+    /// Shortcut for [add](Handler::add)([RequestMethod::DELETE], ...)
     #[inline]
     pub fn delete(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::DELETE,url,f);
     }
+    /// Shortcut for [add](Handler::add)([RequestMethod::HEAD], ...)
     #[inline]
     pub fn head(&mut self, url: &str, f: impl HandlerFunc) {
         self.add(RequestMethod::HEAD,url,f);
@@ -146,6 +140,24 @@ impl Handler {
 }
 
 impl Default for Handler {
+    /// Default Handler
+    ///
+    /// # Pre Interceptors
+    ///  - [suffix_html]
+    ///  - Set Header: "Accept-Ranges: bytes"
+    ///
+    /// # Handler Functions
+    /// - [GET](RequestMethod::GET): [cat_handler]
+    /// - [POST](RequestMethod::POST): [post_handler]
+    /// - [DELETE](RequestMethod::DELETE): [delete_handler]
+    /// - [HEAD](RequestMethod::HEAD): [head_handler]
+    ///
+    /// - [GET](RequestMethod::GET) "/": [index_handler]
+    /// - [HEAD](RequestMethod::HEAD) "/": [index_handler]
+    ///
+    /// # Post Interceptors
+    ///  - [log_stdout]
+    ///
     fn default() -> Self {
         let mut handler = Self::new();
         handler.pre_interceptor(suffix_html);
@@ -168,6 +180,9 @@ impl Default for Handler {
 
 fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     let filename = req.filename()?;
+    if dir_exists(&filename) {
+        return Ok(None);
+    }
     match File::open(&filename) {
         Ok(file) => {
             if let Ok(mime) = Mime::from_filename(&filename) {
@@ -190,20 +205,18 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
             return Ok(Some(range));
         },
         Err(err) => {
-            /* On windows, File::open on a dir
-             * returns an error. */
-            if !dir_exists(&filename) {
-                let status = match err.kind() {
-                    PermissionDenied => 403,
-                    _ => 404,
-                };
-                req.set_status(status);
-            }
+            let status = match err.kind() {
+                PermissionDenied => 403,
+                _ => 404,
+            };
+            req.set_status(status);
         }
     };
     Ok(None)
 }
 
+/// Returns the headers that would be sent by a [GET](RequestType::GET)
+/// [request](HttpRequest), with an empty body.
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;
     if !(200..300).contains(&req.status())  {
@@ -218,6 +231,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     req.respond()
 }
 
+/// Returns the file, or an index of the directory.
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let range = head_headers(req)?;
     if !(200..300).contains(&req.status())  {
@@ -243,6 +257,7 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     }
 }
 
+/// Save the data of the request to the url
 pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
     match File::create(&filename) {
@@ -260,6 +275,7 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
     }
 }
 
+/// Delete the filename
 pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
     match fs::remove_file(req.filename()?) {
        Ok(_) => req.ok(),
@@ -279,6 +295,11 @@ fn dir_exists(filename: &str) -> bool {
     Path::new(filename).is_dir()
 }
 
+/// Appends a suffix to the url
+///
+/// If the requested url doesn't exists, try to
+/// append a suffix ('.html', '.php'), and if it
+/// exists, modify the url.
 pub fn suffix_html(req: &mut HttpRequest) {
     if file_exists(&req.url()[1..]) { return; }
     for suffix in [".html",".php"] {
@@ -291,15 +312,19 @@ pub fn suffix_html(req: &mut HttpRequest) {
     }
 }
 
-#[inline]
+#[inline(always)]
 fn log(w: &mut dyn Write, req: &HttpRequest) {
     write!(w, "{} {} {} {}\n", req.method(), req.url(), req.status(), req.status_msg()).unwrap();
 }
 
+/// Log the [request](HttpRequest) to stdout
 pub fn log_stdout(req: &mut HttpRequest) {
     log(&mut stdout(), req);
 }
 
+/// Log the [request](HttpRequest) to a file
+///
+/// The file is appended to, or created if it doesn't exists
 pub fn log_file(filename: &str) -> impl Interceptor {
     let file = OpenOptions::new()
                 .append(true)

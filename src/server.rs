@@ -111,3 +111,17 @@ impl HttpServer {
     /// Set a [Handler] for all the [requests](HttpRequest) on this [server](HttpServer)
     pub fn set_handler(&mut self, handler: Handler) { self.handler = Some(handler); }
 }
+
+impl Default for HttpServer {
+    /// Default Server
+    ///
+    /// - Configuration: [ServerConfig::default]
+    /// - Handler: [Handler::default]
+    fn default() -> Self {
+        let conf = ServerConfig::default();
+        let mut srv = Self::new(conf);
+        let handler = Handler::default();
+        srv.set_handler(handler);
+        srv
+    }
+}

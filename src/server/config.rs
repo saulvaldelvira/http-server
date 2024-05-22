@@ -127,10 +127,10 @@ mod test {
 impl Default for ServerConfig {
     /// Default configuration
     ///
-    /// Port: 80
-    /// Nº Workers: 1024
-    /// Keep Alive Timeout: 0s (Disabled)
-    /// Keep Alove Requests: 10000
+    /// - Port: 80
+    /// - Nº Workers: 1024
+    /// - Keep Alive Timeout: 0s (Disabled)
+    /// - Keep Alove Requests: 10000
     #[inline]
     fn default() -> Self {
         Self {
