@@ -1,4 +1,4 @@
-use std::{env, path::Path, str::FromStr, time::Duration};
+use std::{env, path::Path, process, str::FromStr, time::Duration};
 
 #[derive(Clone, Copy)]
 pub struct ServerConfig {
@@ -46,6 +46,7 @@ impl ServerConfig {
                      conf.keep_alive_timeout = Duration::from_secs_f32(timeout);
                 },
                 "--keep-alive-requests" => conf.keep_alive_requests = parse_next!("--keep-alive-requests"),
+                "-h" | "--help" => help(),
                 _ => panic!("Unknow argument: {arg}")
             }
         }
@@ -73,6 +74,17 @@ impl ServerConfig {
         self.keep_alive_requests = n;
         self
     }
+}
+
+fn help() {
+    println!("\
+USAGE: http-server [-p <port>] [-n <n-workers>] [-d <working-dir>]
+PARAMETERS:
+    -p <port> : TCP Port to listen for requests
+    -n <n-workers> : Number of concurrent workers
+    -d <working-dir> : Root directory of the server
+    -h | --help : Display this help message");
+    process::exit(0);
 }
 
 trait ParseIterator {
