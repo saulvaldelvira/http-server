@@ -186,12 +186,12 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     match File::open(&filename) {
         Ok(file) => {
             if let Ok(mime) = Mime::from_filename(&filename) {
-                req.set_header("Content-Type", mime);
+                req.set_header("Content-Type", mime.to_string());
             }
             let metadata = file.metadata()?;
             let len = metadata.len();
             if metadata.is_file() {
-                req.set_header("Content-Length", len);
+                req.set_header("Content-Length", len.to_string());
             }
             let Some(range) = req.header("Range") else { return Ok(None); };
             let range = get_range_for(range, len)?;
@@ -199,7 +199,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
                 req.set_status(416);
             } else {
                 req.set_status(206);
-                req.set_header("Content-Length", range.end - range.start);
+                req.set_header("Content-Length", (range.end - range.start).to_string());
                 req.set_header("Content-Range", &format!("bytes {}-{}/{}", range.start, range.end - 1, len));
             }
             return Ok(Some(range));
@@ -219,14 +219,16 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
 /// [request](HttpRequest), with an empty body.
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;
-    if !(200..300).contains(&req.status())  {
-        let page = req.error_page();
-        req.set_header("Content-Length", page.len());
-    }
     let filename = req.filename()?;
-    if dir_exists(&filename) {
-        let page = index_of(&filename)?;
-        req.set_header("Content-Length", page.len());
+    let len =
+    if req.status().is_http_err() {
+        req.error_page().len()
+    } else if dir_exists(&filename) {
+        index_of(&filename)?.len()
+    } else { 0 };
+
+    if len > 0 {
+        req.set_header("Content-Length", len.to_string());
     }
     req.respond()
 }
@@ -234,7 +236,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
 /// Returns the file, or an index of the directory.
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let range = head_headers(req)?;
-    if !(200..300).contains(&req.status())  {
+    if req.status().is_http_err()  {
         return req.respond_error_page();
     };
     let filename = req.filename()?;
@@ -343,4 +345,18 @@ pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
             req.set_url("/index.html".to_owned());
         }
         cat_handler(req)
+}
+
+trait IsOk {
+    fn is_http_ok(&self) -> bool;
+    fn is_http_err(&self) -> bool;
+}
+
+impl IsOk for u16 {
+    fn is_http_ok(&self) -> bool {
+        (200..300).contains(self)
+    }
+    fn is_http_err(&self) -> bool {
+        !self.is_http_ok()
+    }
 }

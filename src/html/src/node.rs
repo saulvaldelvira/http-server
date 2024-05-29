@@ -56,14 +56,14 @@ impl HtmlNode {
     }
     /// Set the text inside the node
     #[inline]
-    pub fn text(&mut self, text: impl ToString) -> &mut Self {
-        self.text = text.to_string();
+    pub fn text(&mut self, text: impl Into<String>) -> &mut Self {
+        self.text = text.into();
         self
     }
     /// Set an attribute of the [HtmlNode]
     #[inline]
-    pub fn attr(&mut self, name: &str, value: impl ToString) -> &mut Self {
-        self.params.insert(name.to_owned(),value.to_string());
+    pub fn attr(&mut self, name: impl Into<String>, value: impl Into<String>) -> &mut Self {
+        self.params.insert(name.into(),value.into());
         self
     }
     /// Get the n'th child
@@ -91,4 +91,3 @@ impl ToString for HtmlNode {
         text
     }
 }
-

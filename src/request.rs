@@ -92,8 +92,8 @@ impl HttpRequest {
     #[inline]
     pub fn headers(&self) -> &HashMap<String,String> { &self.headers }
     #[inline]
-    pub fn set_header<V: ToString>(&mut self, key: &str, value: V) {
-        self.response_headers.insert(key.to_string(), value.to_string());
+    pub fn set_header(&mut self, key: impl Into<String>, value: impl Into<String>) {
+        self.response_headers.insert(key.into(), value.into());
     }
     pub fn data(&mut self) -> Vec<u8> {
         let len = self.content_length();
@@ -137,7 +137,7 @@ impl HttpRequest {
     }
     /// Respond to the request with the data of buf as a body
     pub fn respond_buf(&mut self, mut buf: &[u8]) -> Result<()> {
-        self.set_header("Content-Length", buf.len());
+        self.set_header("Content-Length", buf.len().to_string());
         self.respond_reader(&mut buf)
     }
     /// Respond to the request with the given string
