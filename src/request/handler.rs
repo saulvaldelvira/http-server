@@ -215,7 +215,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     Ok(None)
 }
 
-/// Returns the headers that would be sent by a [GET](RequestType::GET)
+/// Returns the headers that would be sent by a [GET](RequestMethod::GET)
 /// [request](HttpRequest), with an empty body.
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;

@@ -8,11 +8,14 @@ use std::collections::HashMap;
 /// ```rust
 /// use rhtml::*;
 ///
-/// let node = html!("ul", [
+/// let mut builder = HtmlBuilder::new();
+/// let mut node = html!("ul", [
 ///     html!("li", {text: "Element1"}),
 ///     html!("li", {text: "Element2"}),
 ///     html!("li", {text: "Element3"}),
 /// ]);
+/// node.attr("class", "my_list");
+/// builder.body().append(node);
 /// ```
 pub struct HtmlNode {
     name: String,

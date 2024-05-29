@@ -11,12 +11,14 @@ impl HtmlBuilder {
     /// Create a new HTML Builder
     ///
     /// By default the following document is created.
+    /// ```html
     /// <html>
     ///     <head>
     ///         <meta charset="UTF-8"></meta>
     ///     </head>
     ///     <body></body>
     /// </html>
+    /// ```
     pub fn new() -> Self {
         let root =
             html!("html",
