@@ -11,3 +11,9 @@ fn test() {
         assert_eq!(mime.to_string(), expected);
     };
 }
+
+#[test]
+fn no_ext() {
+    let mime = Mime::from_filename("my_file").unwrap();
+    assert_eq!("text/plain", mime.to_string());
+}

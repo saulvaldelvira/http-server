@@ -14,9 +14,12 @@ impl Mime {
         Ok(Mime(major,minor))
     }
     pub fn from_filename(filename: &str) -> Result<Self> {
-        let ext = Path::new(filename)
-                       .extension().ok_or("Error getting file extension")?
-                       .to_str().ok_or("Error convertion OsString to str")?;
+        let ext =
+            match Path::new(filename).extension() {
+                Some(ext) => ext.to_str()
+                                .ok_or("Error convertion OsString to str")?,
+                None => ""
+            };
         let major = match ext {
             "avi" => "video/x-msvideo",
             "aac" => "audio",
@@ -26,6 +29,7 @@ impl Mime {
             /* TODO: Complete */
             "json" => "application/json",
             "mp4" => "video",
+            "" => "text/plain",
             _ => return Err("Unknown extension")
         };
         Ok(
