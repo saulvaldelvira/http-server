@@ -1,4 +1,4 @@
-use std::{env, fs::read_dir, os::unix::fs::MetadataExt, path::Path};
+use std::{env, fs::read_dir, path::Path};
 
 use crate::Result;
 use html::*;
@@ -83,7 +83,7 @@ pub fn index_of(filename: &str) -> Result<String> {
             ]),
         ]);
         if file.is_file() {
-            html!("td", {text: size_human(file.size())}).append_to(&mut tr);
+            html!("td", {text: size_human(file.len())}).append_to(&mut tr);
         }
         table.append(tr);
     }
