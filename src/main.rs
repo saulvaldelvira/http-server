@@ -1,6 +1,6 @@
 use std::{env, thread, time::Duration};
 use http_srv::{
-    request::{encoding::StreamReader, handler::{AuthConfig, Handler}}, HttpServer, ServerConfig
+    request::{encoding::StreamReader, handler::{self, AuthConfig, Handler}}, HttpServer, ServerConfig
 };
 
 fn main() {
@@ -39,6 +39,8 @@ fn main() {
         let msg = format!("Hello {name}!");
         req.respond_buf(msg.as_bytes())
     });
+
+    handler.get("/redirect", handler::redirect("/hello"));
 
     /* handler.post_interceptor(handler::log_file("/tmp/log.log")); */
 

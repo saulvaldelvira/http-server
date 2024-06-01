@@ -341,10 +341,19 @@ pub fn log_file(filename: &str) -> impl Interceptor {
 }
 
 pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
-        if file_exists("index.html") {
-            req.set_url("/index.html".to_owned());
-        }
-        cat_handler(req)
+    if file_exists("index.html") {
+        req.set_url("/index.html".to_owned());
+    }
+    cat_handler(req)
+}
+
+pub fn redirect(uri: &str) -> impl HandlerFunc {
+    let uri = uri.to_string();
+    move |req| {
+        req.set_header("Location", &uri);
+        req.set_header("Content-Length", "0");
+        req.set_status(308).respond()
+    }
 }
 
 trait IsOk {
