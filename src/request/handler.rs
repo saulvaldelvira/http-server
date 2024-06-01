@@ -221,7 +221,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;
     let filename = req.filename()?;
     let len =
-    if req.status().is_http_err() {
+    if req.is_http_err() {
         req.error_page().len()
     } else if dir_exists(&filename) {
         index_of(&filename)?.len()
@@ -236,7 +236,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
 /// Returns the file, or an index of the directory.
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let range = head_headers(req)?;
-    if req.status().is_http_err()  {
+    if req.is_http_err()  {
         return req.respond_error_page();
     };
     let filename = req.filename()?;
@@ -353,19 +353,5 @@ pub fn redirect(uri: &str) -> impl HandlerFunc {
         req.set_header("Location", &uri);
         req.set_header("Content-Length", "0");
         req.set_status(308).respond()
-    }
-}
-
-trait IsOk {
-    fn is_http_ok(&self) -> bool;
-    fn is_http_err(&self) -> bool;
-}
-
-impl IsOk for u16 {
-    fn is_http_ok(&self) -> bool {
-        (200..300).contains(self)
-    }
-    fn is_http_err(&self) -> bool {
-        !self.is_http_ok()
     }
 }

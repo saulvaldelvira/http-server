@@ -1,9 +1,27 @@
-use super::HttpRequest;
+use crate::HttpRequest;
 
-impl HttpRequest {
+pub trait StatusCode {
+    /// Returns true if the status code of the
+    /// request represents an OK status (200-300)
+    fn is_http_ok(&self) -> bool;
+    /// Returns true if the status code of the
+    /// request doesn't represent an OK status (200-300)
+    fn is_http_err(&self) -> bool;
     /// Get a human-readable description of the request's status code
-    pub fn status_msg(&self) -> &'static str {
-        match self.status {
+    fn status_msg(&self) -> &'static str;
+}
+
+impl StatusCode for u16 {
+    #[inline]
+    fn is_http_ok(&self) -> bool {
+        (200..300).contains(self)
+    }
+    #[inline]
+    fn is_http_err(&self) -> bool {
+        !self.is_http_ok()
+    }
+    fn status_msg(&self) -> &'static str {
+        match self {
             200 => "OK",
             201 => "CREATED",
             202 => "ACCEPTED",
@@ -39,5 +57,20 @@ impl HttpRequest {
             500 => "INTERNAL SERVER ERROR",
             _ => "?"
         }
+    }
+}
+
+impl HttpRequest {
+    #[inline]
+    pub fn is_http_ok(&self) -> bool {
+        self.status.is_http_ok()
+    }
+    #[inline]
+    pub fn is_http_err(&self) -> bool {
+        self.status.is_http_err()
+    }
+    #[inline]
+    pub fn status_msg(&self) -> &'static str {
+        self.status.status_msg()
     }
 }

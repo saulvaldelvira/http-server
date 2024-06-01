@@ -1,6 +1,7 @@
 pub mod handler;
 pub mod encoding;
 mod status;
+pub use status::StatusCode;
 mod method;
 mod parse;
 use parse::parse_request;
