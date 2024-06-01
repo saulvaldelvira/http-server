@@ -42,7 +42,7 @@ impl HttpRequest {
     #[inline]
     pub fn url(&self) -> &str { &self.url }
     #[inline]
-    pub fn set_url(&mut self, url: String) { self.url = url; }
+    pub fn set_url(&mut self, url: impl Into<String>) { self.url = url.into(); }
     /// Get the query parameters
     #[inline]
     pub fn params(&self) -> &HashMap<String,String> { &self.params }
@@ -78,6 +78,7 @@ impl HttpRequest {
     ///
     /// If the header is not present, or if it fails to parse
     /// it's value, it returns 0
+    #[inline]
     pub fn content_length(&self) -> usize {
         match self.headers.get("Content-Length") {
             Some(l) => l.parse().unwrap_or(0),
@@ -141,6 +142,7 @@ impl HttpRequest {
         self.respond_reader(&mut buf)
     }
     /// Respond to the request with the given string
+    #[inline]
     pub fn respond_str(&mut self, text: &str) -> Result<()> {
         self.respond_buf(text.as_bytes())
     }
@@ -168,8 +170,7 @@ impl HttpRequest {
     /// Respond with a basic HTML error page
     #[inline]
     pub fn respond_error_page(&mut self) -> Result<()> {
-        let mut buf = self.error_page();
-        self.respond_buf(&mut buf)
+        self.respond_str(&self.error_page())
     }
     /// Respond to the request with an 200 OK status
     #[inline]
@@ -197,7 +198,7 @@ impl HttpRequest {
         self.set_status(500).respond_error_page()
     }
     /// Returns a basic HTML error page of the given status
-    pub fn error_page(&mut self) -> Vec<u8> {
+    pub fn error_page(&self) -> String {
         let code = self.status;
         let msg = self.status_msg();
         format!(
@@ -210,7 +211,7 @@ impl HttpRequest {
 <body>
     <h1>{code} {msg}</h1>
 </body>
-</html>").as_bytes().to_vec()
+</html>")
     }
 }
 

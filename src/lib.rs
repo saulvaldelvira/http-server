@@ -22,7 +22,7 @@
 //!     handler.get("/hello", |req| {
 //!         let name = req.param("name").unwrap_or("friend");
 //!         let msg = format!("Hello {name}!");
-//!         req.respond_buf(msg.as_bytes())
+//!         req.respond_str(&msg)
 //!     });
 //!
 //!     let mut server = HttpServer::new(config);

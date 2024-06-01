@@ -19,7 +19,7 @@ fn main() {
             s.push_str(" = ");
             s.push_str(v);
         };
-        req.respond_buf(s.as_bytes())
+        req.respond_str(&s)
     });
 
     handler.get("/inf", |req| {
@@ -37,7 +37,7 @@ fn main() {
     handler.get("/hello", |req| {
         let name = req.param("name").unwrap_or("friend");
         let msg = format!("Hello {name}!");
-        req.respond_buf(msg.as_bytes())
+        req.respond_str(&msg)
     });
 
     handler.get("/redirect", handler::redirect("/hello"));

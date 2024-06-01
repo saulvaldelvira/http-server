@@ -47,7 +47,7 @@ pub type HandlerTable = HashMap<RequestMethod,HashMap<String,Box<dyn HandlerFunc
 ///
 /// let mut handler = Handler::new();
 /// handler.get("/", |req| {
-///     req.respond_buf(b"Hello world! :)")
+///     req.respond_str("Hello world! :)")
 /// });
 /// handler.add_default(RequestMethod::GET, handler::cat_handler);
 /// handler.post_interceptor(handler::log_stdout);
@@ -242,7 +242,7 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
     if dir_exists(&filename) {
         let page = index_of(&filename)?;
-        return req.respond_buf(page.as_bytes());
+        return req.respond_str(&page);
     }
     let mut file = File::open(req.filename()?)?;
     match range {
@@ -342,7 +342,7 @@ pub fn log_file(filename: &str) -> impl Interceptor {
 
 pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
     if file_exists("index.html") {
-        req.set_url("/index.html".to_owned());
+        req.set_url("/index.html");
     }
     cat_handler(req)
 }
