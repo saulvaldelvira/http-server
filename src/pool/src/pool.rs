@@ -16,7 +16,7 @@ use crate::{PoolConfig, Result, Semaphore};
 /// ```
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: Option<mpsc::Sender<Job>>,
+    sender: Option<mpsc::Sender<Box<dyn Job>>>,
     semaphore: Semaphore,
     max_jobs: Option<u16>,
 }
@@ -56,17 +56,14 @@ impl ThreadPool {
     pub fn with_size(size: u16) -> Result<Self> {
         Self::new(PoolConfig::with_size(size))
     }
-    pub fn execute<F>(&self, f: F)
-    where
-        F: FnOnce() + Send + 'static
-    {
+    pub fn execute(&self, job: impl Job) {
         let (lock,cvar) = &*self.semaphore;
         let mut counter = lock.lock().unwrap();
         if let Some(max) = self.max_jobs {
             counter = cvar.wait_while(counter, |n| *n >= max).unwrap();
         }
         *counter += 1;
-        let job = Box::new(f);
+        let job = Box::new(job);
         self.sender
             .as_ref()
             .unwrap()

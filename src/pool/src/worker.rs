@@ -3,7 +3,9 @@ use std::sync::{mpsc, Arc, Mutex};
 use crate::Semaphore;
 
 /// Type of function ran by the [Worker]
-pub type Job = Box<dyn FnOnce() + Send + 'static>;
+pub trait Job: FnOnce() + Send + 'static {}
+impl<T> Job for T
+where T: FnOnce() + Send + 'static {}
 
 /// Worker for the [ThreadPool](crate::ThreadPool)
 pub struct Worker {
@@ -15,7 +17,7 @@ impl Worker {
     /// Creates a new [Worker]
     pub fn new(
         id: u16,
-        receiver: Arc<Mutex<mpsc::Receiver<Job>>>,
+        receiver: Arc<Mutex<mpsc::Receiver<Box<dyn Job>>>>,
         semaphore: Semaphore,
     ) -> Worker {
         let thread = spawn(move || loop {
