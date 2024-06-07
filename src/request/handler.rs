@@ -215,6 +215,14 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     Ok(None)
 }
 
+#[inline(always)]
+fn show_hidden(req: &HttpRequest) -> bool {
+    match req.param("hidden") {
+        Some(s) => s != "false",
+        None => true,
+    }
+}
+
 /// Returns the headers that would be sent by a [GET](RequestMethod::GET)
 /// [request](HttpRequest), with an empty body.
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
@@ -224,7 +232,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     if req.is_http_err() {
         req.error_page().len()
     } else if dir_exists(&filename) {
-        index_of(&filename)?.len()
+        index_of(&filename, show_hidden(req))?.len()
     } else { 0 };
 
     if len > 0 {
@@ -241,7 +249,7 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     };
     let filename = req.filename()?;
     if dir_exists(&filename) {
-        let page = index_of(&filename)?;
+        let page = index_of(&filename, show_hidden(req))?;
         return req.respond_str(&page);
     }
     let mut file = File::open(req.filename()?)?;

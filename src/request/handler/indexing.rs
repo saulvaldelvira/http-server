@@ -23,7 +23,7 @@ fn size_human(size: u64) -> String {
     format!("{size:.decimals$} {}", UNITS[i])
 }
 
-pub fn index_of(filename: &str) -> Result<String> {
+pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     let cwd_path = env::current_dir()?;
     let cwd = path_to_str!(&cwd_path)?;
 
@@ -60,21 +60,27 @@ pub fn index_of(filename: &str) -> Result<String> {
     for file in files {
         let path = file.path();
         let file = path.metadata()?;
+        let text = path.strip_prefix(filename)?;
+        let text = path_to_str!(text)?;
+        if !show_hidden && text.starts_with(".") {
+            continue;
+        }
+
         let icon =
             if file.is_dir() {
                 "&#128447;"
             } else {
                 "&#128456;"
             };
-        let text = path.strip_prefix(filename)?;
-        let text = path_to_str!(text)?;
-
         let url = path.strip_prefix(&cwd)?;
         let mut encoded_url = "".to_owned();
         for part in url {
             let part = path_to_str!(part)?;
             encoded_url += "/";
             encoded_url += &url::encode(part)?;
+        }
+        if !show_hidden {
+            encoded_url += "?hidden=false";
         }
         let mut tr = html!("tr", [
             html!("td", {text: icon}),
