@@ -23,6 +23,23 @@ fn size_human(size: u64) -> String {
     format!("{size:.decimals$} {}", UNITS[i])
 }
 
+fn encode_path(path: &Path, show_hidden: bool) -> Result<String> {
+    let cap = path_to_str!(path)?.len();
+    let mut encoded_url = String::with_capacity(cap);
+    for part in path {
+        let part = path_to_str!(part)?;
+        encoded_url += "/";
+        encoded_url += &url::encode(part)?;
+    }
+    if cap == 0 {
+        encoded_url.push('/');
+    }
+    if !show_hidden {
+        encoded_url += "?hidden=false";
+    }
+    Ok(encoded_url)
+}
+
 pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     let cwd_path = env::current_dir()?;
     let cwd = path_to_str!(&cwd_path)?;
@@ -57,6 +74,18 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
             html!("th", {text: "Size"}),
         ])
     ]);
+    if let Some(parent) = Path::new(filename).parent() {
+        if parent.starts_with(cwd) {
+            let url = parent.strip_prefix(cwd)?;
+            let url = encode_path(url, show_hidden)?;
+            table.append(html!("tr", [
+                    html!("td", {text: "&larr; "}),
+                    html!("td", [
+                        html!("a", {"href": url},{text: ".."})
+                    ]),
+            ]));
+        }
+    }
     for file in files {
         let path = file.path();
         let file = path.metadata()?;
@@ -73,19 +102,10 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
                 "&#128456;"
             };
         let url = path.strip_prefix(&cwd)?;
-        let mut encoded_url = "".to_owned();
-        for part in url {
-            let part = path_to_str!(part)?;
-            encoded_url += "/";
-            encoded_url += &url::encode(part)?;
-        }
-        if !show_hidden {
-            encoded_url += "?hidden=false";
-        }
         let mut tr = html!("tr", [
             html!("td", {text: icon}),
             html!("td", [
-                html!("a", {"href": encoded_url}, {text: text}),
+                html!("a", {"href": encode_path(url,show_hidden)?}, {text: text}),
             ]),
         ]);
         if file.is_file() {
