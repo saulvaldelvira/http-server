@@ -17,3 +17,17 @@ fn no_ext() {
     let mime = Mime::from_filename("my_file").unwrap();
     assert_eq!("text/plain", mime.to_string());
 }
+
+#[test]
+fn reference() {
+
+    /*
+    */
+
+    let mime: Mime;
+    {
+        let string = "text/plain".to_string();
+        mime = Mime::from_str(&string).unwrap().into_owned();
+    }
+    mime.to_string();
+}
