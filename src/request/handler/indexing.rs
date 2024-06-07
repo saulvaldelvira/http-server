@@ -90,7 +90,7 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
         let path = file.path();
         let file = path.metadata()?;
         let text = path.strip_prefix(filename)?;
-        let text = path_to_str!(text)?;
+        let text = path_to_str!(text)?.to_owned();
         if !show_hidden && text.starts_with(".") {
             continue;
         }
