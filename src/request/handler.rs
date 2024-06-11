@@ -181,6 +181,7 @@ impl Default for Handler {
 fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     let filename = req.filename()?;
     if dir_exists(&filename) {
+        req.set_header("Content-Type", "text/html");
         return Ok(None);
     }
     match File::open(&filename) {

@@ -171,6 +171,7 @@ impl HttpRequest {
     /// Respond with a basic HTML error page
     #[inline]
     pub fn respond_error_page(&mut self) -> Result<()> {
+        self.set_header("Content-Type", "text/html");
         self.respond_str(&self.error_page())
     }
     /// Respond to the request with an 200 OK status
