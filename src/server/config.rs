@@ -76,7 +76,7 @@ impl ServerConfig {
     }
 }
 
-fn help() {
+fn help() -> ! {
     println!("\
 USAGE: http-server [-p <port>] [-n <n-workers>] [-d <working-dir>]
 PARAMETERS:
