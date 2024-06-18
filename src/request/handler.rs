@@ -356,8 +356,8 @@ pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
     cat_handler(req)
 }
 
-pub fn redirect(uri: &str) -> impl HandlerFunc {
-    let uri = uri.to_string();
+pub fn redirect(uri: impl Into<String>) -> impl HandlerFunc {
+    let uri = uri.into();
     move |req| {
         req.set_header("Location", &uri);
         req.set_header("Content-Length", "0");
