@@ -273,7 +273,7 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
     match File::create(&filename) {
         Ok(mut file) => {
-            req.read_data(&mut file)?;
+            req.read_body(&mut file)?;
             req.ok()
         },
         Err(err) => {

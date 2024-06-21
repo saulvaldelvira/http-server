@@ -97,14 +97,13 @@ impl HttpRequest {
     pub fn set_header(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.response_headers.insert(key.into(), value.into());
     }
-    pub fn data(&mut self) -> Vec<u8> {
+    pub fn body(&mut self) -> Vec<u8> {
         let len = self.content_length();
         let mut buf:Vec<u8> = Vec::with_capacity(len);
-        buf.resize(len, 0);
-        self.stream.read_exact(&mut buf).unwrap();
+        self.stream.read_to_end(&mut buf).unwrap();
         buf
     }
-    pub fn read_data(&mut self, writer: &mut dyn Write) -> Result<()> {
+    pub fn read_body(&mut self, writer: &mut dyn Write) -> Result<()> {
         const CHUNK_SIZE:usize = 1024 * 1024;
         let mut buf:[u8;CHUNK_SIZE] = [0;CHUNK_SIZE];
         let len = self.content_length();
