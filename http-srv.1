@@ -1,0 +1,45 @@
+.TH http-srv 1 "22 June 2024"
+.SH NAME
+\fBhttp-srv\fP - Simple HTTP server
+.SH SYNOPSIS
+http-srv [-p <port>] [-n <n-workers>] [-d <working-dir>]
+
+.SH DESCRIPTION
+\fBhttp-srv\fP is a simple HTTP server writen in rust.
+
+.SH OPTIONS
+.TP
+.B -p, --port <port>
+TCP Port to listen for requests
+.TP
+
+.TP
+.B -n, --n-workers <n>
+Number of concurrent workers
+
+.TP
+.B -d, --dir <working-dir>
+Root directory of the server
+
+.TP
+.B -k, --keep-alive <sec>
+Keep alive seconds
+
+.TP
+.B -r, --keep-alive-requests <num>
+Keep alive max requests
+
+.TP
+.B -h, --help
+Display this help message
+
+.SH EXAMPLES
+http-srv -p 8080 -d /var/html
+
+http-srv -d ~/desktop -n 1024 --keep-alive 120
+
+.SH AUTHOR
+Saúl Valdelvira (2024)
+
+.SH SEE ALSO
+Browse the source code at \fIhttp://git.saulv.es/http-server\fP
