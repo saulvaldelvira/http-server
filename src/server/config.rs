@@ -35,17 +35,17 @@ impl ServerConfig {
 
         while let Some(arg) = args.next() {
             match arg.as_str() {
-                "-p" => conf.port = parse_next!("-p"),
-                "-n" => conf.n_workers = parse_next!("-n"),
+                "-p" | "--port" => conf.port = parse_next!("-p"),
+                "-n" | "-n-workers" => conf.n_workers = parse_next!("-n"),
                 "-d" | "--dir" => {
                     let path:String = parse_next!(arg.as_str());
                     env::set_current_dir(&Path::new(&path)).expect("Error changing cwd");
                 },
-                "--keep-alive" => {
+                "-k" | "--keep-alive" => {
                     let timeout = parse_next!("--keep-alive");
                      conf.keep_alive_timeout = Duration::from_secs_f32(timeout);
                 },
-                "--keep-alive-requests" => conf.keep_alive_requests = parse_next!("--keep-alive-requests"),
+                "-r" | "--keep-alive-requests" => conf.keep_alive_requests = parse_next!("--keep-alive-requests"),
                 "-h" | "--help" => help(),
                 _ => panic!("Unknow argument: {arg}")
             }
@@ -78,12 +78,17 @@ impl ServerConfig {
 
 fn help() -> ! {
     println!("\
-USAGE: http-server [-p <port>] [-n <n-workers>] [-d <working-dir>]
+USAGE: http-srv [-p <port>] [-n <n-workers>] [-d <working-dir>]
 PARAMETERS:
-    -p <port> : TCP Port to listen for requests
-    -n <n-workers> : Number of concurrent workers
-    -d <working-dir> : Root directory of the server
-    -h | --help : Display this help message");
+    -p, --port <port>    TCP Port to listen for requests
+    -n, --n-workers <n>  Number of concurrent workers
+    -d, --dir <working-dir>  Root directory of the server
+    -k, --keep-alive <sec>   Keep alive seconds
+    -r, --keep-alive-requests <num>  Keep alive max requests
+    -h, --help  Display this help message
+EXAMPLES:
+  http-srv -p 8080 -d /var/html
+  http-srv -d ~/desktop -n 1024 --keep-alive 120");
     process::exit(0);
 }
 
