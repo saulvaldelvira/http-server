@@ -2,7 +2,7 @@ use rhtml::*;
 
 #[test]
 fn test() {
-    let mut builder = HtmlBuilder::new();
+    let mut builder = HtmlNode::builder();
     builder.body().append(html!("h1", {text: "Hello World!"}));
     assert_eq!(
         "<!DOCTYPE html>\

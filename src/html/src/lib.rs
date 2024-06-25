@@ -12,10 +12,8 @@
 //! let page = builder.to_string();
 //! ```
 
-mod node;
+pub mod node;
 pub use node::HtmlNode;
-mod builder;
-pub use builder::HtmlBuilder;
 
 #[macro_export]
 macro_rules! html {
@@ -54,7 +52,7 @@ macro_rules! html {
                  )?
                 $(
                     $(
-                        node.append($o);
+                        node.child($o);
                      )*
                  )?
                 node

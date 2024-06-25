@@ -1,5 +1,7 @@
 use std::{borrow::Cow, collections::HashMap};
 
+use builders::Builder;
+
 /// Html Node
 ///
 /// Node of an HTML Document
@@ -17,11 +19,23 @@ use std::{borrow::Cow, collections::HashMap};
 /// node.attr("class", "my_list");
 /// builder.body().append(node);
 /// ```
+#[derive(Builder,Clone)]
 pub struct HtmlNode<'a> {
     name: Cow<'a,str>,
+    #[builder(each = "attr")]
     params: HashMap<Cow<'a,str>,Cow<'a,str>>,
     text: Cow<'a,str>,
+    #[builder(each = "child")]
     childs: Vec<HtmlNode<'a>>,
+}
+
+impl<'a> HtmlNodeBuilder<'a> {
+    /// Append all [nodes](HtmlNode) from the iterator as childs
+    #[inline]
+    pub fn append_iter(&mut self, node: impl Iterator<Item=HtmlNode<'a>>) -> &mut Self {
+        node.for_each(|n| { self.child(n); });
+        self
+    }
 }
 
 impl<'a> HtmlNode<'a> {
@@ -33,41 +47,17 @@ impl<'a> HtmlNode<'a> {
             name: "".into()
         }
     }
-    /// Append an [HtmlNode] as a child
     #[inline]
-    pub fn append(&mut self, node: HtmlNode<'a>) -> &mut Self {
-        self.childs.push(node);
-        self
-    }
-    /// Append all [nodes](HtmlNode) from the iterator as childs
-    #[inline]
-    pub fn append_iter(&mut self, node: impl Iterator<Item=HtmlNode<'a>>) -> &mut Self {
-        node.for_each(|n| { self.append(n); });
-        self
-    }
-    #[inline]
-    pub fn append_to(self, other: &mut Self) -> &mut Self {
-        other.append(self);
+    pub fn append_to(self, other: &'a mut HtmlNodeBuilder<'a>) -> &mut HtmlNodeBuilder<'a> {
+        other.child(self);
         other
     }
     /// Create an [HtmlNode] with a given name
     #[inline]
-    pub fn with_name(name: impl Into<Cow<'a,str>>) -> Self {
-        let mut node = HtmlNode::new();
-        node.name = name.into();
+    pub fn with_name(name: impl Into<Cow<'a,str>>) -> HtmlNodeBuilder<'a> {
+        let mut node = HtmlNode::builder();
+        node.name(name.into());
         node
-    }
-    /// Set the text inside the node
-    #[inline]
-    pub fn text(&mut self, text: impl Into<Cow<'a,str>>) -> &mut Self {
-        self.text = text.into();
-        self
-    }
-    /// Set an attribute of the [HtmlNode]
-    #[inline]
-    pub fn attr(&mut self, name: impl Into<Cow<'a,str>>, value: impl Into<Cow<'a,str>>) -> &mut Self {
-        self.params.insert(name.into(),value.into());
-        self
     }
     /// Get the n'th child
     #[inline]
