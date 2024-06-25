@@ -1,4 +1,4 @@
-use crate::{PoolError,Result};
+use crate::Result;
 
 /// Pool Config
 ///
@@ -47,13 +47,12 @@ impl PoolConfig {
     }
     pub fn validate(&self) -> Result<()> {
         if self.n_workers == 0 {
-            return PoolError::from_str("Invalid pool size: 0").err();
+            return Err("Invalid pool size: 0".into());
         }
         if let Some(max) = self.max_jobs {
             if max < self.n_workers {
-                return PoolError::from_string(
-                    format!("Max number of jobs ({max}) is lower \
-                             than the number of workers ({})", self.n_workers)).err()
+                return Err(format!("Max number of jobs ({max}) is lower \
+                             than the number of workers ({})", self.n_workers).into())
             }
         }
         Ok(())

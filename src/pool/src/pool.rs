@@ -23,10 +23,6 @@ pub struct ThreadPool {
 
 impl ThreadPool {
     /// Create a new ThreadPool.
-    ///
-    /// # Returns
-    /// A [Result]<[ThreadPool],[PoolError](crate::PoolError)>
-    ///
     pub fn new(config: PoolConfig) -> Result<ThreadPool> {
         config.validate()?;
         let size = config.n_workers as usize;

@@ -20,15 +20,13 @@
 
 mod pool;
 mod worker;
-mod error;
 mod config;
-use std::sync::{Arc, Condvar, Mutex};
+use std::{borrow::Cow, sync::{Arc, Condvar, Mutex}};
 
-pub use error::PoolError;
 pub use pool::ThreadPool;
 
 pub use config::PoolConfig;
 
 type Semaphore = Arc<(Mutex<u16>,Condvar)>;
 
-pub type Result<T> = std::result::Result<T,PoolError>;
+pub type Result<T> = std::result::Result<T,Cow<'static,str>>;
