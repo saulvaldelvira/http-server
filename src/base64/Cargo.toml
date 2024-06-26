@@ -1,8 +1,21 @@
 [package]
 name = "rb64"
 description = "Base 64"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
 license = "MIT"
 readme = "README"
+
+[dependencies]
+clap = { version = "4.5.7", features = ["derive"], optional = true }
+
+[[bin]]
+name = "base64"
+path = "src/main.rs"
+required-features = ["clap"]
+
+[features]
+default = []
+clap = ["dep:clap"]
+

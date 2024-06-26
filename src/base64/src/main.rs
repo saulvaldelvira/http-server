@@ -1,28 +1,34 @@
-use std::env;
 use std::fs;
 use std::io::stdin;
 use std::io::stdout;
 use std::io::Read;
 use std::io::Write;
 use std::process;
+use clap::{Parser,ValueEnum};
+use rb64::{encode,decode};
 
-mod config;
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Operation {
+    Encode, Decode
+}
 
-use rb64::decode;
-use rb64::encode;
-use config::Config;
-
-use crate::config::Operation;
+#[derive(Parser)]
+struct Config {
+    #[arg(value_enum)]
+    operation: Operation,
+    /// Files to process
+    files: Vec<String>,
+}
 
 fn main() -> std::io::Result<()> {
-    let conf = Config::parse(env::args().skip(1)).unwrap();
+    let conf = Config::parse();
 
-    match conf.operation() {
+    match conf.operation {
         Operation::Encode => {
-            for file in conf.files() {
+            for file in &conf.files {
                 let data = fs::read(&file)?;
                 let enc = encode(&data);
-                if conf.files().len() > 1 {
+                if conf.files.len() > 1 {
                     let file = file.to_owned() + ".base64";
                     fs::write(&file, enc.as_bytes())?;
                 } else {
@@ -30,7 +36,7 @@ fn main() -> std::io::Result<()> {
                 }
 
             }
-            if conf.files().is_empty() {
+            if conf.files.is_empty() {
                 let mut data = Vec::new();
                 stdin().read_to_end(&mut data)?;
                 let enc = encode(&data);
@@ -38,20 +44,20 @@ fn main() -> std::io::Result<()> {
             }
         },
         Operation::Decode => {
-            for file in conf.files() {
+            for file in &conf.files {
                 let data = fs::read_to_string(&file)?;
                 let dec = decode(&data).unwrap_or_else(|err| {
                     println!("ERROR: {err}");
                     process::exit(1);
                 });
-                if conf.files().len() > 1 {
+                if conf.files.len() > 1 {
                     let file = file.to_owned() + ".decoded";
                     fs::write(&file, dec)?;
                 } else {
                     stdout().write_all(&dec)?;
                 }
             }
-            if conf.files().is_empty() {
+            if conf.files.is_empty() {
                 let mut data = String::new();
                 stdin().read_to_string(&mut data)?;
                 let dec = decode(&data).unwrap_or_else(|err| {
