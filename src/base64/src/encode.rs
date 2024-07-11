@@ -1,4 +1,5 @@
 use std::usize;
+use dbg_unreachable::unreachable;
 
 const TABLE: [char; 64] = [
     'A','B','C','D','E','F','G','H','I','J','K','L','M',
@@ -25,8 +26,7 @@ pub fn encode(bytes: &[u8]) -> String {
     bytes.chunks(3).for_each(|chunk| {
         for c in encode_chunk(chunk) {
             if result.len() >= result.capacity() {
-                /* The capacity will always be enough */
-                unreachable!();
+                unreachable!("The capacity will always be enough");
             }
             result.push(c);
         }

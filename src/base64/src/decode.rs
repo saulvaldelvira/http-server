@@ -1,5 +1,6 @@
 use std::str::Chars;
 use super::Result;
+use dbg_unreachable::unreachable;
 
 #[inline(always)]
 fn next(chars: &mut Chars<'_>) -> Result<Option<i8>> {
@@ -39,8 +40,7 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
     macro_rules! push {
         ($e:expr) => {
             if decoded.len() >= decoded.capacity() {
-                /* The capacity will always be enough */
-                unreachable!();
+                unreachable!("The capacity will always be enough");
             }
             decoded.push((($e) & 0b11111111) as u8);
         };
