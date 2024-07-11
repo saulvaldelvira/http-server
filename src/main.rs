@@ -1,7 +1,6 @@
 use std::{env, thread, time::Duration};
-use http_srv::{
-    request::{encoding::StreamReader, handler::{self, AuthConfig, Handler}}, HttpServer, ServerConfig
-};
+use http_srv::prelude::*;
+use http_srv::request::encoding::StreamReader;
 
 fn main() {
     let config = ServerConfig::parse(env::args().skip(1));
