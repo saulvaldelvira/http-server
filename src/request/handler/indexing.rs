@@ -65,7 +65,7 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     for f in read_dir(filename)? {
         files.push(f?);
     }
-    files.sort_by(|a,b| a.path().cmp(&b.path()));
+    files.sort_by_key(|a| a.path());
 
     let mut table = html!("table", [
         html!("tr", [
@@ -91,7 +91,7 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
         let file = path.metadata()?;
         let text = path.strip_prefix(filename)?;
         let text = path_to_str!(text)?.to_owned();
-        if !show_hidden && text.starts_with(".") {
+        if !show_hidden && text.starts_with('.') {
             continue;
         }
 
@@ -101,7 +101,7 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
             } else {
                 "&#128456;"
             };
-        let url = path.strip_prefix(&cwd)?;
+        let url = path.strip_prefix(cwd)?;
         let mut tr = html!("tr", [
             html!("td", {text: icon}),
             html!("td", [

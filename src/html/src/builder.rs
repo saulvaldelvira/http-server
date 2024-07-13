@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 use crate::{HtmlNode,html};
 
@@ -50,14 +50,16 @@ impl<'a> HtmlBuilder<'a> {
     }
 }
 
-impl ToString for HtmlBuilder<'_> {
-    /// To generate the [String] representation of the document, the
-    /// builder conctenates the "!DOCTYPE html" string and then calls
-    /// the [to_string](HtmlNode::to_string) method of the root node.
-    #[inline]
-    fn to_string(&self) -> String {
+impl<'a> Default for HtmlBuilder<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Display for HtmlBuilder<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut buf = "<!DOCTYPE html>".to_string();
         self.root.write_to(&mut buf);
-        buf
+        write!(f, "{buf}")
     }
 }

@@ -27,7 +27,7 @@ fn reference() {
     let mime: Mime;
     {
         let string = "text/plain".to_string();
-        mime = Mime::from_str(&string).unwrap().into_owned();
+        mime = Mime::new(&string).unwrap().into_owned();
     }
     mime.to_string();
 }

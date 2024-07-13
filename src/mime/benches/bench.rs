@@ -11,7 +11,7 @@ fn reference(b: &mut Bencher) {
     b.iter(|| {
         let mut v = Vec::with_capacity(N);
         for _ in 0..N {
-            let mime = Mime::from_str("text/plain").unwrap();
+            let mime = Mime::new("text/plain").unwrap();
             v.push(mime);
         }
     });
@@ -22,7 +22,7 @@ fn from_owned(b: &mut Bencher) {
     b.iter(|| {
         let mut v = Vec::with_capacity(N);
         for _ in 0..N {
-            let mime = Mime::from_str("text/plain".to_owned()).unwrap();
+            let mime = Mime::new("text/plain".to_owned()).unwrap();
             v.push(mime);
         }
     });
@@ -32,7 +32,7 @@ fn from_owned_and_into(b: &mut Bencher) {
     b.iter(|| {
         let mut v = Vec::with_capacity(N);
         for _ in 0..N {
-            let mime = Mime::from_str("text/plain".to_owned()).unwrap().into_owned();
+            let mime = Mime::new("text/plain".to_owned()).unwrap().into_owned();
             v.push(mime);
         }
     });
@@ -43,7 +43,7 @@ fn into_owned(b: &mut Bencher) {
     b.iter(|| {
         let mut v = Vec::with_capacity(N);
         for _ in 0..N {
-            let mime = Mime::from_str("text/plain").unwrap().into_owned();
+            let mime = Mime::new("text/plain").unwrap().into_owned();
             v.push(mime);
         }
     });

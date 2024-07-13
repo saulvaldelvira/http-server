@@ -61,7 +61,7 @@ impl HttpRequest {
                 OsStr::new(&self.url[1..])
             )
         );
-        let cwd = cwd.to_str().ok_or_else(|| "Error getting cwd")?;
+        let cwd = cwd.to_str().ok_or("Error getting cwd")?;
         Ok(cwd.to_owned())
     }
     #[inline]
@@ -225,12 +225,12 @@ mod test {
     #[test]
     fn parse_method() {
         assert!(RequestMethod::from_str("unknown").is_err());
-        let strs = vec!["GET","POST","PUT","DELETE"];
-        let methods = vec![GET,POST,PUT,DELETE];
+        let strs = ["GET","POST","PUT","DELETE"];
+        let methods = [GET,POST,PUT,DELETE];
         let res:Vec<RequestMethod> =
             strs.iter()
             .map(|m| RequestMethod::from_str(m))
             .map(Result::unwrap).collect();
-        assert_eq!(methods,res);
+        assert_eq!(methods,&res[..]);
     }
 }

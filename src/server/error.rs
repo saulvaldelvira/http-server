@@ -6,12 +6,7 @@ pub struct ServerError(Cow<'static,str>);
 impl ServerError {
     /// Creates a [ServerError] from a &'static [str]
     #[inline]
-    pub fn from_str(msg: &'static str) -> Self {
-        Self(msg.into())
-    }
-    /// Creates a [ServerError] from a [String]
-    #[inline]
-    pub fn from_string(msg: String) -> Self {
+    pub fn new(msg: impl Into<Cow<'static,str>>) -> Self {
         Self(msg.into())
     }
     /// Turns the [ServerError] into a [Result]<T,[ServerError]>
@@ -28,13 +23,13 @@ impl ServerError {
 
 macro_rules! err {
     ($lit:literal) => {
-        crate::ServerError::from_str($lit).err()
+        crate::ServerError::new($lit).err()
     };
     ($e:expr) => {
-        crate::ServerError::from_string($e).err()
+        crate::ServerError::new($e).err()
     };
     ($($e:tt)*) => {
-        crate::ServerError::from_string(format!($($e)*)).err()
+        crate::ServerError::new(format!($($e)*)).err()
     };
 }
 
@@ -43,25 +38,25 @@ pub (crate) use err;
 impl From<io::Error> for ServerError {
     #[inline]
     fn from(value: io::Error) -> Self {
-        Self::from_string(value.to_string())
+        Self::new(value.to_string())
     }
 }
 impl From<FromUtf8Error> for ServerError {
     #[inline]
     fn from(value: FromUtf8Error) -> Self {
-        Self::from_string(value.to_string())
+        Self::new(value.to_string())
     }
 }
 impl From<std::path::StripPrefixError> for ServerError {
     #[inline]
     fn from(value: StripPrefixError) -> Self {
-        Self::from_string(value.to_string())
+        Self::new(value.to_string())
     }
 }
 impl From<ParseIntError> for ServerError {
     #[inline]
     fn from(value: ParseIntError) -> Self {
-        Self::from_string(value.to_string())
+        Self::new(value.to_string())
     }
 }
 impl From<Cow<'static,str>> for ServerError {

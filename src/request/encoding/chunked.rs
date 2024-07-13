@@ -36,9 +36,7 @@ impl<R: Read> Chunked<R> {
 
 impl<R: Read> Read for Chunked<R> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        if self.offset >= self.chunk.len() {
-           if !self.next_chunk()? { return Ok(0); }
-        }
+        if self.offset >= self.chunk.len() && !self.next_chunk()? { return Ok(0); }
         let mut n = self.chunk.len() - self.offset;
         if n > buf.len() {
             n = buf.len();

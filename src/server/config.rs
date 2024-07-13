@@ -39,7 +39,7 @@ impl ServerConfig {
                 "-n" | "-n-workers" => conf.n_workers = parse_next!("-n"),
                 "-d" | "--dir" => {
                     let path:String = parse_next!(arg.as_str());
-                    env::set_current_dir(&Path::new(&path)).expect("Error changing cwd");
+                    env::set_current_dir(Path::new(&path)).expect("Error changing cwd");
                 },
                 "-k" | "--keep-alive" => {
                     let timeout = parse_next!("--keep-alive");
@@ -104,6 +104,24 @@ where I: Iterator<Item = String>
     }
 }
 
+impl Default for ServerConfig {
+    /// Default configuration
+    ///
+    /// - Port: 80
+    /// - Nº Workers: 1024
+    /// - Keep Alive Timeout: 0s (Disabled)
+    /// - Keep Alove Requests: 10000
+    #[inline]
+    fn default() -> Self {
+        Self {
+            port: 80,
+            n_workers: 1024,
+            keep_alive_timeout: Duration::from_secs(0),
+            keep_alive_requests: 10000,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::ServerConfig;
@@ -138,23 +156,5 @@ mod test {
     fn parse_error() {
         let conf = vec!["-p","abc"];
         parse_from_vec(conf);
-    }
-}
-
-impl Default for ServerConfig {
-    /// Default configuration
-    ///
-    /// - Port: 80
-    /// - Nº Workers: 1024
-    /// - Keep Alive Timeout: 0s (Disabled)
-    /// - Keep Alove Requests: 10000
-    #[inline]
-    fn default() -> Self {
-        Self {
-            port: 80,
-            n_workers: 1024,
-            keep_alive_timeout: Duration::from_secs(0),
-            keep_alive_requests: 10000,
-        }
     }
 }

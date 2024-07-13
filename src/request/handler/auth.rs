@@ -107,10 +107,10 @@ impl HttpAuth {
             _ => err!("Unknown authentication method {t}")
         }
     }
-    fn check(&self, users: &Vec<String>, passwds: &HashMap<String,String>) -> bool {
+    fn check(&self, users: &[String], passwds: &HashMap<String,String>) -> bool {
         match self {
             HttpAuth::Basic(user,pass) => {
-                if users.is_empty() || users.contains(&user) {
+                if users.is_empty() || users.contains(user) {
                     if let Some(p) = passwds.get(user).as_ref() {
                         *p == pass
                     } else {
@@ -127,7 +127,7 @@ impl HttpAuth {
 fn parse_basic(payload: &str) -> Result<HttpAuth> {
     let decoded = base64::decode(payload)?;
     let decoded = String::from_utf8(decoded)?;
-    let mut decoded = decoded.splitn(2, ":");
+    let mut decoded = decoded.splitn(2, ':');
     let user = decoded.next().unwrap_or("");
     let passwd = decoded.next().unwrap_or("");
     let user = url::decode(user)?.into_owned();

@@ -91,10 +91,7 @@ impl Handler {
     /// - f: [Handler](HandlerFunc) for the request
     ///
     pub fn add(&mut self, method: RequestMethod, url: &str, f: impl HandlerFunc) {
-        if !self.handlers.contains_key(&method) {
-            self.handlers.insert(method, HashMap::new());
-        }
-        let map = self.handlers.get_mut(&method).unwrap();
+        let map = self.handlers.entry(method).or_default();
         map.insert(url.to_string(), Box::new(f));
     }
     /// Adds a default handler for all requests of a certain type
@@ -325,7 +322,7 @@ pub fn suffix_html(req: &mut HttpRequest) {
 
 #[inline(always)]
 fn log(w: &mut dyn Write, req: &HttpRequest) {
-    write!(w, "{} {} {} {}\n", req.method(), req.url(), req.status(), req.status_msg()).unwrap();
+    writeln!(w, "{} {} {} {}", req.method(), req.url(), req.status(), req.status_msg()).unwrap();
 }
 
 /// Log the [request](HttpRequest) to stdout

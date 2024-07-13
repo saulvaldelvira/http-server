@@ -24,7 +24,7 @@ pub fn decode(url: &str) -> Result<Cow<str>> {
         let c = first << 4 | second;
         result.push(c);
     };
-    let result = String::from_utf8(result).or_else(|err| Err(err.to_string()))?;
+    let result = String::from_utf8(result).map_err(|err| err.to_string())?;
     Ok(result.into())
 }
 

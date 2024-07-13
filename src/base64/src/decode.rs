@@ -53,7 +53,7 @@ pub fn decode(text: &str) -> Result<Vec<u8>> {
         let mut offset = 4;
         for _ in 0..2 {
             for i in 0..2 {
-                n = n << 6;
+                n <<= 6;
                 match next(&mut chars)? {
                     Some(c) => n |= c as u32,
                     None => {

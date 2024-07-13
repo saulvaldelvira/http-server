@@ -1,4 +1,3 @@
-use std::usize;
 use dbg_unreachable::unreachable;
 
 const TABLE: [char; 64] = [

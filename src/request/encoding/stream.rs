@@ -20,9 +20,9 @@ impl<'a,T> StreamReader<'a,T> {
 
 impl<'a> Read for StreamReader<'a,u8> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        for i in 0..buf.len() {
+        for (i,e) in buf.iter_mut().enumerate() {
             match (self.gen)() {
-                Some(b) => buf[i] = b,
+                Some(b) => *e = b,
                 None => return Ok(i),
             }
         };

@@ -40,7 +40,7 @@ impl<'a> Mime<'a> {
     /// let mime: Mime;
     /// {
     ///     let string = "text/plain".to_string();
-    ///     mime = Mime::from_str(&string).unwrap();
+    ///     mime = Mime::new(&string).unwrap();
     /// }
     /// mime.to_string();
     /// ```
@@ -53,20 +53,20 @@ impl<'a> Mime<'a> {
     /// let mime: Mime;
     /// {
     ///     let string = "text/plain".to_string();
-    ///     mime = Mime::from_str(&string).unwrap().into_owned();
+    ///     mime = Mime::new(&string).unwrap().into_owned();
     /// }
     /// mime.to_string();
     /// ```
-    pub fn from_str(text: impl Into<Cow<'a,str>>) -> Result<Self> {
+    pub fn new(text: impl Into<Cow<'a,str>>) -> Result<Self> {
         match text.into() {
             Cow::Owned(own) => {
-                let mut text = own.split("/");
+                let mut text = own.split('/');
                 let major = text.next().ok_or("Malformatted mime type")?.to_owned();
                 let minor = text.next().ok_or("Malformatted mime type")?.to_owned();
                 Ok(Mime(major.to_owned().into(),minor.to_owned().into()))
             },
             Cow::Borrowed(borr) => {
-                let mut text = borr.split("/");
+                let mut text = borr.split('/');
                 let major = text.next().ok_or("Malformatted mime type")?;
                 let minor = text.next().ok_or("Malformatted mime type")?;
                 Ok(Mime(major.into(),minor.into()))
@@ -151,8 +151,8 @@ impl<'a> Mime<'a> {
             _ => return Err("Unknown extension")
         };
         Ok(
-            if major.contains("/") {
-                Mime::from_str(major)?
+            if major.contains('/') {
+                Mime::new(major)?
             } else {
                 Mime(major.into(),ext.into())
             }

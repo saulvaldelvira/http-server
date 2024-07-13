@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{borrow::Cow, collections::HashMap, fmt::Display};
 
 /// Html Node
 ///
@@ -82,7 +82,7 @@ impl<'a> HtmlNode<'a> {
             buf.push_str(k);
             buf.push_str("=\"");
             buf.push_str(v);
-            buf.push_str("\"");
+            buf.push('"');
         }
         buf.push('>');
         if !self.text.is_empty() {
@@ -97,10 +97,16 @@ impl<'a> HtmlNode<'a> {
     }
 }
 
-impl ToString for HtmlNode<'_> {
-    fn to_string(&self) -> String {
+impl<'a> Default for HtmlNode<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Display for HtmlNode<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut buf = String::new();
         self.write_to(&mut buf);
-        buf
+        write!(f, "{buf}")
     }
  }

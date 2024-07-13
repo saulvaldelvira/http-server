@@ -9,7 +9,7 @@ pub fn encode(url: &str) -> Result<Cow<str>> {
                                 b'_' | b'~');
     let len = url.as_bytes()
                  .iter()
-                 .take_while(|c| is_ascii(*c)).count();
+                 .take_while(|c| is_ascii(c)).count();
     if len >= url.len() {
         return Ok(url.into());
     }
