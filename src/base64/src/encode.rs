@@ -18,10 +18,11 @@ const TABLE: [char; 64] = [
 /// assert_eq!(enc, "SGVsbG8gd29ybGQh");
 /// ```
 pub fn encode(bytes: &[u8]) -> String {
-    let capacity = bytes.len() as f64 / 3.0 * 4.0;
-    let capacity = capacity.ceil() as usize + 2;
+    let mut capacity = (bytes.len() / 3) * 4;
+    if bytes.len() % 3 > 0 {
+        capacity += 4;
+    }
     let mut result = String::with_capacity(capacity);
-
     bytes.chunks(3).for_each(|chunk| {
         for c in encode_chunk(chunk) {
             if result.len() >= result.capacity() {
@@ -30,7 +31,6 @@ pub fn encode(bytes: &[u8]) -> String {
             result.push(c);
         }
     });
-
     result
 }
 
