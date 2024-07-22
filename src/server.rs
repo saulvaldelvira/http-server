@@ -45,16 +45,16 @@ fn peek_stream(stream: &TcpStream, duration: Duration) -> bool {
     result
 }
 
-fn handle_connection(stream: TcpStream, handlers: Arc<Handler>, conf: ServerConfig) -> Result<()> {
+fn handle_connection(stream: TcpStream, handlers: Arc<Handler>, keep_alive_timeout: Duration, keep_alive_requests: u16) -> Result<()> {
     let mut req = HttpRequest::parse(stream)?;
     handlers.handle(&mut req)?;
     let connection = req.header("Connection");
-    if connection.is_some() && connection.unwrap() == "keep-alive" && conf.keep_alive() {
-        let timeout = conf.keep_alive_timeout;
+    let keep_alive = keep_alive_timeout.as_millis() > 0;
+    if connection.is_some() && connection.unwrap() == "keep-alive" && keep_alive {
         let start = Instant::now();
         let mut n = 1;
-        while start.elapsed() < timeout && n < conf.keep_alive_requests {
-            let offset = timeout - start.elapsed();
+        while start.elapsed() < keep_alive_timeout && n < keep_alive_requests {
+            let offset = keep_alive_timeout - start.elapsed();
             if !peek_stream(req.stream(), offset) { break; }
 
             req = req.keep_alive()?;
@@ -96,9 +96,10 @@ impl HttpServer {
             match stream {
                 Ok(stream) => {
                     let handler = Arc::clone(&handler);
-                    let conf = self.config;
+                    let timeout = self.config.keep_alive_timeout;
+                    let req = self.config.keep_alive_requests;
                     self.pool.execute(move || {
-                        handle_connection(stream, handler, conf).unwrap_or_else(|err| {
+                        handle_connection(stream, handler, timeout, req).unwrap_or_else(|err| {
                             eprintln!("ERROR: {err}");
                         })
                     });

@@ -1,11 +1,12 @@
 use std::{env, path::Path, process, str::FromStr, time::Duration};
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct ServerConfig {
     pub port: u16,
     pub n_workers: u16,
     pub keep_alive_timeout: Duration,
     pub keep_alive_requests: u16,
+    pub log_file: Option<String>,
 }
 
 /// [crate::HttpServer] configuration
@@ -27,33 +28,35 @@ impl ServerConfig {
         let mut conf = Self::default();
         let mut args = args.into_iter();
 
-        macro_rules! parse_next {
-            ($arg:expr) => {
-                args.next_parse().expect(&format!("Missing argument for {}", $arg))
-            };
-        }
-
         while let Some(arg) = args.next() {
+            macro_rules! parse_next {
+                () => {
+                    args.next_parse().unwrap_or_else(|| {
+                        eprintln!("Missing or incorrect argument for \"{}\"", arg.as_str());
+                        std::process::exit(1);
+                    })
+                };
+            }
+
             match arg.as_str() {
-                "-p" | "--port" => conf.port = parse_next!("-p"),
-                "-n" | "-n-workers" => conf.n_workers = parse_next!("-n"),
+                "-p" | "--port" => conf.port = parse_next!(),
+                "-n" | "-n-workers" => conf.n_workers = parse_next!(),
                 "-d" | "--dir" => {
-                    let path:String = parse_next!(arg.as_str());
+                    let path:String = parse_next!();
                     env::set_current_dir(Path::new(&path)).expect("Error changing cwd");
                 },
                 "-k" | "--keep-alive" => {
-                    let timeout = parse_next!("--keep-alive");
+                    let timeout = parse_next!();
                      conf.keep_alive_timeout = Duration::from_secs_f32(timeout);
                 },
-                "-r" | "--keep-alive-requests" => conf.keep_alive_requests = parse_next!("--keep-alive-requests"),
+                "-r" | "--keep-alive-requests" => conf.keep_alive_requests = parse_next!(),
+                "-l" | "--log" => conf.log_file = Some( parse_next!() ),
                 "-h" | "--help" => help(),
                 _ => panic!("Unknow argument: {arg}")
             }
         }
         conf
     }
-    #[inline]
-    pub fn keep_alive(&self) -> bool { self.keep_alive_timeout.as_millis() > 0 }
     #[inline]
     pub fn n_workers(mut self, n_workers: u16) -> Self {
         self.n_workers = n_workers;
@@ -85,10 +88,12 @@ PARAMETERS:
     -d, --dir <working-dir>  Root directory of the server
     -k, --keep-alive <sec>   Keep alive seconds
     -r, --keep-alive-requests <num>  Keep alive max requests
+    -l, --log <file>   Set log file
     -h, --help  Display this help message
 EXAMPLES:
   http-srv -p 8080 -d /var/html
-  http-srv -d ~/desktop -n 1024 --keep-alive 120");
+  http-srv -d ~/desktop -n 1024 --keep-alive 120
+  http-srv --log /var/log/http-srv.log");
     process::exit(0);
 }
 
@@ -118,6 +123,7 @@ impl Default for ServerConfig {
             n_workers: 1024,
             keep_alive_timeout: Duration::from_secs(0),
             keep_alive_requests: 10000,
+            log_file: None,
         }
     }
 }

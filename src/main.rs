@@ -17,6 +17,7 @@ fn main() {
             s.push_str(k);
             s.push_str(" = ");
             s.push_str(v);
+            s.push('\n');
         };
         req.respond_str(&s)
     });
@@ -41,7 +42,9 @@ fn main() {
 
     handler.get("/redirect", handler::redirect("/hello"));
 
-    /* handler.post_interceptor(handler::log_file("/tmp/log.log")); */
+    if let Some(file) = &config.log_file {
+        handler.post_interceptor(handler::log_file(file));
+    }
 
     /* For debugging */
     /* handler.post_interceptor(|req| { */
