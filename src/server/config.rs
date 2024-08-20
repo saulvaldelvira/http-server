@@ -1,4 +1,5 @@
 use std::{env, path::Path, process, str::FromStr, time::Duration};
+use crate::Result;
 
 #[derive(Clone)]
 pub struct ServerConfig {
@@ -22,7 +23,7 @@ pub struct ServerConfig {
 /// ```
 impl ServerConfig {
     /// Parse the configuration from the command line args
-    pub fn parse<I>(args: I) -> Self
+    pub fn parse<I>(args: I) -> Result<Self>
     where I: Iterator<Item = String>
     {
         let mut conf = Self::default();
@@ -31,10 +32,9 @@ impl ServerConfig {
         while let Some(arg) = args.next() {
             macro_rules! parse_next {
                 () => {
-                    args.next_parse().unwrap_or_else(|| {
-                        eprintln!("Missing or incorrect argument for \"{}\"", arg.as_str());
-                        std::process::exit(1);
-                    })
+                    args.next_parse().ok_or_else(|| {
+                        format!("Missing or incorrect argument for \"{}\"", arg.as_str())
+                    })?
                 };
             }
 
@@ -52,10 +52,10 @@ impl ServerConfig {
                 "-r" | "--keep-alive-requests" => conf.keep_alive_requests = parse_next!(),
                 "-l" | "--log" => conf.log_file = Some( parse_next!() ),
                 "-h" | "--help" => help(),
-                _ => panic!("Unknow argument: {arg}")
+                _ => return Err(format!("Unknow argument: {arg}").into())
             }
         }
-        conf
+        Ok(conf)
     }
     #[inline]
     pub fn n_workers(mut self, n_workers: u16) -> Self {
@@ -130,37 +130,41 @@ impl Default for ServerConfig {
 
 #[cfg(test)]
 mod test {
-    use crate::ServerConfig;
+    use crate::{ServerConfig,Result};
 
-    fn parse_from_vec(v: Vec<&str>) {
+    fn parse_from_vec(v: Vec<&str>) -> Result<ServerConfig> {
         let conf = v.iter().map(|s| s.to_string());
-        ServerConfig::parse(conf);
+        ServerConfig::parse(conf)
     }
 
     #[test]
     fn valid_args() {
         let conf = vec!["-p", "80"];
-        parse_from_vec(conf);
+        parse_from_vec(conf).unwrap();
+    }
+
+    macro_rules! expect_err {
+        ($conf:expr , $msg:literal) => {
+            let Err(msg) = parse_from_vec($conf) else { panic!() };
+            assert_eq!(msg.get_message(), $msg);
+        };
     }
 
     #[test]
-    #[should_panic(expected = "Unknow argument: ?")]
     fn unknown() {
         let conf = vec!["?"];
-        parse_from_vec(conf);
+        expect_err!(conf, "Unknow argument: ?");
     }
 
     #[test]
-    #[should_panic(expected = "Missing argument for -n")]
     fn missing() {
         let conf = vec!["-n"];
-        parse_from_vec(conf);
+        expect_err!(conf,"Missing or incorrect argument for \"-n\"");
     }
 
     #[test]
-    #[should_panic(expected = "Missing argument for -p")]
     fn parse_error() {
         let conf = vec!["-p","abc"];
-        parse_from_vec(conf);
+        expect_err!(conf,"Missing or incorrect argument for \"-p\"");
     }
 }

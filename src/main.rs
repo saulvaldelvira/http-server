@@ -1,9 +1,13 @@
+use std::process;
 use std::{env, thread, time::Duration};
 use http_srv::prelude::*;
 use http_srv::request::encoding::StreamReader;
 
 fn main() {
-    let config = ServerConfig::parse(env::args().skip(1));
+    let config = ServerConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
+        eprintln!("{err}");
+        process::exit(1);
+    });
 
     let mut handler = Handler::default();
     handler.get("/sleep", |req| {
