@@ -10,7 +10,7 @@
 //!
 //! let mut handler = Handler::new();
 //! handler.add_default(RequestMethod::GET, handler::cat_handler);
-//! handler.get("/", handler::index_handler);
+//! handler.get("/", handler::root_handler);
 //! handler.get("/hello", |req| {
 //!     let name = req.param("name").unwrap_or("friend");
 //!     let msg = format!("Hello {name}!");

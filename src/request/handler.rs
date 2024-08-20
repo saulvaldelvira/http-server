@@ -149,8 +149,8 @@ impl Default for Handler {
     /// - [DELETE](RequestMethod::DELETE): [delete_handler]
     /// - [HEAD](RequestMethod::HEAD): [head_handler]
     ///
-    /// - [GET](RequestMethod::GET) "/": [index_handler]
-    /// - [HEAD](RequestMethod::HEAD) "/": [index_handler]
+    /// - [GET](RequestMethod::GET) "/": [root_handler]
+    /// - [HEAD](RequestMethod::HEAD) "/": [root_handler]
     ///
     /// # Post Interceptors
     ///  - [log_stdout]
@@ -167,8 +167,8 @@ impl Default for Handler {
         handler.add_default(RequestMethod::DELETE, delete_handler);
         handler.add_default(RequestMethod::HEAD, head_handler);
 
-        handler.get("/", index_handler);
-        handler.head("/", index_handler);
+        handler.get("/", root_handler);
+        handler.head("/", root_handler);
 
         handler.post_interceptor(log_stdout);
         handler
@@ -295,10 +295,12 @@ pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
     }
 }
 
+#[inline(always)]
 fn file_exists(filename: &str) -> bool {
     Path::new(filename).is_file()
 }
 
+#[inline(always)]
 fn dir_exists(filename: &str) -> bool {
     Path::new(filename).is_dir()
 }
@@ -346,7 +348,7 @@ pub fn log_file(filename: &str) -> impl Interceptor {
     }
 }
 
-pub fn index_handler(req: &mut HttpRequest) -> Result<()> {
+pub fn root_handler(req: &mut HttpRequest) -> Result<()> {
     if file_exists("index.html") {
         req.set_url("/index.html");
     }
