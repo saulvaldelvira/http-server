@@ -19,7 +19,10 @@ fn size_human(size: u64) -> String {
         i += 1;
     }
     let size = (size * 10.0).round() / 10.0;
-    let decimals = if size.fract() > 0.0 { 1 } else { 0 };
+    let mut decimals = 0;
+    if size.fract() > 0.0 && i == 3 {
+        decimals = 1;
+    }
     format!("{size:.decimals$} {}", UNITS[i])
 }
 
