@@ -1,5 +1,6 @@
-use std::{env, path::Path, process, str::FromStr, time::Duration};
-use crate::Result;
+use std::{env, fs, path::{Path, PathBuf}, process, str::FromStr, time::Duration};
+use crate::{log::{self}, log_info, log_warn, Result};
+use jsonrs::Json;
 
 #[derive(Clone)]
 pub struct ServerConfig {
@@ -8,6 +9,25 @@ pub struct ServerConfig {
     pub keep_alive_timeout: Duration,
     pub keep_alive_requests: u16,
     pub log_file: Option<String>,
+}
+
+fn get_default_conf_file() -> Option<PathBuf> {
+    if let Ok(path) = env::var("XDG_CONFIG_HOME") {
+        let mut p = PathBuf::new();
+        p.push(path);
+        p.push("http-srv");
+        p.push("config.json");
+        Some(p)
+    } else if let Ok(path) = env::var("HOME") {
+        let mut p = PathBuf::new();
+        p.push(path);
+        p.push(".config");
+        p.push("http-srv");
+        p.push("config.json");
+        Some(p)
+    } else {
+        None
+    }
 }
 
 /// [crate::HttpServer] configuration
@@ -28,6 +48,8 @@ impl ServerConfig {
     {
         let mut conf = Self::default();
         let mut args = args.into_iter();
+
+        let mut config_file: Option<PathBuf> = None;
 
         while let Some(arg) = args.next() {
             macro_rules! parse_next {
@@ -51,11 +73,81 @@ impl ServerConfig {
                 },
                 "-r" | "--keep-alive-requests" => conf.keep_alive_requests = parse_next!(),
                 "-l" | "--log" => conf.log_file = Some( parse_next!() ),
+                "--log-level" => {
+                    let n : u8 = parse_next!();
+                    log::set_level(n.into())
+                }
+                "--config-file" => config_file = Some( parse_next!() ),
                 "-h" | "--help" => help(),
                 _ => return Err(format!("Unknow argument: {arg}").into())
             }
+
+        }
+        let mut must_exist = true;
+        if config_file.is_none() {
+            config_file = get_default_conf_file();
+            must_exist = false;
+        }
+        if let Some(file) = &config_file {
+            if file.exists() {
+                conf.parse_conf_file(file.as_path())?;
+            } else if must_exist {
+                log_warn!("Config path: {} doesn't exist", file.as_os_str().to_str().unwrap_or("[??]"));
+            }
         }
         Ok(conf)
+    }
+    fn parse_conf_file(&mut self, conf_file: &Path) -> crate::Result<()> {
+        if !conf_file.exists() { return Ok(()) }
+        let conf_str = conf_file.as_os_str().to_str().unwrap_or("");
+        let f = fs::read_to_string(conf_file).unwrap_or_else(|err| {
+            eprintln!("Error reading config file \"{conf_str}\": {err}");
+            std::process::exit(1);
+        });
+        let json = Json::deserialize(&f).unwrap_or_else(|err| {
+            eprintln!("Error parsing config file: {err}");
+            std::process::exit(1);
+        });
+        log_info!("Parsing config file: {conf_str}");
+        let Json::Object(obj) = json else { return Err("Expected json object".into()) };
+        for (k,v) in obj {
+            macro_rules! num {
+                () => {
+                    v.number().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected number for \"{k}\""))?
+                };
+            }
+            macro_rules! string {
+                () => {
+                    v.string().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected stirng for \"{k}\""))?.to_string()
+                };
+            }
+            macro_rules! mch {
+                ($( $k:literal => $action:expr  ),*) => {
+                    match k.as_str() {
+                        $(
+                            $k => {
+                                $action ;
+                                log_info!("Override {} with {v}", $k);
+                            }
+                        ),*
+                        _ => log_info!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
+                    }
+                };
+            }
+            mch! {
+                "port" => self.port = num!() as u16,
+                "n_workers" => self.n_workers = num!() as u16,
+                "root_dir" => {
+                    let path:String = string!();
+                    let path = path.replacen('~', env::var("HOME").as_ref().map(|s| s.as_str()).unwrap_or("~"), 1);
+                    env::set_current_dir(Path::new(&path)).expect("Error changing cwd");
+                },
+                "keep_alive_timeout" => self.keep_alive_timeout = Duration::from_secs_f64(num!()),
+                "keep_alive_requests" => self.keep_alive_requests = num!() as u16,
+                "log_file" => self.log_file = Some( string!() )
+            };
+        }
+        Ok(())
     }
     #[inline]
     pub fn n_workers(mut self, n_workers: u16) -> Self {

@@ -3,7 +3,7 @@ pub use config::ServerConfig;
 pub mod error;
 pub use error::ServerError;
 
-use crate::{request::{handler::Handler, HttpRequest}, Result};
+use crate::{log_error, request::{handler::Handler, HttpRequest}, Result};
 use std::{sync::Arc, time::{Duration, Instant}};
 use std::net::{TcpListener, TcpStream};
 use pool::ThreadPool;
@@ -100,7 +100,7 @@ impl HttpServer {
                     let req = self.config.keep_alive_requests;
                     self.pool.execute(move || {
                         handle_connection(stream, handler, timeout, req).unwrap_or_else(|err| {
-                            eprintln!("ERROR: {err}");
+                            log_error!("{err}");
                         })
                     });
                 },

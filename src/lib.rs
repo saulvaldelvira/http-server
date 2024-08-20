@@ -24,7 +24,9 @@
 
 pub mod request;
 pub mod server;
+mod log;
 
+#[doc(hidden)]
 pub mod prelude {
     pub use crate:: {
         server::HttpServer,
