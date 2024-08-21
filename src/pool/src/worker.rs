@@ -8,15 +8,11 @@ impl<T> Job for T
 where T: FnOnce() + Send + 'static {}
 
 /// Worker for the [ThreadPool](crate::ThreadPool)
-pub struct Worker {
-    id: u16,
-    thread: Option<JoinHandle<()>>,
-}
+pub struct Worker(Option<JoinHandle<()>>);
 
 impl Worker {
     /// Creates a new [Worker]
     pub fn new(
-        id: u16,
         receiver: Arc<Mutex<mpsc::Receiver<Box<dyn Job>>>>,
         semaphore: Semaphore,
     ) -> Worker {
@@ -28,7 +24,6 @@ impl Worker {
 
             match message {
                 Ok(job) => {
-                    /* println!("Worker {id} got a job."); */
                     job();
                     let (lock,condv) = &*semaphore;
                     let mut counter = lock.lock().unwrap();
@@ -38,14 +33,12 @@ impl Worker {
                 Err(_) => break,
             }
         });
-        Worker { id,thread:Some(thread)}
+        Worker(Some(thread))
     }
     /// Shuts down the [Worker]
     pub fn shutdown(&mut self) {
-        println!("Shutting down worker {}", self.id);
-        if let Some(thread) = self.thread.take() {
+        if let Some(thread) = self.0.take() {
             thread.join().unwrap();
         }
     }
 }
-

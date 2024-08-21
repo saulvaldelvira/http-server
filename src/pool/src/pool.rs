@@ -30,10 +30,8 @@ impl ThreadPool {
         let receiver = Arc::new(Mutex::new(receiver));
         let semaphore = Arc::new((Mutex::new(0),Condvar::new()));
         let mut workers = Vec::with_capacity(size);
-        for id in 0..size {
-            let worker = Worker::new(id as u16,
-                                    receiver.clone(),
-                                    semaphore.clone());
+        for _ in 0..size {
+            let worker = Worker::new(receiver.clone(),semaphore.clone());
             workers.push(worker);
         }
         Ok(ThreadPool {
@@ -53,12 +51,14 @@ impl ThreadPool {
         Self::new(PoolConfig::with_size(size))
     }
     pub fn execute(&self, job: impl Job) {
-        let (lock,cvar) = &*self.semaphore;
-        let mut counter = lock.lock().unwrap();
-        if let Some(max) = self.max_jobs {
-            counter = cvar.wait_while(counter, |n| *n >= max).unwrap();
+        {
+            let (lock,cvar) = &*self.semaphore;
+            let mut counter = lock.lock().unwrap();
+            if let Some(max) = self.max_jobs {
+                counter = cvar.wait_while(counter, |n| *n >= max).unwrap();
+            }
+            *counter += 1;
         }
-        *counter += 1;
         let job = Box::new(job);
         self.sender
             .as_ref()
