@@ -63,7 +63,7 @@ impl<'a> Mime<'a> {
                 let mut text = own.split('/');
                 let major = text.next().ok_or("Malformatted mime type")?.to_owned();
                 let minor = text.next().ok_or("Malformatted mime type")?.to_owned();
-                Ok(Mime(major.to_owned().into(),minor.to_owned().into()))
+                Ok(Mime(major.into(),minor.into()))
             },
             Cow::Borrowed(borr) => {
                 let mut text = borr.split('/');
