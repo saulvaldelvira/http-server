@@ -35,6 +35,7 @@ pub mod prelude {
         server::ServerConfig,
     };
     pub (crate) use crate::server::ServerError;
+    pub (crate) use crate::log::prelude::*;
 }
 use prelude::*;
 

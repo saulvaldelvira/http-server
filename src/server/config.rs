@@ -130,7 +130,7 @@ impl ServerConfig {
                                 log_info!("Override {} with {v}", $k);
                             }
                         ),*
-                        _ => log_info!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
+                        _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
                     }
                 };
             }

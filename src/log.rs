@@ -49,28 +49,38 @@ delay! {
 }
 
 #[macro_export]
-macro_rules! log {
+#[doc(hidden)]
+macro_rules! __log {
     ($lev:expr , $($arg:tt)*) => {
         $crate::log::_log($lev, format_args!($($arg)*))
     };
 }
 
 #[macro_export]
-macro_rules! log_info {
-    () => ($crate::log!("\n"));
-    ($($arg:tt)*) => ($crate::log!($crate::log::LogLevel::Info, "INFO: {}\n", format_args!($($arg)*)));
+#[doc(hidden)]
+macro_rules! __log_info {
+    () => ($crate::log::__log!("\n"));
+    ($($arg:tt)*) => ($crate::__log!($crate::log::LogLevel::Info, "INFO: {}\n", format_args!($($arg)*)));
 }
 
 #[macro_export]
-macro_rules! log_warn {
+#[doc(hidden)]
+macro_rules! __log_warn {
     () => ($crate::log!("\n"));
-    ($($arg:tt)*) => ($crate::log!($crate::log::LogLevel::Warn, "WARNING: {}\n", format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::__log!($crate::log::LogLevel::Warn, "WARNING: {}\n", format_args!($($arg)*)));
 }
 
 #[macro_export]
-macro_rules! log_error {
+#[doc(hidden)]
+macro_rules! __log_error {
     () => ($crate::log!("\n"));
-    ($($arg:tt)*) => ($crate::log!($crate::log::LogLevel::Error, "ERROR: {}\n", format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::__log!($crate::log::LogLevel::Error, "ERROR: {}\n", format_args!($($arg)*)));
+}
+
+pub mod prelude {
+    pub use __log_error as log_error;
+    pub use __log_warn as log_warn;
+    pub use __log_info as log_info;
 }
 
 #[doc(hidden)]
