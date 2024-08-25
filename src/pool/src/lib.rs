@@ -24,7 +24,6 @@ mod config;
 use std::{borrow::Cow, sync::{Arc, Condvar, Mutex}};
 
 pub use pool::ThreadPool;
-
 pub use config::PoolConfig;
 
 type Semaphore = Arc<(Mutex<u16>,Condvar)>;

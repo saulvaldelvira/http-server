@@ -1,6 +1,21 @@
+use std::sync::mpsc::SendError;
 use std::sync::{mpsc, Arc, Condvar, Mutex};
 use crate::worker::{Job, Worker};
 use crate::{PoolConfig, Result, Semaphore};
+
+pub enum SenderWrapper<T> {
+    Bounded(mpsc::SyncSender<T>),
+    Unbounded(mpsc::Sender<T>),
+}
+
+impl<T> SenderWrapper<T> {
+    fn send(&self, t: T) -> std::result::Result<(),SendError<T>> {
+        match self {
+            SenderWrapper::Bounded(b) => b.send(t),
+            SenderWrapper::Unbounded(u) => u.send(t),
+        }
+    }
+}
 
 /// Thread Pool
 ///
@@ -16,7 +31,7 @@ use crate::{PoolConfig, Result, Semaphore};
 /// ```
 pub struct ThreadPool {
     workers: Vec<Worker>,
-    sender: Option<mpsc::Sender<Box<dyn Job>>>,
+    sender: Option<SenderWrapper<Box<dyn Job>>>,
     semaphore: Semaphore,
     max_jobs: Option<u16>,
 }
@@ -24,9 +39,17 @@ pub struct ThreadPool {
 impl ThreadPool {
     /// Create a new ThreadPool.
     pub fn new(config: PoolConfig) -> Result<ThreadPool> {
-        config.validate()?;
         let size = config.n_workers as usize;
-        let (sender,receiver) = mpsc::channel();
+        let (sender,receiver) =
+            if let Some(max) = config.incoming_buf_size {
+                let (sender,receiver) = mpsc::sync_channel(max as usize);
+                let sender = SenderWrapper::Bounded(sender);
+                (sender,receiver)
+            } else {
+                let (sender,receiver) = mpsc::channel();
+                let sender = SenderWrapper::Unbounded(sender);
+                (sender,receiver)
+            };
         let receiver = Arc::new(Mutex::new(receiver));
         let semaphore = Arc::new((Mutex::new(0),Condvar::new()));
         let mut workers = Vec::with_capacity(size);
@@ -43,12 +66,19 @@ impl ThreadPool {
     /// Create a [ThreadPool] with the default [configuration](PoolConfig)
     #[inline]
     pub fn with_default_config() -> Result<Self> {
-        Self::new(PoolConfig::default())
+        let conf = PoolConfig::builder()
+                              .build()
+                              .or_else(|err| Err(err.to_string()))?;
+        Self::new(conf)
     }
     /// Create a [ThreadPool] with a given size
     #[inline]
     pub fn with_size(size: u16) -> Result<Self> {
-        Self::new(PoolConfig::with_size(size))
+        let conf = PoolConfig::builder()
+                              .n_workers(size)
+                              .build()
+                              .or_else(|err| Err(err.to_string()))?;
+        Self::new(conf)
     }
     pub fn execute(&self, job: impl Job) {
         {
