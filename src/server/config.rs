@@ -49,7 +49,9 @@ impl ServerConfig {
         let mut conf = Self::default();
         let mut args = args.into_iter();
 
-        let mut config_file: Option<PathBuf> = None;
+        if let Some(file) = get_default_conf_file() {
+            conf.parse_conf_file(&file)?;
+        }
 
         while let Some(arg) = args.next() {
             macro_rules! parse_next {
@@ -77,23 +79,19 @@ impl ServerConfig {
                     let n : u8 = parse_next!();
                     log::set_level(n.into())
                 }
-                "--config-file" => config_file = Some( parse_next!() ),
+                "--config-file" => {
+                    let filename: String = parse_next!();
+                    let file = Path::new(&filename);
+                    if file.exists() {
+                        conf.parse_conf_file(file)?;
+                    } else {
+                        log_warn!("Config path: {} doesn't exist", file.as_os_str().to_str().unwrap_or("[??]"));
+                    }
+                },
                 "-h" | "--help" => help(),
                 _ => return Err(format!("Unknow argument: {arg}").into())
             }
 
-        }
-        let mut must_exist = true;
-        if config_file.is_none() {
-            config_file = get_default_conf_file();
-            must_exist = false;
-        }
-        if let Some(file) = &config_file {
-            if file.exists() {
-                conf.parse_conf_file(file.as_path())?;
-            } else if must_exist {
-                log_warn!("Config path: {} doesn't exist", file.as_os_str().to_str().unwrap_or("[??]"));
-            }
         }
         Ok(conf)
     }
