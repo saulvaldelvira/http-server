@@ -4,9 +4,9 @@ use crate::Result;
 /// Pool Config
 ///
 /// Configuration for the [ThreadPool](crate::ThreadPool)
-#[derive(Clone,Copy,Builder)]
+#[derive(Clone,Copy,Builder,Debug)]
 pub struct PoolConfig {
-    #[builder(def = 1024_u16)]
+    #[builder(def = 16_u16)]
     pub n_workers: u16,
     #[builder(optional = true)]
     pub max_jobs: Option<u16>,
@@ -33,9 +33,9 @@ impl PoolConfig {
 impl Default for PoolConfig {
     /// Default configuration
     ///
-    /// Nº Workers: 1024
+    /// Nº Workers: 16
     /// Max Jobs: None
-    /// Incoming buf size: 4096
+    /// Incoming buf size: None
     fn default() -> Self {
         PoolConfig::builder().build().unwrap()
     }

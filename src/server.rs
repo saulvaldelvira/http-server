@@ -83,7 +83,7 @@ impl HttpServer {
                         .unwrap_or_else(|err| {
                             panic!("Could not bind to port {}: {}", config.port, err);
                         });
-        let pool = ThreadPool::with_size(config.n_workers)
+        let pool = ThreadPool::new(config.pool_conf)
                               .expect("Error initializing thread pool");
         let handler = Some(Handler::new());
         Self {listener,pool,handler,config}

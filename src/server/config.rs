@@ -1,11 +1,12 @@
 use std::{env, fs, path::{Path, PathBuf}, process, str::FromStr, time::Duration};
 use crate::{log::{self}, log_info, log_warn, Result};
 use jsonrs::Json;
+use pool::PoolConfig;
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct ServerConfig {
     pub port: u16,
-    pub n_workers: u16,
+    pub pool_conf: PoolConfig,
     pub keep_alive_timeout: Duration,
     pub keep_alive_requests: u16,
     pub log_file: Option<String>,
@@ -35,11 +36,15 @@ fn get_default_conf_file() -> Option<PathBuf> {
 /// # Example
 /// ```
 /// use http_srv::server::ServerConfig;
+/// use pool::PoolConfig;
 ///
-/// let mut conf =
+/// let pool_conf = PoolConfig::builder()
+///                 .n_workers(120_u16)
+///                 .build().unwrap();
+/// let conf =
 /// ServerConfig::default()
 ///     .port(8080)
-///     .n_workers(1024);
+///     .pool_config(pool_conf);
 /// ```
 impl ServerConfig {
     /// Parse the configuration from the command line args
@@ -60,11 +65,19 @@ impl ServerConfig {
                         format!("Missing or incorrect argument for \"{}\"", arg.as_str())
                     })?
                 };
+                (as $t:ty) => {
+                    {
+                        let _next: $t = parse_next!();
+                        _next
+                    }
+                };
             }
+
+            let mut pool_conf_builder = PoolConfig::builder();
 
             match arg.as_str() {
                 "-p" | "--port" => conf.port = parse_next!(),
-                "-n" | "-n-workers" => conf.n_workers = parse_next!(),
+                "-n" | "-n-workers" => { pool_conf_builder.n_workers( parse_next!(as u16) ); },
                 "-d" | "--dir" => {
                     let path:String = parse_next!();
                     env::set_current_dir(Path::new(&path)).expect("Error changing cwd");
@@ -93,6 +106,7 @@ impl ServerConfig {
             }
 
         }
+        log_info!("{conf:#?}");
         Ok(conf)
     }
     fn parse_conf_file(&mut self, conf_file: &Path) -> crate::Result<()> {
@@ -111,30 +125,31 @@ impl ServerConfig {
         for (k,v) in obj {
             macro_rules! num {
                 () => {
-                    v.number().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected number for \"{k}\""))?
+                    num!(v)
+                };
+                ($v:ident) => {
+                    $v.number().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected number for \"{k}\""))?
+                };
+                ($v:ident as $t:ty) => {
+                    {
+                        let _n = num!($v);
+                        _n as $t
+                    }
                 };
             }
             macro_rules! string {
                 () => {
-                    v.string().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected stirng for \"{k}\""))?.to_string()
+                    v.string().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected string for \"{k}\""))?.to_string()
                 };
             }
-            macro_rules! mch {
-                ($( $k:literal => $action:expr  ),*) => {
-                    match k.as_str() {
-                        $(
-                            $k => {
-                                $action ;
-                                log_info!("Override {} with {v}", $k);
-                            }
-                        ),*
-                        _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
-                    }
+            macro_rules! obj {
+                () => {
+                    v.object().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected object for \"{k}\""))?
                 };
             }
-            mch! {
+
+            match k.as_str() {
                 "port" => self.port = num!() as u16,
-                "n_workers" => self.n_workers = num!() as u16,
                 "root_dir" => {
                     let path:String = string!();
                     let path = path.replacen('~', env::var("HOME").as_ref().map(|s| s.as_str()).unwrap_or("~"), 1);
@@ -142,14 +157,31 @@ impl ServerConfig {
                 },
                 "keep_alive_timeout" => self.keep_alive_timeout = Duration::from_secs_f64(num!()),
                 "keep_alive_requests" => self.keep_alive_requests = num!() as u16,
-                "log_file" => self.log_file = Some( string!() )
+                "log_file" => self.log_file = Some( string!() ),
+                "log_level" => {
+                    let n = num!(v as u8);
+                    log::set_level(n.into())
+                },
+                "pool_config" => {
+                    for (k,v) in obj!() {
+                        match k.as_str() {
+                            "n_workers" => self.pool_conf.n_workers = num!(v as u16),
+                            "pending_buffer_size" => {
+                                let n = v.number().map(|n| n as u16);
+                                self.pool_conf.incoming_buf_size = n;
+                            },
+                            _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
+                        }
+                    }
+                },
+                _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
             };
         }
         Ok(())
     }
     #[inline]
-    pub fn n_workers(mut self, n_workers: u16) -> Self {
-        self.n_workers = n_workers;
+    pub fn pool_config(mut self, conf: PoolConfig) -> Self {
+        self.pool_conf = conf;
         self
     }
     #[inline]
@@ -210,7 +242,7 @@ impl Default for ServerConfig {
     fn default() -> Self {
         Self {
             port: 80,
-            n_workers: 1024,
+            pool_conf: PoolConfig::default(),
             keep_alive_timeout: Duration::from_secs(0),
             keep_alive_requests: 10000,
             log_file: None,
