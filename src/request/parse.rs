@@ -1,10 +1,11 @@
 use std::io::BufReader;
-use std::{collections::HashMap, io::BufRead, net::TcpStream};
+use std::{collections::HashMap, io::BufRead};
 use crate::Result;
 use crate::server::error::err;
+use super::stream::RequestStream;
 use super::HttpRequest;
 
-pub (super) fn parse_request(mut stream: BufReader<TcpStream>) -> Result<HttpRequest> {
+pub (super) fn parse_request(mut stream: BufReader<RequestStream>) -> Result<HttpRequest> {
     let mut line = String::new();
     /* Parse request line */
     stream.read_line(&mut line)?;

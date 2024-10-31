@@ -3,7 +3,7 @@ pub use config::ServerConfig;
 pub mod error;
 pub use error::ServerError;
 
-use crate::{log_error, request::{handler::Handler, HttpRequest}, Result};
+use crate::{log_error, request::{handler::Handler, HttpRequest, RequestStream}, Result};
 use std::{sync::Arc, time::{Duration, Instant}};
 use std::net::{TcpListener, TcpStream};
 use pool::ThreadPool;
@@ -34,7 +34,7 @@ pub struct HttpServer {
     config: ServerConfig,
 }
 
-fn peek_stream(stream: &TcpStream, duration: Duration) -> bool {
+fn peek_stream(stream: &RequestStream, duration: Duration) -> bool {
     stream.set_read_timeout(Some(duration)).unwrap();
     let mut buf: [u8;1] = [0];
     let result = match stream.peek(&mut buf) {

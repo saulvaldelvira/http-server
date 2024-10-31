@@ -26,3 +26,4 @@ mime = { package = "rmime", version = ">=0.1.0", path = "src/mime" }
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
 delay_init = { package = "delay_init" , version = ">=0.2.0", git = "https://github.com/saulvaldelvira/delay-init" }
+builders = { package = "builders" , features = ["builder"], version = ">=0.1.0", git = "https://github.com/saulvaldelvira/builders" }

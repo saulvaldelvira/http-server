@@ -1,34 +1,44 @@
 pub mod handler;
 pub mod encoding;
 mod status;
+use builders::Builder;
 pub use status::StatusCode;
 mod method;
 mod parse;
 use parse::parse_request;
 pub use method::RequestMethod;
+mod stream;
+pub use stream::RequestStream;
 
-use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, net::TcpStream, path::Path};
+use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, path::Path};
 use crate::Result;
 use crate::request::encoding::Chunked;
 
 /// HTTP Request
 ///
 /// Represents an HTTP request
+#[derive(Builder,Debug)]
 pub struct HttpRequest {
     method: RequestMethod,
     url: String,
+    #[builder(each = "header")]
     headers: HashMap<String,String>,
+    #[builder(each = "param")]
     params: HashMap<String,String>,
+    #[builder(each = "response_header")]
     response_headers: HashMap<String,String>,
     version: f32,
-    stream: BufReader<TcpStream>,
+    #[builder(disabled = true)]
+    #[builder(def = { BufReader::new(RequestStream::dummy()) })]
+    stream: BufReader<RequestStream>,
+    #[builder(def = 200u16)]
     status: u16,
 }
 
 impl HttpRequest {
-    /// Read and parse an HTTP request from the given [TcpStream]
-    pub fn parse(stream: TcpStream) -> Result<Self>  {
-        let stream = BufReader::new(stream);
+    /// Read and parse an HTTP request from the given [RequestStream]
+    pub fn parse(stream: impl Into<RequestStream>) -> Result<Self>  {
+        let stream = BufReader::new(stream.into());
         parse_request(stream)
     }
     #[inline]
@@ -38,7 +48,7 @@ impl HttpRequest {
         Ok(req)
     }
     #[inline]
-    pub fn stream(&self) -> &TcpStream { self.stream.get_ref() }
+    pub fn stream(&self) -> &RequestStream { self.stream.get_ref() }
     /// Url of the request
     #[inline]
     pub fn url(&self) -> &str { &self.url }
@@ -213,6 +223,18 @@ impl HttpRequest {
     <h1>{code} {msg}</h1>
 </body>
 </html>")
+    }
+}
+
+impl PartialEq for HttpRequest {
+    fn eq(&self, other: &Self) -> bool {
+        self.method == other.method 
+        && self.url == other.url 
+        && self.headers == other.headers 
+        && self.params == other.params 
+        && self.response_headers == other.response_headers 
+        && self.version == other.version 
+        && self.status == other.status
     }
 }
 
