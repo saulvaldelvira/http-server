@@ -1,4 +1,4 @@
-use std::{cmp::{min}, io::{self, Read, Write}, net::TcpStream, time::Duration};
+use std::{cmp::min, io::{self, Read, Write}, net::TcpStream, time::Duration};
 
 #[derive(Debug)]
 struct StringStream(Vec<u8>, usize);
@@ -24,7 +24,7 @@ impl StringStream {
 }
 
 #[derive(Debug)]
-enum RequestStreamInner {
+enum HttpStreamInner {
     Tcp(TcpStream),
     String(StringStream,Vec<u8>),
     Dummy
@@ -61,77 +61,77 @@ enum RequestStreamInner {
 /// }
 /// ```
 #[derive(Debug)]
-pub struct RequestStream {
-    inner: RequestStreamInner,
+pub struct HttpStream {
+    inner: HttpStreamInner,
 }
 
-impl RequestStream {
+impl HttpStream {
     pub fn set_read_timeout(&self, d: Option<Duration>) -> io::Result<()> {
         match &self.inner {
-            RequestStreamInner::Tcp(tcp_stream) => tcp_stream.set_read_timeout(d),
-            RequestStreamInner::Dummy => Ok(()),
-            RequestStreamInner::String(_, _) => Ok(()),
+            HttpStreamInner::Tcp(tcp_stream) => tcp_stream.set_read_timeout(d),
+            HttpStreamInner::Dummy => Ok(()),
+            HttpStreamInner::String(_, _) => Ok(()),
         }
     }
     pub fn peek(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         match &self.inner {
-            RequestStreamInner::Tcp(tcp_stream) => tcp_stream.peek(buf),
-            RequestStreamInner::Dummy => Ok(0),
-            RequestStreamInner::String(read, _) => read.peek(buf),
+            HttpStreamInner::Tcp(tcp_stream) => tcp_stream.peek(buf),
+            HttpStreamInner::Dummy => Ok(0),
+            HttpStreamInner::String(read, _) => read.peek(buf),
         }
     }
 }
 
-impl Read for RequestStream {
+impl Read for HttpStream {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         match &mut self.inner {
-            RequestStreamInner::Tcp(tcp_stream) => tcp_stream.read(buf),
-            RequestStreamInner::Dummy => Ok(0),
-            RequestStreamInner::String(buf_reader, _) => buf_reader.read(buf),
+            HttpStreamInner::Tcp(tcp_stream) => tcp_stream.read(buf),
+            HttpStreamInner::Dummy => Ok(0),
+            HttpStreamInner::String(buf_reader, _) => buf_reader.read(buf),
         }
     }
 }
 
-impl Write for RequestStream {
+impl Write for HttpStream {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         match &mut self.inner {
-            RequestStreamInner::Tcp(tcp_stream) => tcp_stream.write(buf),
-            RequestStreamInner::Dummy => Ok(0),
-            RequestStreamInner::String(_, w) => w.write(buf),
+            HttpStreamInner::Tcp(tcp_stream) => tcp_stream.write(buf),
+            HttpStreamInner::Dummy => Ok(0),
+            HttpStreamInner::String(_, w) => w.write(buf),
         }
     }
 
     fn flush(&mut self) -> std::io::Result<()> {
         match &mut self.inner {
-            RequestStreamInner::Tcp(tcp_stream) => tcp_stream.flush(),
-            RequestStreamInner::Dummy => Ok(()),
-            RequestStreamInner::String(_, _) => todo!(),
+            HttpStreamInner::Tcp(tcp_stream) => tcp_stream.flush(),
+            HttpStreamInner::Dummy => Ok(()),
+            HttpStreamInner::String(_, _) => todo!(),
         }
     }
 }
 
-impl From<TcpStream> for RequestStream {
+impl From<TcpStream> for HttpStream {
     fn from(value: TcpStream) -> Self {
-        Self { inner: RequestStreamInner::Tcp(value) }
+        Self { inner: HttpStreamInner::Tcp(value) }
     }
 }
 
-impl From<String> for RequestStream {
+impl From<String> for HttpStream {
     fn from(value: String) -> Self {
         let src_vec = value.into_bytes();
         let stream = StringStream(src_vec, 0);
-        Self { inner: RequestStreamInner::String(stream, Vec::new()) }
+        Self { inner: HttpStreamInner::String(stream, Vec::new()) }
     }
 }
 
-impl<'a> From<&'a str> for RequestStream {
+impl<'a> From<&'a str> for HttpStream {
     fn from(value: &'a str) -> Self {
         Self::from(value.to_string())
     }
 }
 
-impl RequestStream {
+impl HttpStream {
     pub fn dummy() -> Self {
-        Self { inner: RequestStreamInner::Dummy }
+        Self { inner: HttpStreamInner::Dummy }
     }
 }

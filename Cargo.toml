@@ -15,6 +15,17 @@ edition = "2021"
 license = "MIT"
 readme = "README"
 repository = "https://git.saulv.es/http-server"
+default-run = "http-srv"
+
+[[bin]]
+name = "http-client"
+path = "src/bin/client.rs"
+required-features = ["client"]
+
+[[bin]]
+name = "http-srv"
+path = "src/bin/server.rs"
+required-features = ["server"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -27,3 +38,8 @@ base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saul
 jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
 delay_init = { package = "delay_init" , version = ">=0.2.0", git = "https://github.com/saulvaldelvira/delay-init" }
 builders = { package = "builders" , features = ["builder"], version = ">=0.1.0", git = "https://github.com/saulvaldelvira/builders" }
+
+[features]
+default = ["client", "server"]
+client = []
+server = []

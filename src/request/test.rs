@@ -27,3 +27,18 @@ fn parse_test() {
         .build().unwrap();
     assert_eq!(expected, parsed);
 }
+
+#[test]
+fn send_to_test() {
+    let req = HttpRequest::builder()
+                .method(RequestMethod::GET)
+                .url("/hello")
+                .version(1.1)
+                .body("BODY".as_bytes())
+                .build().unwrap();
+    let mut b: Vec<u8> = Vec::new();
+    req.write_to(&mut b).unwrap();
+
+    let s = String::from_utf8(b).unwrap();
+    assert_eq!(s, "GET /hello HTTP/1.1\r\nBODY");
+}

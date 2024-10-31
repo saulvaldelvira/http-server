@@ -7,11 +7,9 @@ mod method;
 mod parse;
 use parse::parse_request;
 pub use method::RequestMethod;
-mod stream;
-pub use stream::RequestStream;
 
-use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, path::Path};
-use crate::Result;
+use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, net::TcpStream, path::Path};
+use crate::{HttpResponse, HttpStream, Result};
 use crate::request::encoding::Chunked;
 
 /// HTTP Request
@@ -27,17 +25,20 @@ pub struct HttpRequest {
     params: HashMap<String,String>,
     #[builder(each = "response_header")]
     response_headers: HashMap<String,String>,
+    #[builder(def = 1.0)]
     version: f32,
     #[builder(disabled = true)]
-    #[builder(def = { BufReader::new(RequestStream::dummy()) })]
-    stream: BufReader<RequestStream>,
+    #[builder(def = { BufReader::new(HttpStream::dummy()) })]
+    stream: BufReader<HttpStream>,
     #[builder(def = 200u16)]
     status: u16,
+    #[builder(optional = true)]
+    body: Option<Vec<u8>>,
 }
 
 impl HttpRequest {
-    /// Read and parse an HTTP request from the given [RequestStream]
-    pub fn parse(stream: impl Into<RequestStream>) -> Result<Self>  {
+    /// Read and parse an HTTP request from the given [HttpStream]
+    pub fn parse(stream: impl Into<HttpStream>) -> Result<Self>  {
         let stream = BufReader::new(stream.into());
         parse_request(stream)
     }
@@ -48,7 +49,7 @@ impl HttpRequest {
         Ok(req)
     }
     #[inline]
-    pub fn stream(&self) -> &RequestStream { self.stream.get_ref() }
+    pub fn stream(&self) -> &HttpStream { self.stream.get_ref() }
     /// Url of the request
     #[inline]
     pub fn url(&self) -> &str { &self.url }
@@ -73,6 +74,35 @@ impl HttpRequest {
         );
         let cwd = cwd.to_str().ok_or("Error getting cwd")?;
         Ok(cwd.to_owned())
+    }
+    pub fn write_to(&self, f: &mut dyn Write) -> Result<()> {
+        write!(f, "{} {}", self.method(), self.url())?;
+        if !self.params().is_empty() {
+            write!(f, "?")?;
+            for (k,v) in self.params() {
+                let ke = url::encode(k).unwrap_or("".into());
+                let ve = url::encode(v).unwrap_or("".into());
+                write!(f, "{}={}&", ke, ve)?;
+            }
+        }
+        write!(f, " HTTP/{}\r\n", self.version())?;
+
+        for (k,v) in self.headers() {
+            write!(f, "{k}: {v}\r\n")?;
+        }
+
+        if let Some(ref b) = self.body {
+            f.write_all(b)?;
+        }
+
+        write!(f, "\r\n\r\n")?;
+
+        Ok(())
+    }
+    pub fn send_to(&self, mut tcp: TcpStream) -> crate::Result<HttpResponse> {
+        self.write_to(&mut tcp)?;
+        tcp.flush()?;
+        HttpResponse::parse(tcp)
     }
     #[inline]
     pub fn method(&self) -> &RequestMethod { &self.method }
@@ -107,11 +137,12 @@ impl HttpRequest {
     pub fn set_header(&mut self, key: impl Into<String>, value: impl Into<String>) {
         self.response_headers.insert(key.into(), value.into());
     }
-    pub fn body(&mut self) -> Vec<u8> {
+    pub fn body(&mut self) -> &[u8] {
         let len = self.content_length();
         let mut buf:Vec<u8> = Vec::with_capacity(len);
         self.stream.read_to_end(&mut buf).unwrap();
-        buf
+        self.body = Some(buf);
+        self.body.as_ref().unwrap()
     }
     pub fn read_body(&mut self, writer: &mut dyn Write) -> Result<()> {
         const CHUNK_SIZE:usize = 1024 * 1024;

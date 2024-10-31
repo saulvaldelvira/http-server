@@ -51,9 +51,9 @@ fn main() {
     }
 
     /* For debugging */
-    /* handler.post_interceptor(|req| { */
-    /*     println!("{:?}", req.headers()); */
-    /* }); */
+    handler.post_interceptor(|req| {
+        println!("{:?}", req.headers());
+    });
 
     let auth = AuthConfig::of_list(&[
                                    ("test", "test"),
