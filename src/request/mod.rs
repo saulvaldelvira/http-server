@@ -228,31 +228,15 @@ impl HttpRequest {
 
 impl PartialEq for HttpRequest {
     fn eq(&self, other: &Self) -> bool {
-        self.method == other.method 
-        && self.url == other.url 
-        && self.headers == other.headers 
-        && self.params == other.params 
-        && self.response_headers == other.response_headers 
-        && self.version == other.version 
+        self.method == other.method
+        && self.url == other.url
+        && self.headers == other.headers
+        && self.params == other.params
+        && self.response_headers == other.response_headers
+        && self.version == other.version
         && self.status == other.status
     }
 }
 
 #[cfg(test)]
-mod test {
-    use std::str::FromStr;
-
-    use crate::request::RequestMethod::{self,*};
-
-    #[test]
-    fn parse_method() {
-        assert!(RequestMethod::from_str("unknown").is_err());
-        let strs = ["GET","POST","PUT","DELETE"];
-        let methods = [GET,POST,PUT,DELETE];
-        let res:Vec<RequestMethod> =
-            strs.iter()
-            .map(|m| RequestMethod::from_str(m))
-            .map(Result::unwrap).collect();
-        assert_eq!(methods,&res[..]);
-    }
-}
+mod test;

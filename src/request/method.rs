@@ -28,7 +28,7 @@ impl FromStr for RequestMethod {
             "CONNECT" => Ok(Self::CONNECT),
             "OPTIONS" => Ok(Self::OPTIONS),
             "TRACE" => Ok(Self::TRACE),
-            _ => err!("Couldn't parse request method ({t})")
+            _ => err!("Couldn't parse request method \"{t}\"")
         }
     }
 }

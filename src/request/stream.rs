@@ -1,4 +1,4 @@
-use std::{cmp::{max, min}, io::{self, Read, Write}, net::TcpStream, time::Duration};
+use std::{cmp::{min}, io::{self, Read, Write}, net::TcpStream, time::Duration};
 
 #[derive(Debug)]
 struct StringStream(Vec<u8>, usize);

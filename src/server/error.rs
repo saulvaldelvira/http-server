@@ -22,14 +22,14 @@ impl ServerError {
 }
 
 macro_rules! err {
+    ($($e:tt)*) => {
+        crate::ServerError::new(format!($($e)*)).err()
+    };
     ($lit:literal) => {
         crate::ServerError::new($lit).err()
     };
     ($e:expr) => {
         crate::ServerError::new($e).err()
-    };
-    ($($e:tt)*) => {
-        crate::ServerError::new(format!($($e)*)).err()
     };
 }
 
