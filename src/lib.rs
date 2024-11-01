@@ -49,3 +49,5 @@ use prelude::*;
 ///
 /// It serves as a shortcut for an [std::result::Result]<T,[ServerError]>
 pub type Result<T> = std::result::Result<T,ServerError>;
+
+pub mod client;

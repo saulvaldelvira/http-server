@@ -95,7 +95,7 @@ impl HttpRequest {
             f.write_all(b)?;
         }
 
-        write!(f, "\r\n\r\n")?;
+        write!(f, "\r\n")?;
 
         Ok(())
     }
