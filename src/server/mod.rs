@@ -3,10 +3,11 @@ pub use config::ServerConfig;
 pub mod error;
 pub use error::ServerError;
 
-use crate::{log_error, request::{handler::Handler, HttpRequest}, HttpStream, Result};
+use crate::{log_error, request::{handler::Handler, HttpRequest}, Result};
 use std::{sync::Arc, time::{Duration, Instant}};
 use std::net::{TcpListener, TcpStream};
 use pool::ThreadPool;
+use crate::http::HttpStream;
 
 mod main;
 pub use main::main;
@@ -20,11 +21,12 @@ pub use main::main;
 /// use http_srv::server::HttpServer;
 /// use http_srv::server::ServerConfig;
 /// use http_srv::request::handler::Handler;
+/// use http_srv::request::HttpRequest;
 ///
 /// let config = ServerConfig::default();
 /// let mut server = HttpServer::new(config);
 /// let mut handler = Handler::new();
-/// handler.get("/", |req| {
+/// handler.get("/", |req: &mut HttpRequest| {
 ///     req.ok()
 /// });
 /// server.set_handler(handler);

@@ -3,7 +3,7 @@ use std::{collections::HashMap, io::{BufReader, Read}};
 use builders::Builder;
 use parse::parse_response;
 
-use crate::HttpStream;
+use crate::http::HttpStream;
 
 mod parse;
 

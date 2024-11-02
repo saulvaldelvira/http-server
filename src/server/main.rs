@@ -1,7 +1,7 @@
 use std::process;
 use std::{env, thread, time::Duration};
 use crate::prelude::*;
-use crate::request::encoding::StreamReader;
+use crate::http::encoding::StreamReader;
 
 pub fn main() {
     let config = ServerConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {

@@ -10,7 +10,7 @@ use std::ops::{DerefMut, Range};
 use std::path::Path;
 use std::sync::Mutex;
 
-use crate::request::{HttpRequest, RequestMethod};
+use crate::request::{HttpRequest, HttpMethod};
 use crate::Result;
 use self::indexing::index_of;
 use self::ranges::get_range_for;
@@ -33,7 +33,7 @@ pub trait Interceptor: Fn(&mut HttpRequest) + Send + Sync + 'static { }
 impl<T> Interceptor for T
 where T: Fn(&mut HttpRequest) + Send + Sync + 'static { }
 
-pub type HandlerTable = HashMap<RequestMethod,HashMap<String,Box<dyn HandlerFunc>>>;
+pub type HandlerTable = HashMap<HttpMethod,HashMap<String,Box<dyn HandlerFunc>>>;
 
 /// Handler
 ///
@@ -43,18 +43,19 @@ pub type HandlerTable = HashMap<RequestMethod,HashMap<String,Box<dyn HandlerFunc
 /// # Example
 /// ```
 /// use http_srv::request::handler::{self,*};
-/// use http_srv::request::RequestMethod;
+/// use http_srv::request::HttpRequest;
+/// use http_srv::http::HttpMethod;
 ///
 /// let mut handler = Handler::new();
-/// handler.get("/", |req| {
+/// handler.get("/", |req: &mut HttpRequest| {
 ///     req.respond_str("Hello world! :)")
 /// });
-/// handler.add_default(RequestMethod::GET, handler::cat_handler);
+/// handler.add_default(HttpMethod::GET, handler::cat_handler);
 /// handler.post_interceptor(handler::log_stdout);
 /// ```
 pub struct Handler {
     handlers: HandlerTable,
-    defaults: HashMap<RequestMethod,Box<dyn HandlerFunc>>,
+    defaults: HashMap<HttpMethod,Box<dyn HandlerFunc>>,
     pre_interceptors: Vec<Box<dyn Interceptor>>,
     post_interceptors: Vec<Box<dyn Interceptor>>,
 }
@@ -64,43 +65,43 @@ impl Handler {
         Self { handlers: HashMap::new(), defaults: HashMap::new(),
                pre_interceptors: Vec::new(), post_interceptors: Vec::new() }
     }
-    /// Shortcut for [add](Handler::add)([RequestMethod::GET], ...)
+    /// Shortcut for [add](Handler::add)([HttpMethod::GET], ...)
     #[inline]
     pub fn get(&mut self, url: &str, f: impl HandlerFunc) {
-        self.add(RequestMethod::GET,url,f);
+        self.add(HttpMethod::GET,url,f);
     }
-    /// Shortcut for [add](Handler::add)([RequestMethod::POST], ...)
+    /// Shortcut for [add](Handler::add)([HttpMethod::POST], ...)
     #[inline]
     pub fn post(&mut self, url: &str, f: impl HandlerFunc) {
-        self.add(RequestMethod::POST,url,f);
+        self.add(HttpMethod::POST,url,f);
     }
-    /// Shortcut for [add](Handler::add)([RequestMethod::DELETE], ...)
+    /// Shortcut for [add](Handler::add)([HttpMethod::DELETE], ...)
     #[inline]
     pub fn delete(&mut self, url: &str, f: impl HandlerFunc) {
-        self.add(RequestMethod::DELETE,url,f);
+        self.add(HttpMethod::DELETE,url,f);
     }
-    /// Shortcut for [add](Handler::add)([RequestMethod::HEAD], ...)
+    /// Shortcut for [add](Handler::add)([HttpMethod::HEAD], ...)
     #[inline]
     pub fn head(&mut self, url: &str, f: impl HandlerFunc) {
-        self.add(RequestMethod::HEAD,url,f);
+        self.add(HttpMethod::HEAD,url,f);
     }
     /// Adds a handler for a request type
     ///
-    /// - method: HTTP [method](RequestMethod) to match
+    /// - method: HTTP [method](HttpMethod) to match
     /// - url: URL for the handler
     /// - f: [Handler](HandlerFunc) for the request
     ///
-    pub fn add(&mut self, method: RequestMethod, url: &str, f: impl HandlerFunc) {
+    pub fn add(&mut self, method: HttpMethod, url: &str, f: impl HandlerFunc) {
         let map = self.handlers.entry(method).or_default();
         map.insert(url.to_string(), Box::new(f));
     }
     /// Adds a default handler for all requests of a certain type
     ///
-    /// - method: HTTP [method](RequestMethod) to match
+    /// - method: HTTP [method](HttpMethod) to match
     /// - f: [Handler](HandlerFunc) for the requests
     ///
     #[inline]
-    pub fn add_default(&mut self, method: RequestMethod, f: impl HandlerFunc) {
+    pub fn add_default(&mut self, method: HttpMethod, f: impl HandlerFunc) {
         self.defaults.insert(method, Box::new(f));
     }
     /// Add a function to run before the request is processed
@@ -114,7 +115,7 @@ impl Handler {
         self.post_interceptors.push(Box::new(f));
     }
     /// Get the handler for a certain method and url
-    pub fn get_handler(&self, method: &RequestMethod, url: &str) -> Option<&impl HandlerFunc> {
+    pub fn get_handler(&self, method: &HttpMethod, url: &str) -> Option<&impl HandlerFunc> {
         match self.handlers.get(method) {
             Some(map) => map.get(url).or_else(|| self.defaults.get(method)),
             None => self.defaults.get(method),
@@ -144,13 +145,13 @@ impl Default for Handler {
     ///  - Set Header: "Accept-Ranges: bytes"
     ///
     /// # Handler Functions
-    /// - [GET](RequestMethod::GET): [cat_handler]
-    /// - [POST](RequestMethod::POST): [post_handler]
-    /// - [DELETE](RequestMethod::DELETE): [delete_handler]
-    /// - [HEAD](RequestMethod::HEAD): [head_handler]
+    /// - [GET](HttpMethod::GET): [cat_handler]
+    /// - [POST](HttpMethod::POST): [post_handler]
+    /// - [DELETE](HttpMethod::DELETE): [delete_handler]
+    /// - [HEAD](HttpMethod::HEAD): [head_handler]
     ///
-    /// - [GET](RequestMethod::GET) "/": [root_handler]
-    /// - [HEAD](RequestMethod::HEAD) "/": [root_handler]
+    /// - [GET](HttpMethod::GET) "/": [root_handler]
+    /// - [HEAD](HttpMethod::HEAD) "/": [root_handler]
     ///
     /// # Post Interceptors
     ///  - [log_stdout]
@@ -162,10 +163,10 @@ impl Default for Handler {
             req.set_header("Accept-Ranges", "bytes");
         });
 
-        handler.add_default(RequestMethod::GET, cat_handler);
-        handler.add_default(RequestMethod::POST, post_handler);
-        handler.add_default(RequestMethod::DELETE, delete_handler);
-        handler.add_default(RequestMethod::HEAD, head_handler);
+        handler.add_default(HttpMethod::GET, cat_handler);
+        handler.add_default(HttpMethod::POST, post_handler);
+        handler.add_default(HttpMethod::DELETE, delete_handler);
+        handler.add_default(HttpMethod::HEAD, head_handler);
 
         handler.get("/", root_handler);
         handler.head("/", root_handler);
@@ -221,7 +222,7 @@ fn show_hidden(req: &HttpRequest) -> bool {
     }
 }
 
-/// Returns the headers that would be sent by a [GET](RequestMethod::GET)
+/// Returns the headers that would be sent by a [GET](HttpMethod::GET)
 /// [request](HttpRequest), with an empty body.
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;

@@ -1,10 +1,10 @@
 use std::{process, str::FromStr};
-use crate::{RequestMethod, Result};
+use crate::{HttpMethod, Result};
 
 #[derive(Clone,Debug)]
 pub struct ClientConfig {
     pub url: String,
-    pub method: RequestMethod,
+    pub method: HttpMethod,
     pub host: String,
     pub user_agent: String,
 }
@@ -95,7 +95,7 @@ impl Default for ClientConfig {
     #[inline]
     fn default() -> Self {
         Self {
-            method: RequestMethod::GET,
+            method: HttpMethod::GET,
             url: "".to_string(),
             host: "".to_string(),
             user_agent: "http-client".to_string(),

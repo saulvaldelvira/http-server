@@ -1,23 +1,20 @@
 pub mod handler;
-pub mod encoding;
-mod status;
 use builders::Builder;
-pub use status::StatusCode;
-mod method;
 mod parse;
 use parse::parse_request;
-pub use method::RequestMethod;
 
 use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, net::TcpStream, path::Path};
-use crate::{HttpResponse, HttpStream, Result};
-use crate::request::encoding::Chunked;
+use crate::{http::{HttpMethod, StatusCode}, HttpResponse, Result};
+use crate::http::HttpStream;
+
+use crate::http::encoding::Chunked;
 
 /// HTTP Request
 ///
 /// Represents an HTTP request
 #[derive(Builder,Debug)]
 pub struct HttpRequest {
-    method: RequestMethod,
+    method: HttpMethod,
     url: String,
     #[builder(each = "header")]
     headers: HashMap<String,String>,
@@ -105,7 +102,7 @@ impl HttpRequest {
         HttpResponse::parse(tcp)
     }
     #[inline]
-    pub fn method(&self) -> &RequestMethod { &self.method }
+    pub fn method(&self) -> &HttpMethod { &self.method }
     #[inline]
     pub fn status(&self) -> u16 { self.status }
     #[inline]
@@ -238,6 +235,18 @@ impl HttpRequest {
     #[inline]
     pub fn server_error(&mut self) -> Result<()> {
         self.set_status(500).respond_error_page()
+    }
+    #[inline]
+    pub fn is_http_ok(&self) -> bool {
+        self.status.is_http_ok()
+    }
+    #[inline]
+    pub fn is_http_err(&self) -> bool {
+        self.status.is_http_err()
+    }
+    #[inline]
+    pub fn status_msg(&self) -> &'static str {
+        self.status.status_msg()
     }
     /// Returns a basic HTML error page of the given status
     pub fn error_page(&self) -> String {

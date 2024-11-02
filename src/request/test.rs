@@ -1,18 +1,18 @@
 use std::str::FromStr;
 
-use crate::{request::RequestMethod::{self,*}, HttpRequest};
+use crate::{request::HttpMethod::{self,*}, HttpRequest};
 
 #[test]
 fn parse_method() {
-    assert!(RequestMethod::from_str("unknown").is_err());
+    assert!(HttpMethod::from_str("unknown").is_err());
     let strs = ["GET","POST","PUT","DELETE"];
     let methods = [GET,POST,PUT,DELETE];
-    let res:Vec<RequestMethod> =
+    let res:Vec<HttpMethod> =
         strs.iter()
-        .map(|m| RequestMethod::from_str(m))
+        .map(|m| HttpMethod::from_str(m))
         .map(Result::unwrap).collect();
     assert_eq!(methods,&res[..]);
-    let m = RequestMethod::from_str("UNKNOWN");
+    let m = HttpMethod::from_str("UNKNOWN");
     assert!(m.is_err_and(|err| err.get_message() == "Couldn't parse request method \"UNKNOWN\""));
 }
 
@@ -23,7 +23,7 @@ fn parse_test() {
         .url("/")
         .version(1.0)
         .header("HEADER-TEST", "Hello world!")
-        .method(RequestMethod::GET)
+        .method(HttpMethod::GET)
         .build().unwrap();
     assert_eq!(expected, parsed);
 }
@@ -31,7 +31,7 @@ fn parse_test() {
 #[test]
 fn send_to_test() {
     let req = HttpRequest::builder()
-                .method(RequestMethod::GET)
+                .method(HttpMethod::GET)
                 .url("/hello")
                 .version(1.1)
                 .body("BODY".as_bytes())
@@ -40,5 +40,5 @@ fn send_to_test() {
     req.write_to(&mut b).unwrap();
 
     let s = String::from_utf8(b).unwrap();
-    assert_eq!(s, "GET /hello HTTP/1.1\r\nBODY");
+    assert_eq!(s, "GET /hello HTTP/1.1\r\nBODY\r\n");
 }

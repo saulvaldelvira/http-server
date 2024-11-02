@@ -1,6 +1,7 @@
 use std::{collections::HashMap, io::{BufRead, BufReader}};
 
-use crate::{server::error::err, HttpStream};
+use crate::server::error::err;
+use crate::http::HttpStream;
 
 use super::HttpResponse;
 

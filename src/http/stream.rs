@@ -39,22 +39,23 @@ enum HttpStreamInner {
 /// that are not parsed from any source
 ///
 /// ```
+/// use http_srv::http::*;
 /// use http_srv::request::*;
 /// use std::net::TcpStream;
 ///
 /// fn from_str() -> HttpRequest {
-///     let stream = RequestStream::from("GET / HTTP/1.0");
+///     let stream = HttpStream::from("GET / HTTP/1.0");
 ///     HttpRequest::parse(stream).unwrap()
 /// }
 /// fn from_tcp(tcp: TcpStream) -> HttpRequest {
-///     let stream = RequestStream::from(tcp);
+///     let stream = HttpStream::from(tcp);
 ///     HttpRequest::parse(stream).unwrap()
 /// }
 /// fn dummy() -> HttpRequest {
-///     /* This HttpRequest holds a dummy RequestStream.
+///     /* This HttpRequest holds a dummy HttpStream.
 ///        All read/write operations are no-ops */
 ///     HttpRequest::builder()
-///         .method(RequestMethod::GET)
+///         .method(HttpMethod::GET)
 ///         .url("/")
 ///         .version(1.0)
 ///         .build().unwrap()

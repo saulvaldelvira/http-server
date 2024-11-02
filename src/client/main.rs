@@ -1,8 +1,7 @@
 use std::{env, net::{TcpStream, ToSocketAddrs}};
 use super::ClientConfig;
 
-use crate::request::{HttpRequest, RequestMethod};
-
+use crate::{http::HttpMethod, request::HttpRequest};
 
 pub fn main() {
     let conf = ClientConfig::parse(env::args().skip(1)).unwrap();
@@ -10,7 +9,7 @@ pub fn main() {
     let addrs = conf.host.to_socket_addrs().unwrap().next().unwrap();
 
     let req = HttpRequest::builder()
-                .method(RequestMethod::GET)
+                .method(HttpMethod::GET)
                 .url(conf.url)
                 .version(1.1)
                 .header("Host", conf.host)

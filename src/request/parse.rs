@@ -1,8 +1,9 @@
 use std::io::BufReader;
 use std::{collections::HashMap, io::BufRead};
-use crate::{HttpStream, Result};
+use crate::Result;
 use crate::server::error::err;
 use super::HttpRequest;
+use crate::http::HttpStream;
 
 pub (super) fn parse_request(mut stream: BufReader<HttpStream>) -> Result<HttpRequest> {
     let mut line = String::new();

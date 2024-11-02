@@ -1,5 +1,3 @@
-use crate::HttpRequest;
-
 pub trait StatusCode {
     /// Returns true if the status code of the
     /// request represents an OK status (200-300)
@@ -60,17 +58,3 @@ impl StatusCode for u16 {
     }
 }
 
-impl HttpRequest {
-    #[inline]
-    pub fn is_http_ok(&self) -> bool {
-        self.status.is_http_ok()
-    }
-    #[inline]
-    pub fn is_http_err(&self) -> bool {
-        self.status.is_http_err()
-    }
-    #[inline]
-    pub fn status_msg(&self) -> &'static str {
-        self.status.status_msg()
-    }
-}
