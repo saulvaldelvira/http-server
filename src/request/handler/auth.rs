@@ -2,12 +2,13 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
-use std::ops::Add;
+use std::sync::Arc;
 
 use crate::Result;
 use crate::HttpRequest;
-use super::HandlerFunc;
 use crate::server::error::err;
+
+use super::RequestHandler;
 
 /// Authentication Config
 ///
@@ -27,11 +28,35 @@ use crate::server::error::err;
 /// handler.get("/secret", auth.apply(func));
 /// ```
 pub struct AuthConfig {
+    users: Arc<HashMap<String,String>>,
+    required_users: Arc<Vec<String>>,
+}
+
+pub struct AuthConfigBuilder {
     users: HashMap<String,String>,
     required_users: Vec<String>,
 }
 
+impl AuthConfigBuilder {
+    pub fn require_user(mut self, user: &str) -> Self {
+        self.required_users.push(user.to_owned());
+        self
+    }
+    pub fn build(self) -> AuthConfig {
+        AuthConfig {
+            users: Arc::new(self.users),
+            required_users: Arc::new(self.required_users),
+        }
+    }
+}
+
 impl AuthConfig {
+    pub fn builder() -> AuthConfigBuilder {
+        AuthConfigBuilder {
+            users: HashMap::new(),
+            required_users: Vec::new(),
+        }
+    }
     pub fn of_file(filename: &str) -> Self {
         let f = File::open(filename).unwrap();
         let f = BufReader::new(f);
@@ -45,51 +70,47 @@ impl AuthConfig {
         }
         users.shrink_to_fit();
         Self {
-            users,
-            required_users: Vec::new(),
+            users: Arc::new(users),
+            required_users: Arc::new(Vec::new()),
         }
     }
     pub fn of_list(list: & [(& str,& str)]) -> Self {
         let mut users = HashMap::new();
         list.iter().for_each(|e| { users.insert(e.0.to_owned(), e.1.to_owned()); } );
         Self {
-            users,
-            required_users: Vec::new(),
+            users: Arc::new(users),
+            required_users: Arc::new(Vec::new()),
         }
     }
-    pub fn require_user(mut self, user: &str) -> Self {
-        self.required_users.push(user.to_owned());
-        self
-    }
-    pub fn apply(&self, f: impl HandlerFunc) -> impl HandlerFunc {
-        let users = self.required_users.clone();
-        let passwd = self.users.clone();
-        move |req: &mut HttpRequest| {
-            let Some(auth) = req.header("Authorization") else {
-                req.set_header("WWW-Authenticate", "Basic");
-                return req.unauthorized();
-            };
-            let auth = HttpAuth::parse(auth)?;
-            if auth.check(&users, &passwd) {
-                f(req)
-            } else {
-                req.unauthorized()
-            }
+    pub fn apply<H: RequestHandler>(&self, f: H) -> AuthedRequest<H> {
+        AuthedRequest {
+            f,
+            users: Arc::clone(&self.users),
+            required_users: Arc::clone(&self.required_users),
         }
     }
 }
 
-impl<F> Add<F> for &AuthConfig
-where
-    F: HandlerFunc
-{
-    type Output = Box<dyn HandlerFunc>;
-
-    fn add(self, rhs: F) -> Self::Output {
-        Box::new(self.apply(rhs))
-    }
+pub struct AuthedRequest<H: RequestHandler> {
+    f: H,
+    users: Arc<HashMap<String,String>>,
+    required_users: Arc<Vec<String>>,
 }
 
+impl<H: RequestHandler> RequestHandler for AuthedRequest<H> {
+    fn handle(&self, req: &mut HttpRequest) -> Result<()> {
+        let Some(auth) = req.header("Authorization") else {
+            req.set_header("WWW-Authenticate", "Basic");
+            return req.unauthorized();
+        };
+        let auth = HttpAuth::parse(auth)?;
+        if auth.check(&self.required_users, &self.users) {
+            self.f.handle(req)
+        } else {
+            req.unauthorized()
+        }
+    }
+}
 
 #[derive(Clone, PartialEq, Debug)]
 enum HttpAuth {

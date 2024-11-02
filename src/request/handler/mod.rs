@@ -21,9 +21,9 @@ use mime::Mime;
 ///
 /// Represents a function that handles an [HttpRequest]
 /// It receives a mutable reference to an [HttpRequest] and returns a [Result]<()>
-pub trait HandlerFunc : Fn(&mut HttpRequest) -> Result<()> + Send + Sync + 'static { }
-impl<T> HandlerFunc for T
-where T: Fn(&mut HttpRequest) -> Result<()>  + Send + Sync + 'static { }
+/* pub trait HandlerFunc : Fn(&mut HttpRequest) -> Result<()> + Send + Sync + 'static { } */
+/* impl<T> HandlerFunc for T */
+/* where T: */
 
 /// Interceptor trait
 ///
@@ -33,7 +33,19 @@ pub trait Interceptor: Fn(&mut HttpRequest) + Send + Sync + 'static { }
 impl<T> Interceptor for T
 where T: Fn(&mut HttpRequest) + Send + Sync + 'static { }
 
-pub type HandlerTable = HashMap<HttpMethod,HashMap<String,Box<dyn HandlerFunc>>>;
+pub type HandlerTable = HashMap<HttpMethod,HashMap<String,Box<dyn RequestHandler>>>;
+
+pub trait RequestHandler: Send + Sync + 'static {
+    fn handle(&self, req: &mut HttpRequest) -> Result<()>;
+}
+
+impl <T> RequestHandler for T
+where T: Fn(&mut HttpRequest) -> Result<()>  + Send + Sync + 'static
+{
+    fn handle(&self, req: &mut HttpRequest) -> Result<()> {
+        self(req)
+    }
+}
 
 /// Handler
 ///
@@ -55,7 +67,7 @@ pub type HandlerTable = HashMap<HttpMethod,HashMap<String,Box<dyn HandlerFunc>>>
 /// ```
 pub struct Handler {
     handlers: HandlerTable,
-    defaults: HashMap<HttpMethod,Box<dyn HandlerFunc>>,
+    defaults: HashMap<HttpMethod,Box<dyn RequestHandler>>,
     pre_interceptors: Vec<Box<dyn Interceptor>>,
     post_interceptors: Vec<Box<dyn Interceptor>>,
 }
@@ -67,41 +79,41 @@ impl Handler {
     }
     /// Shortcut for [add](Handler::add)([HttpMethod::GET], ...)
     #[inline]
-    pub fn get(&mut self, url: &str, f: impl HandlerFunc) {
+    pub fn get(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::GET,url,f);
     }
     /// Shortcut for [add](Handler::add)([HttpMethod::POST], ...)
     #[inline]
-    pub fn post(&mut self, url: &str, f: impl HandlerFunc) {
+    pub fn post(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::POST,url,f);
     }
     /// Shortcut for [add](Handler::add)([HttpMethod::DELETE], ...)
     #[inline]
-    pub fn delete(&mut self, url: &str, f: impl HandlerFunc) {
+    pub fn delete(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::DELETE,url,f);
     }
     /// Shortcut for [add](Handler::add)([HttpMethod::HEAD], ...)
     #[inline]
-    pub fn head(&mut self, url: &str, f: impl HandlerFunc) {
+    pub fn head(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::HEAD,url,f);
     }
     /// Adds a handler for a request type
     ///
     /// - method: HTTP [method](HttpMethod) to match
     /// - url: URL for the handler
-    /// - f: [Handler](HandlerFunc) for the request
+    /// - f: [Handler](RequestHandler) for the request
     ///
-    pub fn add(&mut self, method: HttpMethod, url: &str, f: impl HandlerFunc) {
+    pub fn add(&mut self, method: HttpMethod, url: &str, f: impl RequestHandler) {
         let map = self.handlers.entry(method).or_default();
         map.insert(url.to_string(), Box::new(f));
     }
     /// Adds a default handler for all requests of a certain type
     ///
     /// - method: HTTP [method](HttpMethod) to match
-    /// - f: [Handler](HandlerFunc) for the requests
+    /// - f: [Handler](RequestHandler) for the requests
     ///
     #[inline]
-    pub fn add_default(&mut self, method: HttpMethod, f: impl HandlerFunc) {
+    pub fn add_default(&mut self, method: HttpMethod, f: impl RequestHandler) {
         self.defaults.insert(method, Box::new(f));
     }
     /// Add a function to run before the request is processed
@@ -115,18 +127,18 @@ impl Handler {
         self.post_interceptors.push(Box::new(f));
     }
     /// Get the handler for a certain method and url
-    pub fn get_handler(&self, method: &HttpMethod, url: &str) -> Option<&impl HandlerFunc> {
+    pub fn get_handler(&self, method: &HttpMethod, url: &str) -> Option<&dyn RequestHandler> {
         match self.handlers.get(method) {
             Some(map) => map.get(url).or_else(|| self.defaults.get(method)),
             None => self.defaults.get(method),
-        }
+        }.map(|b| &**b)
     }
-    /// Handles a request if it finds a [HandlerFunc] for it.
+    /// Handles a request if it finds a [RequestHandler] for it.
     /// Else, it returns a 403 FORBIDDEN response
     pub fn handle(&self, req: &mut HttpRequest) -> Result<()> {
         self.pre_interceptors.iter().for_each(|f| f(req));
         let ret = match self.get_handler(req.method(), req.url()) {
-            Some(handler) => handler(req).or_else(|err| {
+            Some(handler) => handler.handle(req).or_else(|err| {
                 eprintln!("ERROR: {err}");
                 req.server_error()
             }),
@@ -356,9 +368,9 @@ pub fn root_handler(req: &mut HttpRequest) -> Result<()> {
     cat_handler(req)
 }
 
-pub fn redirect(uri: impl Into<String>) -> impl HandlerFunc {
+pub fn redirect(uri: impl Into<String>) -> impl RequestHandler {
     let uri = uri.into();
-    move |req| {
+    move |req: &mut HttpRequest| {
         req.set_header("Location", &uri);
         req.set_header("Content-Length", "0");
         req.set_status(308).respond()

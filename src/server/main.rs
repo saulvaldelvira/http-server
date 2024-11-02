@@ -10,12 +10,12 @@ pub fn main() {
     });
 
     let mut handler = Handler::default();
-    handler.get("/sleep", |req| {
+    handler.get("/sleep", |req: &mut HttpRequest| {
         thread::sleep(Duration::from_secs(5));
         req.ok()
     });
 
-    handler.get("/params", |req| {
+    handler.get("/params", |req: &mut HttpRequest| {
         let mut s = "".to_string();
         for (k,v) in req.params() {
             s.push_str(k);
@@ -26,7 +26,7 @@ pub fn main() {
         req.respond_str(&s)
     });
 
-    handler.get("/inf", |req| {
+    handler.get("/inf", |req: &mut HttpRequest| {
         let mut i = 0;
         let chars = b"hello, world!\n";
         let inf = || {
@@ -38,7 +38,7 @@ pub fn main() {
         req.respond_reader(&mut reader)
     });
 
-    handler.get("/hello", |req| {
+    handler.get("/hello", |req: &mut HttpRequest| {
         let name = req.param("name").unwrap_or("friend");
         let msg = format!("Hello {name}!");
         req.respond_str(&msg)
@@ -51,7 +51,7 @@ pub fn main() {
     }
 
     /* For debugging */
-    handler.post_interceptor(|req| {
+    handler.post_interceptor(|req: &mut HttpRequest| {
         println!("{:?}", req.headers());
     });
 
@@ -59,9 +59,9 @@ pub fn main() {
                                    ("test", "test"),
                                    ("abc", "abc"),
                                     ]);
-    handler.get("/priv", &auth + |req| {
+    handler.get("/priv", auth.apply(|req: &mut HttpRequest| {
         req.respond_str("Secret message")
-    });
+    }));
 
     let mut server = HttpServer::new(config);
     server.set_handler(handler);
