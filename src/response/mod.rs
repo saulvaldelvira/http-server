@@ -1,4 +1,4 @@
-use std::{collections::HashMap, io::{BufReader, Read}};
+use std::{collections::HashMap, io::{self, BufReader, Read}};
 
 use builders::Builder;
 use parse::parse_response;
@@ -51,5 +51,16 @@ impl HttpResponse {
         self.stream.read_to_end(&mut buf).unwrap();
         self.body = Some(buf);
         self.body.as_ref().unwrap()
+    }
+    pub fn write_to(&mut self, out: &mut dyn io::Write) -> io::Result<usize> {
+        let mut buf = [0_u8; 1024];
+        let mut total = 0;
+        while let Ok(n) = self.stream.read(&mut buf) {
+            out.write_all(&buf[0..n])?;
+            total += n;
+            if n == 0 { break }
+        }
+        out.flush()?;
+        Ok(total)
     }
 }

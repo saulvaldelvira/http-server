@@ -1,4 +1,4 @@
-use std::{env, net::{TcpStream, ToSocketAddrs}};
+use std::{env, io::stdout, net::{TcpStream, ToSocketAddrs}, process};
 use super::ClientConfig;
 
 use crate::{http::HttpMethod, request::HttpRequest};
@@ -16,9 +16,17 @@ pub fn main() {
                 .header("Accept", "*/*")
                 .header("User-Agent", "http-client")
                 .build().unwrap();
-    let tcp = TcpStream::connect(addrs).unwrap();
+    let tcp = match TcpStream::connect(addrs) {
+        Ok(tcp) => tcp,
+        Err(e) => {
+            eprintln!("Error connecting to {addrs}: {e}");
+            process::exit(1);
+        }
+    };
     let mut result = req.send_to(tcp).unwrap();
 
-    let s = String::from_utf8(result.body().to_vec()).unwrap();
-    println!("{s}");
+    match result.write_to(&mut stdout()) {
+        Ok(_) => {/* eprintln!("\n\n{n} bytes transfered") */},
+        Err(err) => eprint!("\n\nERROR: {err}")
+    }
 }
