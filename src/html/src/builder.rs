@@ -58,8 +58,7 @@ impl<'a> Default for HtmlBuilder<'a> {
 
 impl Display for HtmlBuilder<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut buf = "<!DOCTYPE html>".to_string();
-        self.root.write_to(&mut buf);
-        write!(f, "{buf}")
+        write!(f, "<!DOCTYPE html>")?;
+        self.root.write_to(f)
     }
 }

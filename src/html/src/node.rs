@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap, fmt::Display};
+use std::{borrow::Cow, collections::HashMap, fmt::{self, Display}};
 
 /// Html Node
 ///
@@ -74,26 +74,27 @@ impl<'a> HtmlNode<'a> {
     pub fn nth(&mut self, i: usize) -> Option<&mut HtmlNode<'a>> {
         self.childs.get_mut(i)
     }
-    pub (crate) fn write_to(&self, buf: &mut String) {
-        buf.push('<');
-        buf.push_str(&self.name);
+    pub (crate) fn write_to(&self, buf: &mut dyn fmt::Write) -> fmt::Result {
+        buf.write_char('<')?;
+        buf.write_str(&self.name)?;
         for (k,v) in &self.params {
-            buf.push(' ');
-            buf.push_str(k);
-            buf.push_str("=\"");
-            buf.push_str(v);
-            buf.push('"');
+            buf.write_char(' ')?;
+            buf.write_str(k)?;
+            buf.write_str("=\"")?;
+            buf.write_str(v)?;
+            buf.write_char('"')?;
         }
-        buf.push('>');
+        buf.write_char('>')?;
         if !self.text.is_empty() {
-            buf.push_str(&self.text);
+            buf.write_str(&self.text)?;
         }
         for child in &self.childs {
-            child.write_to(buf);
+            child.write_to(buf)?;
         }
-        buf.push_str("</");
-        buf.push_str(&self.name);
-        buf.push('>');
+        buf.write_str("</")?;
+        buf.write_str(&self.name)?;
+        buf.write_char('>')?;
+        Ok(())
     }
 }
 
@@ -105,8 +106,6 @@ impl<'a> Default for HtmlNode<'a> {
 
 impl Display for HtmlNode<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut buf = String::new();
-        self.write_to(&mut buf);
-        write!(f, "{buf}")
+        self.write_to(f)
     }
  }
