@@ -62,7 +62,8 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
         td:first-child {
             padding-right: 0.2em;
         }
-        "}));
+        ".replace(" ", "")
+         .replace("\n", "")}));
 
     let mut files = Vec::new();
     for f in read_dir(filename)? {
