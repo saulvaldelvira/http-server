@@ -194,7 +194,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
         req.set_header("Content-Type", "text/html");
         return Ok(None);
     }
-    match File::open(&filename) {
+    match File::open(&*filename) {
         Ok(file) => {
             if let Ok(mime) = Mime::from_filename(&filename) {
                 req.set_header("Content-Type", mime.to_string());
@@ -211,7 +211,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
             } else {
                 req.set_status(206);
                 req.set_header("Content-Length", (range.end - range.start).to_string());
-                req.set_header("Content-Range", &format!("bytes {}-{}/{}", range.start, range.end - 1, len));
+                req.set_header("Content-Range", format!("bytes {}-{}/{}", range.start, range.end - 1, len));
             }
             return Ok(Some(range));
         },
@@ -263,7 +263,7 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
         let page = index_of(&filename, show_hidden(req))?;
         return req.respond_str(&page);
     }
-    let mut file = File::open(req.filename()?)?;
+    let mut file = File::open(&*req.filename()?)?;
     match range {
         Some(range) => {
             file.seek(SeekFrom::Start(range.start))?;
@@ -281,7 +281,7 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
 /// Save the data of the request to the url
 pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
-    match File::create(&filename) {
+    match File::create(&*filename) {
         Ok(mut file) => {
             req.read_body(&mut file)?;
             req.ok()
@@ -298,7 +298,7 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
 
 /// Delete the filename
 pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
-    match fs::remove_file(req.filename()?) {
+    match fs::remove_file(&*req.filename()?) {
        Ok(_) => req.ok(),
        Err(err) =>
            match err.kind() {
@@ -368,10 +368,10 @@ pub fn root_handler(req: &mut HttpRequest) -> Result<()> {
     cat_handler(req)
 }
 
-pub fn redirect(uri: impl Into<String>) -> impl RequestHandler {
+pub fn redirect(uri: impl Into<Box<str>>) -> impl RequestHandler {
     let uri = uri.into();
     move |req: &mut HttpRequest| {
-        req.set_header("Location", &uri);
+        req.set_header("Location", &*uri);
         req.set_header("Content-Length", "0");
         req.set_status(308).respond()
     }

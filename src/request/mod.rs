@@ -15,13 +15,13 @@ use crate::http::encoding::Chunked;
 #[derive(Builder,Debug)]
 pub struct HttpRequest {
     method: HttpMethod,
-    url: String,
+    url: Box<str>,
     #[builder(each = "header")]
-    headers: HashMap<String,String>,
+    headers: HashMap<Box<str>,Box<str>>,
     #[builder(each = "param")]
-    params: HashMap<String,String>,
+    params: HashMap<Box<str>,Box<str>>,
     #[builder(each = "response_header")]
-    response_headers: HashMap<String,String>,
+    response_headers: HashMap<Box<str>,Box<str>>,
     #[builder(def = 1.0)]
     version: f32,
     #[builder(disabled = true)]
@@ -30,7 +30,7 @@ pub struct HttpRequest {
     #[builder(def = 200u16)]
     status: u16,
     #[builder(optional = true)]
-    body: Option<Vec<u8>>,
+    body: Option<Box<[u8]>>,
 }
 
 impl HttpRequest {
@@ -51,18 +51,18 @@ impl HttpRequest {
     #[inline]
     pub fn url(&self) -> &str { &self.url }
     #[inline]
-    pub fn set_url(&mut self, url: impl Into<String>) { self.url = url.into(); }
+    pub fn set_url(&mut self, url: impl Into<Box<str>>) { self.url = url.into(); }
     /// Get the query parameters
     #[inline]
-    pub fn params(&self) -> &HashMap<String,String> { &self.params }
+    pub fn params(&self) -> &HashMap<Box<str>,Box<str>> { &self.params }
     #[inline]
-    pub fn param(&self, key: &str) -> Option<&str> { self.params.get(key).map(|s| s.as_str()) }
+    pub fn param(&self, key: &str) -> Option<&str> { self.params.get(key).map(|s| s.as_ref()) }
     /// Get the filename for the request
     ///
     /// It computes the path in the server corresponding to the
     /// request's url.
     ///
-    pub fn filename(&self) -> Result<String> {
+    pub fn filename(&self) -> Result<Box<str>> {
         let mut cwd = env::current_dir()?;
         cwd.push(
             Path::new(
@@ -70,7 +70,7 @@ impl HttpRequest {
             )
         );
         let cwd = cwd.to_str().ok_or("Error getting cwd")?;
-        Ok(cwd.to_owned())
+        Ok(Box::from(cwd))
     }
     pub fn write_to(&self, f: &mut dyn Write) -> Result<()> {
         write!(f, "{} {}", self.method(), self.url())?;
@@ -126,19 +126,19 @@ impl HttpRequest {
     /// Get the value of the given header key, if present
     #[inline]
     pub fn header(&self, key: &str) -> Option<&str> {
-        self.headers.get(key).map(|s| s.as_str())
+        self.headers.get(key).map(|s| s.as_ref())
     }
     #[inline]
-    pub fn headers(&self) -> &HashMap<String,String> { &self.headers }
+    pub fn headers(&self) -> &HashMap<Box<str>,Box<str>> { &self.headers }
     #[inline]
-    pub fn set_header(&mut self, key: impl Into<String>, value: impl Into<String>) {
+    pub fn set_header(&mut self, key: impl Into<Box<str>>, value: impl Into<Box<str>>) {
         self.response_headers.insert(key.into(), value.into());
     }
     pub fn body(&mut self) -> &[u8] {
-        let len = self.content_length();
-        let mut buf:Vec<u8> = Vec::with_capacity(len);
+        let len = self.content_length().max(32);
+        let mut buf = Vec::with_capacity(len);
         self.stream.read_to_end(&mut buf).unwrap();
-        self.body = Some(buf);
+        self.body = Some(buf.into_boxed_slice());
         self.body.as_ref().unwrap()
     }
     pub fn read_body(&mut self, writer: &mut dyn Write) -> Result<()> {

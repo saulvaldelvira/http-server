@@ -22,13 +22,13 @@ pub (super) fn parse_request(mut stream: BufReader<HttpStream>) -> Result<HttpRe
             let mut arg = arg.split('=');
             let k = arg.next().unwrap_or("");
             let v = arg.next().unwrap_or("");
-            let k = url::decode(k)?.into_owned();
-            let v = url::decode(v)?.into_owned();
+            let k = url::decode(k)?.into();
+            let v = url::decode(v)?.into();
             params.insert(k, v);
         }
         url = new_url;
     }
-    let url = url::decode(url)?.into_owned();
+    let url = url::decode(url)?.into();
     let version: f32 = space.next().unwrap()
                            .replace("HTTP/", "")
                            .parse()
@@ -39,11 +39,11 @@ pub (super) fn parse_request(mut stream: BufReader<HttpStream>) -> Result<HttpRe
     while stream.read_line(&mut line).is_ok() {
         if line == "\r\n" { break; }
         let mut splt = line.split(':');
-        let key = splt.next().unwrap_or("").to_string();
+        let key = splt.next().unwrap_or("").into();
         let value = splt.next().unwrap_or("")
                         .strip_prefix(' ').unwrap_or("")
                         .strip_suffix("\r\n").unwrap_or("")
-                        .to_string();
+                        .into();
         headers.insert(key, value);
         line.clear();
     }
