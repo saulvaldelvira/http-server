@@ -1,12 +1,20 @@
 use std::{process, str::FromStr};
 use crate::{HttpMethod, Result};
 
+#[derive(Debug,Clone)]
+pub enum OutFile {
+    Stdout,
+    Filename(String),
+    GetFromUrl,
+}
+
 #[derive(Clone,Debug)]
 pub struct ClientConfig {
     pub url: String,
     pub method: HttpMethod,
     pub host: String,
     pub user_agent: String,
+    pub out_file: OutFile,
 }
 
 impl ClientConfig {
@@ -37,6 +45,8 @@ impl ClientConfig {
                 "--host" => conf.host = parse_next!(),
                 "-a" | "--user-agent" => conf.user_agent = parse_next!(),
                 "-h" | "--help" => help(),
+                "-O" => conf.out_file = OutFile::GetFromUrl,
+                "-o" => conf.out_file = OutFile::Filename(parse_next!()),
                 _ => conf.url = arg
             }
         }
@@ -99,6 +109,7 @@ impl Default for ClientConfig {
             url: "".to_string(),
             host: "".to_string(),
             user_agent: "http-client".to_string(),
+            out_file: OutFile::Stdout
         }
     }
 }

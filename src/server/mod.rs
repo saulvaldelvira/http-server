@@ -9,9 +9,6 @@ use std::net::{TcpListener, TcpStream};
 use pool::ThreadPool;
 use crate::http::HttpStream;
 
-mod main;
-pub use main::main;
-
 /// HTTP Server
 ///
 /// Represents an HTTP Server, bound to a TCP Port

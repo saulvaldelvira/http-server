@@ -1,5 +1,2 @@
-mod main;
-pub use main::main;
-
-mod config;
-use config::ClientConfig;
+pub mod config;
+pub use config::ClientConfig;
