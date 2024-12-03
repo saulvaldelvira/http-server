@@ -148,7 +148,7 @@ impl ServerConfig {
                 };
             }
 
-            match k.as_str() {
+            match &*k {
                 "port" => self.port = num!() as u16,
                 "root_dir" => {
                     let path:String = string!();
@@ -164,7 +164,7 @@ impl ServerConfig {
                 },
                 "pool_config" => {
                     for (k,v) in obj!() {
-                        match k.as_str() {
+                        match &**k {
                             "n_workers" => self.pool_conf.n_workers = num!(v as u16),
                             "pending_buffer_size" => {
                                 let n = v.number().map(|n| n as u16);
