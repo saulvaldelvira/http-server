@@ -67,8 +67,7 @@ impl ThreadPool {
     #[inline]
     pub fn with_default_config() -> Result<Self> {
         let conf = PoolConfig::builder()
-                              .build()
-                              .or_else(|err| Err(err.to_string()))?;
+                              .build().map_err(|err| err.to_string())?;
         Self::new(conf)
     }
     /// Create a [ThreadPool] with a given size
@@ -76,8 +75,7 @@ impl ThreadPool {
     pub fn with_size(size: u16) -> Result<Self> {
         let conf = PoolConfig::builder()
                               .n_workers(size)
-                              .build()
-                              .or_else(|err| Err(err.to_string()))?;
+                              .build().map_err(|err| err.to_string())?;
         Self::new(conf)
     }
     pub fn execute(&self, job: impl Job) {

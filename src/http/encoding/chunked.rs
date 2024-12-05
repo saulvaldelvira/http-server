@@ -27,7 +27,7 @@ impl<R: Read> Chunked<R> {
         if n == 0 {
             self.finish = true;
         }
-        self.chunk.write_all(format!("{:X}\r\n", n).as_bytes())?;
+        self.chunk.write_all(format!("{n:X}\r\n").as_bytes())?;
         self.chunk.write_all(&tmpbuf[0..n])?;
         self.chunk.write_all(b"\r\n")?;
         Ok(true)

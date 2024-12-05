@@ -10,11 +10,11 @@ pub (super) fn parse_response(mut stream: BufReader<HttpStream>) -> crate::Resul
     /* Parse request line */
     stream.read_line(&mut line)?;
     let mut space = line.split_whitespace().take(3);
-    let version: f32 = space.next().unwrap()
+    let version: f32 = space.next().unwrap_or("")
                         .replace("HTTP/", "")
                         .parse()
                         .or_else(|_| err!("Could not parse HTTP Version"))?;
-    let status: u16 = space.next().unwrap().parse()?;
+    let status: u16 = space.next().unwrap_or("").parse()?;
 
     line.clear();
     /* Parse Headers */

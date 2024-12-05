@@ -18,7 +18,7 @@ impl<'a,T> StreamReader<'a,T> {
     }
 }
 
-impl<'a> Read for StreamReader<'a,u8> {
+impl Read for StreamReader<'_,u8> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         for (i,e) in buf.iter_mut().enumerate() {
             match (self.gen)() {

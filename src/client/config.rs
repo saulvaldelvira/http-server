@@ -56,7 +56,7 @@ impl ClientConfig {
 
         let mut url = "/";
 
-        if let Some(i) = host.find("/") {
+        if let Some(i) = host.find('/') {
             url = &host[i..];
             host = &host[..i];
         }
@@ -106,51 +106,51 @@ impl Default for ClientConfig {
     fn default() -> Self {
         Self {
             method: HttpMethod::GET,
-            url: "".to_string(),
-            host: "".to_string(),
+            url: String::new(),
+            host: String::new(),
             user_agent: "http-client".to_string(),
             out_file: OutFile::Stdout
         }
     }
 }
 
-/* #[cfg(test)] */
-/* mod test { */
-/*     use crate::{ServerConfig,Result}; */
+#[cfg(test)]
+mod test {
+    use crate::{ServerConfig,Result};
 
-/*     fn parse_from_vec(v: Vec<&str>) -> Result<ServerConfig> { */
-/*         let conf = v.iter().map(|s| s.to_string()); */
-/*         ServerConfig::parse(conf) */
-/*     } */
+    fn parse_from_vec(v: Vec<&str>) -> Result<ServerConfig> {
+        let conf = v.iter().map(|s| s.to_string());
+        ServerConfig::parse(conf)
+    }
 
-/*     #[test] */
-/*     fn valid_args() { */
-/*         let conf = vec!["-p", "80"]; */
-/*         parse_from_vec(conf).unwrap(); */
-/*     } */
+    #[test]
+    fn valid_args() {
+        let conf = vec!["-p", "80"];
+        parse_from_vec(conf).unwrap();
+    }
 
-/*     macro_rules! expect_err { */
-/*         ($conf:expr , $msg:literal) => { */
-/*             let Err(msg) = parse_from_vec($conf) else { panic!() }; */
-/*             assert_eq!(msg.get_message(), $msg); */
-/*         }; */
-/*     } */
+    macro_rules! expect_err {
+        ($conf:expr , $msg:literal) => {
+            let Err(msg) = parse_from_vec($conf) else { panic!() };
+            assert_eq!(msg.get_message(), $msg);
+        };
+    }
 
-/*     #[test] */
-/*     fn unknown() { */
-/*         let conf = vec!["?"]; */
-/*         expect_err!(conf, "Unknow argument: ?"); */
-/*     } */
+    #[test]
+    fn unknown() {
+        let conf = vec!["?"];
+        expect_err!(conf, "Unknow argument: ?");
+    }
 
-/*     #[test] */
-/*     fn missing() { */
-/*         let conf = vec!["-n"]; */
-/*         expect_err!(conf,"Missing or incorrect argument for \"-n\""); */
-/*     } */
+    #[test]
+    fn missing() {
+        let conf = vec!["-n"];
+        expect_err!(conf,"Missing or incorrect argument for \"-n\"");
+    }
 
-/*     #[test] */
-/*     fn parse_error() { */
-/*         let conf = vec!["-p","abc"]; */
-/*         expect_err!(conf,"Missing or incorrect argument for \"-p\""); */
-/*     } */
-/* } */
+    #[test]
+    fn parse_error() {
+        let conf = vec!["-p","abc"];
+        expect_err!(conf,"Missing or incorrect argument for \"-p\"");
+    }
+}

@@ -28,8 +28,11 @@ impl HttpResponse {
         parse_response(stream)
     }
     #[inline]
+    #[must_use]
     pub fn status(&self) -> u16 { self.status }
+
     #[inline]
+    #[must_use]
     pub fn content_length(&self) -> usize {
         match self.headers.get("Content-Length") {
             Some(l) => l.parse().unwrap_or(0),
@@ -38,19 +41,26 @@ impl HttpResponse {
     }
     /// Get the value of the given header key, if present
     #[inline]
+    #[must_use]
     pub fn header(&self, key: &str) -> Option<&str> {
-        self.headers.get(key).map(|s| s.as_str())
+        self.headers.get(key).map(String::as_str)
     }
+
     #[inline]
+    #[must_use]
     pub fn version(&self) -> f32 { self.version }
+
     #[inline]
+    #[must_use]
     pub fn headers(&self) -> &HashMap<String,String> { &self.headers }
-    pub fn body(&mut self) -> &[u8] {
+
+    pub fn body(&mut self) -> Option<&[u8]> {
         let len = self.content_length();
         let mut buf:Vec<u8> = Vec::with_capacity(len);
-        self.stream.read_to_end(&mut buf).unwrap();
-        self.body = Some(buf);
-        self.body.as_ref().unwrap()
+        if self.stream.read_to_end(&mut buf).is_ok() {
+            self.body = Some(buf);
+        }
+        self.body.as_deref()
     }
     pub fn write_to(&mut self, out: &mut dyn io::Write) -> io::Result<usize> {
         let mut buf = [0_u8; 1024];

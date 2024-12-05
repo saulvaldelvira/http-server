@@ -1,7 +1,8 @@
+use std::fs::DirEntry;
 use std::{env, fs::read_dir, path::Path};
 
 use crate::Result;
-use html::*;
+use html::{HtmlBuilder, HtmlNode, html};
 
 macro_rules! path_to_str {
     ($path:expr) => {
@@ -12,7 +13,8 @@ macro_rules! path_to_str {
 fn size_human(size: u64) -> String {
     const UNITS: [&str; 4] = ["bytes", "KiB", "MiB", "GiB"];
     let mut i = 0;
-    let mut size = size as f64;
+    let Ok(size) = u32::try_from(size) else { return format!("{size}") };
+    let mut size = f64::from(size);
     while i < UNITS.len() {
         if size < 1024.0 { break; }
         size /= 1024.0;
@@ -62,14 +64,13 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
         td:first-child {
             padding-right: 0.2em;
         }
-        ".replace(" ", "")
-         .replace("\n", "")}));
+        ".replace([' ', '\n'], "")}));
 
     let mut files = Vec::new();
     for f in read_dir(filename)? {
         files.push(f?);
     }
-    files.sort_by_key(|a| a.path());
+    files.sort_by_key(DirEntry::path);
 
     let mut table = html!("table", [
         html!("tr", [

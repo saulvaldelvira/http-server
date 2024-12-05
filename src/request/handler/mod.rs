@@ -3,10 +3,11 @@ mod ranges;
 mod auth;
 pub use auth::AuthConfig;
 
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fs::{self, File, OpenOptions};
-use std::io::{stdout, BufReader, ErrorKind::*, Read, Seek, SeekFrom, Write};
-use std::ops::{DerefMut, Range};
+use std::io::{self, stdout, BufReader, Read, Seek, SeekFrom, Write};
+use std::ops::Range;
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -17,10 +18,10 @@ use self::ranges::get_range_for;
 
 use mime::Mime;
 
-/// HandlerFunc trait
-///
-/// Represents a function that handles an [HttpRequest]
-/// It receives a mutable reference to an [HttpRequest] and returns a [Result]<()>
+/* /// HandlerFunc trait */
+/* /// */
+/* /// Represents a function that handles an [HttpRequest] */
+/* /// It receives a mutable reference to an [HttpRequest] and returns a [Result]<()> */
 /* pub trait HandlerFunc : Fn(&mut HttpRequest) -> Result<()> + Send + Sync + 'static { } */
 /* impl<T> HandlerFunc for T */
 /* where T: */
@@ -36,6 +37,10 @@ where T: Fn(&mut HttpRequest) + Send + Sync + 'static { }
 pub type HandlerTable = HashMap<HttpMethod,HashMap<String,Box<dyn RequestHandler>>>;
 
 pub trait RequestHandler: Send + Sync + 'static {
+    /// Handler the request
+    ///
+    /// # Errors
+    /// If some error ocurred while processing the request
     fn handle(&self, req: &mut HttpRequest) -> Result<()>;
 }
 
@@ -73,26 +78,27 @@ pub struct Handler {
 }
 
 impl Handler {
+    #[must_use]
     pub fn new() -> Self {
         Self { handlers: HashMap::new(), defaults: HashMap::new(),
                pre_interceptors: Vec::new(), post_interceptors: Vec::new() }
     }
-    /// Shortcut for [add](Handler::add)([HttpMethod::GET], ...)
+    /// Shortcut for [add](Handler::add)([`HttpMethod::GET`], ...)
     #[inline]
     pub fn get(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::GET,url,f);
     }
-    /// Shortcut for [add](Handler::add)([HttpMethod::POST], ...)
+    /// Shortcut for [add](Handler::add)([`HttpMethod::POST`], ...)
     #[inline]
     pub fn post(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::POST,url,f);
     }
-    /// Shortcut for [add](Handler::add)([HttpMethod::DELETE], ...)
+    /// Shortcut for [add](Handler::add)([`HttpMethod::DELETE`], ...)
     #[inline]
     pub fn delete(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::DELETE,url,f);
     }
-    /// Shortcut for [add](Handler::add)([HttpMethod::HEAD], ...)
+    /// Shortcut for [add](Handler::add)([`HttpMethod::HEAD`], ...)
     #[inline]
     pub fn head(&mut self, url: &str, f: impl RequestHandler) {
         self.add(HttpMethod::HEAD,url,f);
@@ -127,17 +133,18 @@ impl Handler {
         self.post_interceptors.push(Box::new(f));
     }
     /// Get the handler for a certain method and url
+    #[must_use]
     pub fn get_handler(&self, method: &HttpMethod, url: &str) -> Option<&dyn RequestHandler> {
         match self.handlers.get(method) {
             Some(map) => map.get(url).or_else(|| self.defaults.get(method)),
             None => self.defaults.get(method),
         }.map(|b| &**b)
     }
-    /// Handles a request if it finds a [RequestHandler] for it.
+    /// Handles a request if it finds a [`RequestHandler`] for it.
     /// Else, it returns a 403 FORBIDDEN response
     pub fn handle(&self, req: &mut HttpRequest) -> Result<()> {
         self.pre_interceptors.iter().for_each(|f| f(req));
-        let ret = match self.get_handler(req.method(), req.url()) {
+        let result = match self.get_handler(req.method(), req.url()) {
             Some(handler) => handler.handle(req).or_else(|err| {
                 eprintln!("ERROR: {err}");
                 req.server_error()
@@ -145,7 +152,7 @@ impl Handler {
             None => req.forbidden(),
         };
         self.post_interceptors.iter().for_each(|f| f(req));
-        ret
+        result
     }
 }
 
@@ -153,20 +160,20 @@ impl Default for Handler {
     /// Default Handler
     ///
     /// # Pre Interceptors
-    ///  - [suffix_html]
+    ///  - [`suffix_html`]
     ///  - Set Header: "Accept-Ranges: bytes"
     ///
     /// # Handler Functions
-    /// - [GET](HttpMethod::GET): [cat_handler]
-    /// - [POST](HttpMethod::POST): [post_handler]
-    /// - [DELETE](HttpMethod::DELETE): [delete_handler]
-    /// - [HEAD](HttpMethod::HEAD): [head_handler]
+    /// - [GET](HttpMethod::GET): [`cat_handler`]
+    /// - [POST](HttpMethod::POST): [`post_handler`]
+    /// - [DELETE](HttpMethod::DELETE): [`delete_handler`]
+    /// - [HEAD](HttpMethod::HEAD): [`head_handler`]
     ///
-    /// - [GET](HttpMethod::GET) "/": [root_handler]
-    /// - [HEAD](HttpMethod::HEAD) "/": [root_handler]
+    /// - [GET](HttpMethod::GET) "/": [`root_handler`]
+    /// - [HEAD](HttpMethod::HEAD) "/": [`root_handler`]
     ///
     /// # Post Interceptors
-    ///  - [log_stdout]
+    ///  - [`log_stdout`]
     ///
     fn default() -> Self {
         let mut handler = Self::new();
@@ -217,7 +224,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
         },
         Err(err) => {
             let status = match err.kind() {
-                PermissionDenied => 403,
+                io::ErrorKind::PermissionDenied => 403,
                 _ => 404,
             };
             req.set_status(status);
@@ -226,7 +233,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
     Ok(None)
 }
 
-#[inline(always)]
+#[inline]
 fn show_hidden(req: &HttpRequest) -> bool {
     match req.param("hidden") {
         Some(s) => s != "false",
@@ -253,6 +260,9 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
 }
 
 /// Returns the file, or an index of the directory.
+///
+/// # Errors
+/// If the request returns an Error variant on send
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let range = head_headers(req)?;
     if req.is_http_err()  {
@@ -264,21 +274,21 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
         return req.respond_str(&page);
     }
     let mut file = File::open(&*req.filename()?)?;
-    match range {
-        Some(range) => {
-            file.seek(SeekFrom::Start(range.start))?;
-            let mut reader = BufReader::new(file)
-                                       .take(range.end - range.start);
-            req.respond_reader(&mut reader)
-        },
-        None => {
-            let mut reader = BufReader::new(file);
-            req.respond_reader(&mut reader)
-        }
+    if let Some(range) = range {
+        file.seek(SeekFrom::Start(range.start))?;
+        let mut reader = BufReader::new(file)
+                                   .take(range.end - range.start);
+        req.respond_reader(&mut reader)
+    } else {
+        let mut reader = BufReader::new(file);
+        req.respond_reader(&mut reader)
     }
 }
 
 /// Save the data of the request to the url
+///
+/// # Errors
+/// If the request returns an Error variant on send
 pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
     let filename = req.filename()?;
     match File::create(&*filename) {
@@ -289,7 +299,7 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
         Err(err) => {
             println!("Error opening {}: {err}", &filename);
             match err.kind() {
-                PermissionDenied => req.forbidden(),
+                io::ErrorKind::PermissionDenied => req.forbidden(),
                 _ => req.not_found(),
             }
         }
@@ -297,23 +307,26 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
 }
 
 /// Delete the filename
+///
+/// # Errors
+/// If the request returns an Error variant on send
 pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
     match fs::remove_file(&*req.filename()?) {
-       Ok(_) => req.ok(),
+       Ok(()) => req.ok(),
        Err(err) =>
            match err.kind() {
-                PermissionDenied => req.forbidden(),
+                io::ErrorKind::PermissionDenied => req.forbidden(),
                 _ => req.not_found(),
            }
     }
 }
 
-#[inline(always)]
+#[inline]
 fn file_exists(filename: &str) -> bool {
     Path::new(filename).is_file()
 }
 
-#[inline(always)]
+#[inline]
 fn dir_exists(filename: &str) -> bool {
     Path::new(filename).is_dir()
 }
@@ -335,32 +348,46 @@ pub fn suffix_html(req: &mut HttpRequest) {
     }
 }
 
-#[inline(always)]
-fn log(w: &mut dyn Write, req: &HttpRequest) {
-    writeln!(w, "{} {} {} {}", req.method(), req.url(), req.status(), req.status_msg()).unwrap();
+macro_rules! log {
+    ($w:expr , $req:expr) => {
+        writeln!($w, "{} {} {} {}", $req.method(), $req.url(), $req.status(), $req.status_msg()).unwrap();
+    };
 }
 
 /// Log the [request](HttpRequest) to stdout
 pub fn log_stdout(req: &mut HttpRequest) {
-    log(&mut stdout(), req);
+    log!(&mut stdout(), req);
 }
 
 /// Log the [request](HttpRequest) to a file
 ///
 /// The file is appended to, or created if it doesn't exists
-pub fn log_file(filename: &str) -> impl Interceptor {
+///
+/// # Errors
+/// If creating the log file fails
+#[allow(clippy::missing_panics_doc)]
+pub fn log_file(filename: &str) -> crate::Result<Box<dyn Interceptor>> {
     let file = OpenOptions::new()
                 .append(true)
                 .create(true)
                 .open(filename)
-                .unwrap_or_else(|_| panic!("Error creating file: {filename}"));
+                .map_err(|err| Cow::Owned(format!("Error creating file: {filename}: {err}")))?;
     let file = Mutex::new(file);
-    move |req| {
-        let mut file = file.lock().unwrap();
-        log(file.deref_mut(), req);
-    }
+    Ok(
+        Box::new(
+            move |req: &mut HttpRequest| {
+                #[allow(clippy::unwrap_used)]
+                let mut file = file.lock().unwrap();
+                log!(&mut *file, req);
+            }
+        )
+    )
 }
 
+/// Rewrites / to /index.html
+///
+/// # Errors
+/// If the request returns an Error variant on send
 pub fn root_handler(req: &mut HttpRequest) -> Result<()> {
     if file_exists("index.html") {
         req.set_url("/index.html");

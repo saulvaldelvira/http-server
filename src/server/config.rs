@@ -1,3 +1,9 @@
+#![allow(
+    clippy::cast_sign_loss,
+    clippy::cast_possible_truncation
+)]
+
+
 use std::{env, fs, path::{Path, PathBuf}, process, str::FromStr, time::Duration};
 use crate::{log::{self}, log_info, log_warn, Result};
 use jsonrs::Json;
@@ -31,7 +37,7 @@ fn get_default_conf_file() -> Option<PathBuf> {
     }
 }
 
-/// [crate::HttpServer] configuration
+/// [`crate::HttpServer`] configuration
 ///
 /// # Example
 /// ```
@@ -48,8 +54,8 @@ fn get_default_conf_file() -> Option<PathBuf> {
 /// ```
 impl ServerConfig {
     /// Parse the configuration from the command line args
-    pub fn parse<I>(args: I) -> Result<Self>
-    where I: Iterator<Item = String>
+    pub fn parse<I, R: AsRef<str>>(args: I) -> Result<Self>
+    where I: Iterator<Item = R>
     {
         let mut conf = Self::default();
         let mut args = args.into_iter();
@@ -62,7 +68,7 @@ impl ServerConfig {
             macro_rules! parse_next {
                 () => {
                     args.next_parse().ok_or_else(|| {
-                        format!("Missing or incorrect argument for \"{}\"", arg.as_str())
+                        format!("Missing or incorrect argument for \"{}\"", arg.as_ref())
                     })?
                 };
                 (as $t:ty) => {
@@ -75,12 +81,12 @@ impl ServerConfig {
 
             let mut pool_conf_builder = PoolConfig::builder();
 
-            match arg.as_str() {
+            match arg.as_ref() {
                 "-p" | "--port" => conf.port = parse_next!(),
                 "-n" | "-n-workers" => { pool_conf_builder.n_workers( parse_next!(as u16) ); },
                 "-d" | "--dir" => {
                     let path:String = parse_next!();
-                    env::set_current_dir(Path::new(&path)).expect("Error changing cwd");
+                    env::set_current_dir(Path::new(&path))?;
                 },
                 "-k" | "--keep-alive" => {
                     let timeout = parse_next!();
@@ -90,7 +96,7 @@ impl ServerConfig {
                 "-l" | "--log" => conf.log_file = Some( parse_next!() ),
                 "--log-level" => {
                     let n : u8 = parse_next!();
-                    log::set_level(n.into())
+                    log::set_level(n.try_into()?);
                 }
                 "--config-file" => {
                     let filename: String = parse_next!();
@@ -102,7 +108,7 @@ impl ServerConfig {
                     }
                 },
                 "-h" | "--help" => help(),
-                _ => return Err(format!("Unknow argument: {arg}").into())
+                unknown => return Err(format!("Unknow argument: {unknown}").into())
             }
 
         }
@@ -152,15 +158,15 @@ impl ServerConfig {
                 "port" => self.port = num!() as u16,
                 "root_dir" => {
                     let path:String = string!();
-                    let path = path.replacen('~', env::var("HOME").as_ref().map(|s| s.as_str()).unwrap_or("~"), 1);
-                    env::set_current_dir(Path::new(&path)).expect("Error changing cwd");
+                    let path = path.replacen('~', env::var("HOME").as_ref().map(String::as_str).unwrap_or("~"), 1);
+                    env::set_current_dir(Path::new(&path))?;
                 },
                 "keep_alive_timeout" => self.keep_alive_timeout = Duration::from_secs_f64(num!()),
                 "keep_alive_requests" => self.keep_alive_requests = num!() as u16,
                 "log_file" => self.log_file = Some( string!() ),
                 "log_level" => {
                     let n = num!(v as u8);
-                    log::set_level(n.into())
+                    log::set_level(n.try_into()?);
                 },
                 "pool_config" => {
                     for (k,v) in obj!() {
@@ -180,21 +186,25 @@ impl ServerConfig {
         Ok(())
     }
     #[inline]
+    #[must_use]
     pub fn pool_config(mut self, conf: PoolConfig) -> Self {
         self.pool_conf = conf;
         self
     }
     #[inline]
+    #[must_use]
     pub fn port(mut self, port:u16) -> Self {
         self.port = port;
         self
     }
     #[inline]
+    #[must_use]
     pub fn keep_alive_timeout(mut self, timeout: Duration) -> Self {
         self.keep_alive_timeout = timeout;
         self
     }
     #[inline]
+    #[must_use]
     pub fn keep_alive_requests(mut self, n: u16) -> Self {
         self.keep_alive_requests = n;
         self
@@ -223,11 +233,11 @@ trait ParseIterator {
     fn next_parse<T: FromStr>(&mut self) -> Option<T>;
 }
 
-impl<I> ParseIterator for I
-where I: Iterator<Item = String>
+impl<I, R: AsRef<str>> ParseIterator for I
+where I: Iterator<Item = R>
 {
     fn next_parse<T: FromStr>(&mut self) -> Option<T> {
-        self.next()?.parse().ok()
+        self.next()?.as_ref().parse().ok()
     }
 }
 
@@ -252,22 +262,24 @@ impl Default for ServerConfig {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::unwrap_used)]
+
     use crate::{ServerConfig,Result};
 
-    fn parse_from_vec(v: Vec<&str>) -> Result<ServerConfig> {
+    fn parse_from_list(v: &[&str]) -> Result<ServerConfig> {
         let conf = v.iter().map(|s| s.to_string());
         ServerConfig::parse(conf)
     }
 
     #[test]
     fn valid_args() {
-        let conf = vec!["-p", "80"];
-        parse_from_vec(conf).unwrap();
+        let conf = ["-p", "80"];
+        parse_from_list(&conf).unwrap();
     }
 
     macro_rules! expect_err {
         ($conf:expr , $msg:literal) => {
-            let Err(msg) = parse_from_vec($conf) else { panic!() };
+            let Err(msg) = parse_from_list(&$conf) else { panic!() };
             assert_eq!(msg.get_message(), $msg);
         };
     }

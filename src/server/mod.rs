@@ -37,22 +37,26 @@ pub struct HttpServer {
 }
 
 fn peek_stream(stream: &HttpStream, duration: Duration) -> bool {
-    stream.set_read_timeout(Some(duration)).unwrap();
+    if stream.set_read_timeout(Some(duration)).is_err() {
+        return false
+    }
     let mut buf: [u8;1] = [0];
     let result = match stream.peek(&mut buf) {
         Ok(n) => n > 0,
         Err(_) => false
     };
-    stream.set_read_timeout(None).unwrap();
+    if stream.set_read_timeout(None).is_err() {
+        return false
+    }
     result
 }
 
-fn handle_connection(stream: TcpStream, handlers: Arc<Handler>, keep_alive_timeout: Duration, keep_alive_requests: u16) -> Result<()> {
+fn handle_connection(stream: TcpStream, handlers: &Handler, keep_alive_timeout: Duration, keep_alive_requests: u16) -> Result<()> {
     let mut req = HttpRequest::parse(stream)?;
     handlers.handle(&mut req)?;
     let connection = req.header("Connection");
     let keep_alive = keep_alive_timeout.as_millis() > 0;
-    if connection.is_some() && connection.unwrap() == "keep-alive" && keep_alive {
+    if connection.is_some_and(|conn| conn == "keep-alive") && keep_alive {
         let start = Instant::now();
         let mut n = 1;
         while start.elapsed() < keep_alive_timeout && n < keep_alive_requests {
@@ -64,7 +68,7 @@ fn handle_connection(stream: TcpStream, handlers: Arc<Handler>, keep_alive_timeo
             n += 1;
 
             let connection = req.header("Connection");
-            if connection.is_some() && connection.unwrap() == "close" {
+            if connection.is_some_and(|conn| conn == "close") {
                break;
             }
         }
@@ -72,6 +76,9 @@ fn handle_connection(stream: TcpStream, handlers: Arc<Handler>, keep_alive_timeo
     Ok(())
 }
 
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::expect_used)]
+#[allow(clippy::panic)]
 impl HttpServer {
     /// Create a new HTTP Server
     ///
@@ -79,6 +86,7 @@ impl HttpServer {
     /// - If the server fails to bind to the TCP port
     /// - If the thread pool fails to initialize
     ///
+    #[must_use]
     pub fn new(config: ServerConfig) -> Self {
         let address = format!("::0:{}", config.port);
         let listener = TcpListener::bind(address)
@@ -91,7 +99,8 @@ impl HttpServer {
         Self {listener,pool,handler,config}
     }
     /// Starts the server
-    pub fn run(&mut self) {
+    #[allow(clippy::missing_panics_doc)]
+    pub fn run(mut self) {
         let handler = Arc::new(self.handler.take().unwrap());
         println!("Sever listening on port {}", self.config.port);
         for stream in self.listener.incoming() {
@@ -101,9 +110,9 @@ impl HttpServer {
                     let timeout = self.config.keep_alive_timeout;
                     let req = self.config.keep_alive_requests;
                     self.pool.execute(move || {
-                        handle_connection(stream, handler, timeout, req).unwrap_or_else(|err| {
+                        handle_connection(stream, &handler, timeout, req).unwrap_or_else(|err| {
                             log_error!("{err}");
-                        })
+                        });
                     });
                 },
                 Err(_) => continue,
@@ -118,8 +127,8 @@ impl HttpServer {
 impl Default for HttpServer {
     /// Default Server
     ///
-    /// - Configuration: [ServerConfig::default]
-    /// - Handler: [Handler::default]
+    /// - Configuration: [`ServerConfig::default`]
+    /// - Handler: [`Handler::default`]
     fn default() -> Self {
         let conf = ServerConfig::default();
         let mut srv = Self::new(conf);

@@ -98,7 +98,7 @@ impl<'a> HtmlNode<'a> {
     }
 }
 
-impl<'a> Default for HtmlNode<'a> {
+impl Default for HtmlNode<'_> {
     fn default() -> Self {
         Self::new()
     }

@@ -2,6 +2,8 @@ use std::{io::{stderr, Write}, sync::Mutex};
 
 use delay_init::delay;
 
+use crate::ServerError;
+
 #[derive(PartialEq,PartialOrd)]
 pub enum LogLevel {
     None = 0,
@@ -10,19 +12,25 @@ pub enum LogLevel {
     Info = 3,
 }
 
-impl From<u8> for LogLevel {
-    fn from(value: u8) -> Self {
-        match value {
-            0 => LogLevel::None,
-            1 => LogLevel::Error,
-            2 => LogLevel::Warn,
-            3 => LogLevel::Info,
-            _ => panic!("Invalid log level: {value}")
-        }
+impl TryFrom<u8> for LogLevel {
+    type Error = ServerError;
+
+    fn try_from(value: u8) -> crate::Result<Self> {
+        Ok(
+            match value {
+                0 => LogLevel::None,
+                1 => LogLevel::Error,
+                2 => LogLevel::Warn,
+                3 => LogLevel::Info,
+                _ => return Err(format!("Invalid log level: {value}").into())
+            }
+        )
     }
+
 }
 
 pub fn set_level(level: LogLevel) {
+    #[allow(clippy::unwrap_used)]
     LOGGER.lock().unwrap().set_level(level);
 }
 
@@ -36,7 +44,8 @@ struct StdErrLogger(LogLevel);
 impl Logger for StdErrLogger {
     fn log(&mut self, level: LogLevel, args: core::fmt::Arguments) {
         if level <= self.0 {
-            stderr().write_fmt(args).unwrap()
+            #[allow(clippy::unwrap_used)]
+            stderr().write_fmt(args).unwrap();
         }
     }
     fn set_level(&mut self, level: LogLevel) {
@@ -52,7 +61,10 @@ delay! {
 #[doc(hidden)]
 macro_rules! __log {
     ($lev:expr , $($arg:tt)*) => {
-        $crate::log::_log($lev, format_args!($($arg)*))
+        {
+            #[allow(clippy::used_underscore_items)]
+            $crate::log::_log($lev, format_args!($($arg)*))
+        }
     };
 }
 
@@ -85,5 +97,6 @@ pub mod prelude {
 
 #[doc(hidden)]
 pub fn _log(level: LogLevel, args: core::fmt::Arguments) {
-    LOGGER.lock().unwrap().log(level, args)
+    #[allow(clippy::unwrap_used)]
+    LOGGER.lock().unwrap().log(level, args);
 }

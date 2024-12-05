@@ -30,12 +30,12 @@ enum HttpStreamInner {
     Dummy
 }
 
-/// Holds a "stream" for an [HttpRequest]
+/// Holds a "stream" for a [`request`]
 /// This is an object where the http request can read and write to.
 ///
-/// It can be build with a [TcpStream] or a [String]
+/// It can be build with a [`TcpStream`] or a [String]
 ///
-/// It can also serve as a dummy object to build HttpRequests
+/// It can also serve as a dummy object to build `HttpRequests`
 /// that are not parsed from any source
 ///
 /// ```
@@ -61,6 +61,8 @@ enum HttpStreamInner {
 ///         .build().unwrap()
 /// }
 /// ```
+///
+/// [`request`]: crate::HttpRequest
 #[derive(Debug)]
 pub struct HttpStream {
     inner: HttpStreamInner,
@@ -70,9 +72,9 @@ impl HttpStream {
     pub fn set_read_timeout(&self, d: Option<Duration>) -> io::Result<()> {
         match &self.inner {
             HttpStreamInner::Tcp(tcp_stream) => tcp_stream.set_read_timeout(d),
-            HttpStreamInner::Dummy => Ok(()),
-            HttpStreamInner::String(_, _) => Ok(()),
-        }
+            HttpStreamInner::Dummy
+            | HttpStreamInner::String(_, _) => Ok(()),
+         }
     }
     pub fn peek(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         match &self.inner {
@@ -105,8 +107,8 @@ impl Write for HttpStream {
     fn flush(&mut self) -> std::io::Result<()> {
         match &mut self.inner {
             HttpStreamInner::Tcp(tcp_stream) => tcp_stream.flush(),
-            HttpStreamInner::Dummy => Ok(()),
-            HttpStreamInner::String(_, _) => todo!(),
+            HttpStreamInner::Dummy
+            | HttpStreamInner::String(_, _) => Ok(()),
         }
     }
 }

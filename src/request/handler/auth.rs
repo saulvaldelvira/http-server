@@ -12,7 +12,7 @@ use super::RequestHandler;
 
 /// Authentication Config
 ///
-/// Helps wrapping [handler functions](HandlerFunc) behing authentication
+/// Helps wrapping a [request handler](RequestHandler) behing authentication
 ///
 /// # Example
 /// ```
@@ -51,32 +51,34 @@ impl AuthConfigBuilder {
 }
 
 impl AuthConfig {
+    #[must_use]
     pub fn builder() -> AuthConfigBuilder {
         AuthConfigBuilder {
             users: HashMap::new(),
             required_users: Vec::new(),
         }
     }
-    pub fn of_file(filename: &str) -> Self {
-        let f = File::open(filename).unwrap();
+    pub fn of_file(filename: &str) -> crate::Result<Self> {
+        let f = File::open(filename)?;
         let f = BufReader::new(f);
         let mut users = HashMap::new();
         let mut lines = f.lines();
         while let Some(Ok(l))  = lines.next() {
             let mut l = l.split_whitespace();
-            let u = l.next().unwrap().to_owned();
-            let p = l.next().unwrap().to_owned();
+            let u = l.next().ok_or("Malformatted file")?.to_owned();
+            let p = l.next().ok_or("Malformatted file")?.to_owned();
             users.insert(u,p);
         }
         users.shrink_to_fit();
-        Self {
+        Ok(Self {
             users: Arc::new(users),
             required_users: Arc::new(Vec::new()),
-        }
+        })
     }
+    #[must_use]
     pub fn of_list(list: & [(& str,& str)]) -> Self {
         let mut users = HashMap::new();
-        list.iter().for_each(|e| { users.insert(e.0.to_owned(), e.1.to_owned()); } );
+        for e in list { users.insert(e.0.to_owned(), e.1.to_owned()); }
         Self {
             users: Arc::new(users),
             required_users: Arc::new(Vec::new()),
@@ -158,6 +160,7 @@ fn parse_basic(payload: &str) -> Result<HttpAuth> {
 
 #[cfg(test)]
 mod test {
+    #![allow(clippy::expect_used)]
     use super::*;
 
     #[test]

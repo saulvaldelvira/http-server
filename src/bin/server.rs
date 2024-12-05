@@ -47,7 +47,10 @@ pub fn main() {
     handler.get("/redirect", handler::redirect("/hello"));
 
     if let Some(file) = &config.log_file {
-        handler.post_interceptor(handler::log_file(file));
+        handler.post_interceptor(handler::log_file(file).unwrap_or_else(|err| {
+            eprintln!("{err}");
+            process::exit(1);
+        }));
     }
 
     /* For debugging */

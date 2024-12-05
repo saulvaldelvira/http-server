@@ -22,19 +22,30 @@
 //! server.run();
 //! ```
 
+#![deny(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::expect_used,
+    unused_must_use
+)]
+#![warn(clippy::pedantic)]
+#![allow(
+    clippy::missing_errors_doc
+)]
+
 pub mod request;
 pub mod server;
 mod log;
 pub mod http;
 
 pub mod response;
-pub use response::HttpResponse;
 
 #[doc(hidden)]
 pub mod prelude {
     pub use crate:: {
         server::HttpServer,
         request::HttpRequest,
+        response::HttpResponse,
         request::handler::{self,Handler,AuthConfig},
         server::ServerConfig,
         http::*,
@@ -44,9 +55,9 @@ pub mod prelude {
 }
 use prelude::*;
 
-/// Result type for the [http_srv](self) crate
+/// Result type for the [`http_srv`](self) crate
 ///
-/// It serves as a shortcut for an [std::result::Result]<T,[ServerError]>
+/// It serves as a shortcut for an [`std::result::Result`]<T,[`ServerError`]>
 pub type Result<T> = std::result::Result<T,ServerError>;
 
 pub mod client;

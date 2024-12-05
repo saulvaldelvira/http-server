@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used)]
+
 use std::str::FromStr;
 
 use crate::{request::HttpMethod::{self,*}, HttpRequest};

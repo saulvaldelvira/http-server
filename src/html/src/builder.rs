@@ -50,7 +50,7 @@ impl<'a> HtmlBuilder<'a> {
     }
 }
 
-impl<'a> Default for HtmlBuilder<'a> {
+impl Default for HtmlBuilder<'_> {
     fn default() -> Self {
         Self::new()
     }
