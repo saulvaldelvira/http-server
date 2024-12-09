@@ -134,6 +134,7 @@ impl<'a> From<&'a str> for HttpStream {
 }
 
 impl HttpStream {
+    #[must_use]
     pub fn dummy() -> Self {
         Self { inner: HttpStreamInner::Dummy }
     }

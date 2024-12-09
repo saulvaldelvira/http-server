@@ -30,7 +30,8 @@
 )]
 #![warn(clippy::pedantic)]
 #![allow(
-    clippy::missing_errors_doc
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
 )]
 
 pub mod request;
