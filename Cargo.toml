@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "src/html",
-    "src/pool",
     "src/url",
     "src/mime"
 ]
@@ -31,7 +30,7 @@ required-features = ["server"]
 
 [dependencies]
 html = { package = "rhtml", version = ">=0.1.0", path = "src/html" }
-pool = { package = "job-pool", version = ">=0.1.0", path = "src/pool" }
+pool = { package = "job-pool", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/job-pool" }
 url = { package = "url-utils", version = ">=0.1.0", path = "src/url" }
 mime = { package = "rmime", version = ">=0.1.0", path = "src/mime" }
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
