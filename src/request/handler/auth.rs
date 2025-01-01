@@ -1,3 +1,4 @@
+use core::str;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufRead;
@@ -149,7 +150,7 @@ impl HttpAuth {
 
 fn parse_basic(payload: &str) -> Result<HttpAuth> {
     let decoded = base64::decode(payload)?;
-    let decoded = String::from_utf8(decoded)?;
+    let decoded = str::from_utf8(&decoded)?;
     let mut decoded = decoded.splitn(2, ':');
     let user = decoded.next().unwrap_or("");
     let passwd = decoded.next().unwrap_or("");

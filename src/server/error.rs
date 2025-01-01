@@ -1,3 +1,4 @@
+use std::str::Utf8Error;
 use std::{borrow::Cow, fmt::{Debug, Display}, io, num::ParseIntError, path::StripPrefixError, string::FromUtf8Error};
 
 /// Server Error
@@ -45,6 +46,12 @@ impl From<io::Error> for ServerError {
 impl From<FromUtf8Error> for ServerError {
     #[inline]
     fn from(value: FromUtf8Error) -> Self {
+        Self::new(value.to_string())
+    }
+}
+impl From<Utf8Error> for ServerError {
+    #[inline]
+    fn from(value: Utf8Error) -> Self {
         Self::new(value.to_string())
     }
 }
