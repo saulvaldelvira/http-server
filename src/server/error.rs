@@ -36,6 +36,7 @@ macro_rules! err {
 }
 
 pub (crate) use err;
+use regexpr::RegexError;
 
 impl From<io::Error> for ServerError {
     #[inline]
@@ -73,6 +74,13 @@ impl From<Cow<'static,str>> for ServerError {
         Self(value)
     }
 }
+
+impl From<RegexError> for ServerError {
+    fn from(value: RegexError) -> Self {
+        Self::new(value.inner().clone())
+    }
+}
+
 impl Debug for ServerError {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

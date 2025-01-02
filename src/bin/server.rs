@@ -1,5 +1,6 @@
 use std::process;
 use std::{env, thread, time::Duration};
+use handler::UrlMatcher;
 use http_srv::prelude::*;
 use http_srv::http::encoding::StreamReader;
 
@@ -45,6 +46,13 @@ pub fn main() {
     });
 
     handler.get("/redirect", handler::redirect("/hello"));
+
+    handler.get(
+        UrlMatcher::regex(".*\\.php$").unwrap(),
+        |req: &mut HttpRequest| {
+            req.set_status(500)
+               .respond_str("PHP is not supported yet")
+        });
 
     if let Some(file) = &config.log_file {
         handler.post_interceptor(handler::log_file(file).unwrap_or_else(|err| {
