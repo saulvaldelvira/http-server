@@ -7,6 +7,15 @@ edition = "2021"
 license = "MIT"
 readme = "README"
 
+[lib]
+name = "url"
+path = "src/lib.rs"
+crate-type = [ "lib", "cdylib", "staticlib" ]
+
+[build-dependencies]
+cbindgen = { version = "0.24.0", optional = true }
+
 [features]
 default = ["std"]
 std = []
+bindings = ["dep:cbindgen"]

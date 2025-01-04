@@ -17,3 +17,6 @@ pub use decode::decode;
 
 mod encode;
 pub use encode::encode;
+
+#[cfg(feature = "bindings")]
+mod ffi;
