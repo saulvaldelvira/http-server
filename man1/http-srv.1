@@ -1,0 +1,48 @@
+.TH http-srv 1 "4 January 2025"
+.SH NAME
+\fBhttp-srv\fP - Run an http-srv
+.SH SYNOPSIS
+http-srv [-p <port>] [-n <n-workers>] [-d <working-dir>]
+         [-k <sec>] [-r <n-req>] [-l <file>]
+
+.SH DESCRIPTION
+\fBhttp-srv\fP is a simple http server
+
+.SH OPTIONS
+.TP
+.B --port <port>
+Binds the server to the given port
+
+.SH EXAMPLES
+
+http-srv -p 8080 -d /var/html
+
+http-srv -d ~/desktop -n 1024 --keep-alive 120
+
+http-srv --log /var/log/http-srv.log
+
+.SH CONFIGURATION
+
+.TS
+allbox tab(|);
+cb cb cb
+c c c.
+Name | Json Type | Default Value
+Todo | TODO | TODOOO
+.TE
+
+If not specified, with the --config-file argument, the program looks for it in the following places.
+
+\fI
+
+$XDG_CONFIG_HOME/http-srv/config.json
+
+$HOME/.config/http-srv/config.json
+
+\fP
+
+.SH AUTHOR
+Saúl Valdelvira
+
+.SH SEE ALSO
+Browse the source code at \fIhttp://git.saulv.es/http-server\fP
