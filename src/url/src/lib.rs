@@ -3,10 +3,15 @@
 //! This crate contains functions for url
 //! percent encoding and decoding,
 
-type Result<T> = std::result::Result<T,Cow<'static,str>>;
+#![cfg_attr(not(feature = "std"), no_std)]
+
+#[macro_use]
+extern crate alloc;
+
+type Result<T> = core::result::Result<T,Cow<'static,str>>;
 
 mod decode;
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 pub use decode::decode;
 

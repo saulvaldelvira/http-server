@@ -1,5 +1,9 @@
 use crate::Result;
-use std::borrow::Cow;
+
+use alloc::{
+    borrow::Cow,
+    string::String
+};
 
 /// UrlEncode the given string
 pub fn encode(url: &str) -> Result<Cow<str>> {

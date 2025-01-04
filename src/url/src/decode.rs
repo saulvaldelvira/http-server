@@ -1,4 +1,9 @@
-use std::borrow::Cow;
+use alloc::{
+    borrow::Cow,
+    vec::Vec,
+    string::{String,ToString}
+};
+
 use crate::Result;
 
 /// UrlDecode the given string
