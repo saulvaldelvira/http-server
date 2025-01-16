@@ -3,7 +3,8 @@ use std::{env, process, thread, time::Duration};
 use http_srv::{http::encoding::StreamReader, prelude::*};
 
 pub fn main() {
-    let config = ServerConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
+    let args: Vec<_> = env::args().skip(1).collect();
+    let config = ServerConfig::parse(&args).unwrap_or_else(|err| {
         eprintln!("{err}");
         process::exit(1);
     });

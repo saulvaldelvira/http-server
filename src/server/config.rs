@@ -61,22 +61,38 @@ fn get_default_conf_file() -> Option<PathBuf> {
 /// ```
 impl ServerConfig {
     /// Parse the configuration from the command line args
-    pub fn parse<I, R: AsRef<str>>(args: I) -> Result<Self>
-    where
-        I: Iterator<Item = R>,
-    {
+    pub fn parse(args: &[String]) -> Result<Self> {
         let mut conf = Self::default();
-        let mut args = args.into_iter();
 
-        if let Some(file) = get_default_conf_file() {
-            conf.parse_conf_file(&file)?;
+        let mut conf_file = get_default_conf_file();
+
+        /* Parse the --config-file before the rest */
+        let mut args = args.iter();
+        while let Some(arg) = args.next() {
+            if arg == "--config-file" {
+                if let Some(fname) = args.next() {
+                    let filename = PathBuf::from(fname);
+                    if filename.exists() {
+                        conf_file = Some(filename);
+                    } else {
+                        log_warn!(
+                            "Config path: {} doesn't exist",
+                            filename.as_os_str().to_str().unwrap_or("[??]")
+                        );
+                    }
+                }
+            }
+        }
+
+        if let Some(cfile) = conf_file {
+            conf.parse_conf_file(&cfile)?;
         }
 
         while let Some(arg) = args.next() {
             macro_rules! parse_next {
                 () => {
                     args.next_parse().ok_or_else(|| {
-                        format!("Missing or incorrect argument for \"{}\"", arg.as_ref())
+                        format!("Missing or incorrect argument for \"{}\"", arg)
                     })?
                 };
                 (as $t:ty) => {{
@@ -106,22 +122,12 @@ impl ServerConfig {
                     let n: u8 = parse_next!();
                     log::set_level(n.try_into()?);
                 }
-                "--config-file" => {
-                    let filename: String = parse_next!();
-                    let file = Path::new(&filename);
-                    if file.exists() {
-                        conf.parse_conf_file(file)?;
-                    } else {
-                        log_warn!(
-                            "Config path: {} doesn't exist",
-                            file.as_os_str().to_str().unwrap_or("[??]")
-                        );
-                    }
-                }
+                "--config-file" => {}
                 "-h" | "--help" => help(),
                 unknown => return Err(format!("Unknow argument: {unknown}").into()),
             }
         }
+
         log_info!("{conf:#?}");
         Ok(conf)
     }
@@ -248,7 +254,9 @@ PARAMETERS:
     -k, --keep-alive <sec>   Keep alive seconds
     -r, --keep-alive-requests <num>  Keep alive max requests
     -l, --log <file>   Set log file
+    --log-level <n>    Set log level
     -h, --help  Display this help message
+    --conf <file> Use the given config file instead of the default one
 EXAMPLES:
   http-srv -p 8080 -d /var/html
   http-srv -d ~/desktop -n 1024 --keep-alive 120
@@ -296,7 +304,7 @@ mod test {
     use crate::{Result, ServerConfig};
 
     fn parse_from_list(v: &[&str]) -> Result<ServerConfig> {
-        let conf = v.iter().map(|s| s.to_string());
+        let conf = v.iter().map(|s| (*s).to_string());
         ServerConfig::parse(conf)
     }
 
