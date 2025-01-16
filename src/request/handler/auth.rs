@@ -1,15 +1,13 @@
 use core::str;
-use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::sync::Arc;
-
-use crate::Result;
-use crate::HttpRequest;
-use crate::server::error::err;
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader},
+    sync::Arc,
+};
 
 use super::RequestHandler;
+use crate::{server::error::err, HttpRequest, Result};
 
 /// Authentication Config
 ///
@@ -29,12 +27,12 @@ use super::RequestHandler;
 /// handler.get("/secret", auth.apply(func));
 /// ```
 pub struct AuthConfig {
-    users: Arc<HashMap<String,String>>,
+    users: Arc<HashMap<String, String>>,
     required_users: Arc<Vec<String>>,
 }
 
 pub struct AuthConfigBuilder {
-    users: HashMap<String,String>,
+    users: HashMap<String, String>,
     required_users: Vec<String>,
 }
 
@@ -64,11 +62,11 @@ impl AuthConfig {
         let f = BufReader::new(f);
         let mut users = HashMap::new();
         let mut lines = f.lines();
-        while let Some(Ok(l))  = lines.next() {
+        while let Some(Ok(l)) = lines.next() {
             let mut l = l.split_whitespace();
             let u = l.next().ok_or("Malformatted file")?.to_owned();
             let p = l.next().ok_or("Malformatted file")?.to_owned();
-            users.insert(u,p);
+            users.insert(u, p);
         }
         users.shrink_to_fit();
         Ok(Self {
@@ -77,9 +75,11 @@ impl AuthConfig {
         })
     }
     #[must_use]
-    pub fn of_list(list: & [(& str,& str)]) -> Self {
+    pub fn of_list(list: &[(&str, &str)]) -> Self {
         let mut users = HashMap::new();
-        for e in list { users.insert(e.0.to_owned(), e.1.to_owned()); }
+        for e in list {
+            users.insert(e.0.to_owned(), e.1.to_owned());
+        }
         Self {
             users: Arc::new(users),
             required_users: Arc::new(Vec::new()),
@@ -96,7 +96,7 @@ impl AuthConfig {
 
 pub struct AuthedRequest<H: RequestHandler> {
     f: H,
-    users: Arc<HashMap<String,String>>,
+    users: Arc<HashMap<String, String>>,
     required_users: Arc<Vec<String>>,
 }
 
@@ -117,7 +117,7 @@ impl<H: RequestHandler> RequestHandler for AuthedRequest<H> {
 
 #[derive(Clone, PartialEq, Debug)]
 enum HttpAuth {
-    Basic(String,String),
+    Basic(String, String),
 }
 
 impl HttpAuth {
@@ -128,12 +128,12 @@ impl HttpAuth {
 
         match t {
             "Basic" => parse_basic(payload),
-            _ => err!("Unknown authentication method {t}")
+            _ => err!("Unknown authentication method {t}"),
         }
     }
-    fn check(&self, users: &[String], passwds: &HashMap<String,String>) -> bool {
+    fn check(&self, users: &[String], passwds: &HashMap<String, String>) -> bool {
         match self {
-            HttpAuth::Basic(user,pass) => {
+            HttpAuth::Basic(user, pass) => {
                 if users.is_empty() || users.contains(user) {
                     if let Some(p) = passwds.get(user).as_ref() {
                         *p == pass
@@ -143,7 +143,7 @@ impl HttpAuth {
                 } else {
                     false
                 }
-            },
+            }
         }
     }
 }
@@ -156,7 +156,7 @@ fn parse_basic(payload: &str) -> Result<HttpAuth> {
     let passwd = decoded.next().unwrap_or("");
     let user = url::decode(user)?.into_owned();
     let passwd = url::decode(passwd)?.into_owned();
-    Ok(HttpAuth::Basic(user,passwd))
+    Ok(HttpAuth::Basic(user, passwd))
 }
 
 #[cfg(test)]
@@ -168,10 +168,10 @@ mod test {
     fn test() {
         let auth = HttpAuth::parse("Basic dXNlcjpwYXNzd2Q=").expect("Expected correct parsing");
         match auth {
-            HttpAuth::Basic(user,passwd) => {
+            HttpAuth::Basic(user, passwd) => {
                 assert_eq!(user, "user");
                 assert_eq!(passwd, "passwd");
-            },
+            }
         }
     }
 }

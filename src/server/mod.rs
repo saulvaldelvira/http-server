@@ -1,13 +1,21 @@
 pub mod config;
 pub use config::ServerConfig;
 pub mod error;
-pub use error::ServerError;
+use std::{
+    net::{TcpListener, TcpStream},
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
-use crate::{log_error, request::{handler::Handler, HttpRequest}, Result};
-use std::{sync::Arc, time::{Duration, Instant}};
-use std::net::{TcpListener, TcpStream};
+pub use error::ServerError;
 use pool::ThreadPool;
-use crate::http::HttpStream;
+
+use crate::{
+    http::HttpStream,
+    log_error,
+    request::{handler::Handler, HttpRequest},
+    Result,
+};
 
 /// HTTP Server
 ///
@@ -38,20 +46,25 @@ pub struct HttpServer {
 
 fn peek_stream(stream: &HttpStream, duration: Duration) -> bool {
     if stream.set_read_timeout(Some(duration)).is_err() {
-        return false
+        return false;
     }
-    let mut buf: [u8;1] = [0];
+    let mut buf: [u8; 1] = [0];
     let result = match stream.peek(&mut buf) {
         Ok(n) => n > 0,
-        Err(_) => false
+        Err(_) => false,
     };
     if stream.set_read_timeout(None).is_err() {
-        return false
+        return false;
     }
     result
 }
 
-fn handle_connection(stream: TcpStream, handlers: &Handler, keep_alive_timeout: Duration, keep_alive_requests: u16) -> Result<()> {
+fn handle_connection(
+    stream: TcpStream,
+    handlers: &Handler,
+    keep_alive_timeout: Duration,
+    keep_alive_requests: u16,
+) -> Result<()> {
     let mut req = HttpRequest::parse(stream)?;
     handlers.handle(&mut req)?;
     let connection = req.header("Connection");
@@ -61,7 +74,9 @@ fn handle_connection(stream: TcpStream, handlers: &Handler, keep_alive_timeout: 
         let mut n = 1;
         while start.elapsed() < keep_alive_timeout && n < keep_alive_requests {
             let offset = keep_alive_timeout - start.elapsed();
-            if !peek_stream(req.stream(), offset) { break; }
+            if !peek_stream(req.stream(), offset) {
+                break;
+            }
 
             req = req.keep_alive()?;
             handlers.handle(&mut req)?;
@@ -69,7 +84,7 @@ fn handle_connection(stream: TcpStream, handlers: &Handler, keep_alive_timeout: 
 
             let connection = req.header("Connection");
             if connection.is_some_and(|conn| conn == "close") {
-               break;
+                break;
             }
         }
     }
@@ -89,14 +104,17 @@ impl HttpServer {
     #[must_use]
     pub fn new(config: ServerConfig) -> Self {
         let address = format!("::0:{}", config.port);
-        let listener = TcpListener::bind(address)
-                        .unwrap_or_else(|err| {
-                            panic!("Could not bind to port {}: {}", config.port, err);
-                        });
-        let pool = ThreadPool::new(config.pool_conf)
-                              .expect("Error initializing thread pool");
+        let listener = TcpListener::bind(address).unwrap_or_else(|err| {
+            panic!("Could not bind to port {}: {}", config.port, err);
+        });
+        let pool = ThreadPool::new(config.pool_conf).expect("Error initializing thread pool");
         let handler = Some(Handler::new());
-        Self {listener,pool,handler,config}
+        Self {
+            listener,
+            pool,
+            handler,
+            config,
+        }
     }
     /// Starts the server
     #[allow(clippy::missing_panics_doc)]
@@ -114,14 +132,16 @@ impl HttpServer {
                             log_error!("{err}");
                         });
                     });
-                },
+                }
                 Err(_) => continue,
             }
         }
         println!("Shutting down.");
     }
     /// Set a [Handler] for all the [requests](HttpRequest) on this [server](HttpServer)
-    pub fn set_handler(&mut self, handler: Handler) { self.handler = Some(handler); }
+    pub fn set_handler(&mut self, handler: Handler) {
+        self.handler = Some(handler);
+    }
 }
 
 impl Default for HttpServer {

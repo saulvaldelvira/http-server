@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Display};
 
-use crate::{HtmlNode,html};
+use crate::{html, HtmlNode};
 
 /// Html Builder
 ///
@@ -22,20 +22,15 @@ impl<'a> HtmlBuilder<'a> {
     /// </html>
     /// ```
     pub fn new() -> Self {
-        let root =
-            html!("html",
-                  [
-                    html!("head",
-                          [
-                            html!("meta", {"charset": "UTF-8"})
-                          ]),
-                    html!("body")
-                  ]);
+        let root = html!("html", [
+            html!("head", [html!("meta", {"charset": "UTF-8"})]),
+            html!("body")
+        ]);
         Self { root }
     }
     /// Create a new [HtmlBuilder] with a title
     #[inline]
-    pub fn with_title(title: impl Into<Cow<'a,str>>) -> Self {
+    pub fn with_title(title: impl Into<Cow<'a, str>>) -> Self {
         let mut builder = Self::new();
         builder.head().append(html!("title", {text: title}));
         builder

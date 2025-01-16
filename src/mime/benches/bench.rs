@@ -1,8 +1,7 @@
 #![feature(test)]
 extern crate test;
-use test::Bencher;
-
 use rmime::Mime;
+use test::Bencher;
 
 const N: usize = 2048;
 

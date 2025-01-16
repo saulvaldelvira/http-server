@@ -18,9 +18,9 @@ use std::{borrow::Cow, fmt::Display, path::Path};
 /// This struct represents a Mime type.
 /// It contains a major and a minor type.
 #[derive(Debug)]
-pub struct Mime<'a>(Cow<'a,str>,Cow<'a,str>);
+pub struct Mime<'a>(Cow<'a, str>, Cow<'a, str>);
 
-type Result<T> = std::result::Result<T,&'static str>;
+type Result<T> = std::result::Result<T, &'static str>;
 
 impl<'a> Mime<'a> {
     /// Create a MIME type from a given string.
@@ -57,19 +57,19 @@ impl<'a> Mime<'a> {
     /// }
     /// mime.to_string();
     /// ```
-    pub fn new(text: impl Into<Cow<'a,str>>) -> Result<Self> {
+    pub fn new(text: impl Into<Cow<'a, str>>) -> Result<Self> {
         match text.into() {
             Cow::Owned(own) => {
                 let mut text = own.split('/');
                 let major = text.next().ok_or("Malformatted mime type")?.to_owned();
                 let minor = text.next().ok_or("Malformatted mime type")?.to_owned();
-                Ok(Mime(major.into(),minor.into()))
-            },
+                Ok(Mime(major.into(), minor.into()))
+            }
             Cow::Borrowed(borr) => {
                 let mut text = borr.split('/');
                 let major = text.next().ok_or("Malformatted mime type")?;
                 let minor = text.next().ok_or("Malformatted mime type")?;
-                Ok(Mime(major.into(),minor.into()))
+                Ok(Mime(major.into(), minor.into()))
             }
         }
     }
@@ -86,12 +86,10 @@ impl<'a> Mime<'a> {
     /// assert_eq!(mime.to_string(), "text/html");
     /// ```
     pub fn from_filename(filename: &'a str) -> Result<Self> {
-        let ext =
-            match Path::new(filename).extension() {
-                Some(ext) => ext.to_str()
-                                .ok_or("Error convertion OsString to str")?,
-                None => ""
-            };
+        let ext = match Path::new(filename).extension() {
+            Some(ext) => ext.to_str().ok_or("Error convertion OsString to str")?,
+            None => "",
+        };
         let major = match ext {
             "abw" => "application/x-abiword",
             "arc" => "application/x-freearc",
@@ -139,36 +137,35 @@ impl<'a> Mime<'a> {
             "3gp" => "video/3gpp",
             "3g2" => "video/3gpp2",
             "7z" => "application/x-7z-compressed",
-            "apng" | "avif" | "bmp" | "gif" |
-            "jpeg" | "png"  | "webp"           => "image",
+            "apng" | "avif" | "bmp" | "gif" | "jpeg" | "png" | "webp" => "image",
             "jpg" => "image/jpeg",
-            "html" | "htm"  | "css"  | "csv"   => "text",
-            "otf"  | "ttf"  | "woff" | "woff2" => "font",
-            "json" | "rtf"  | "xml"  | "zip"   => "application",
-            "aac"  | "opus" | "wav"  | "flac"  => "audio",
-            "mp4"  | "mpeg" | "webm" | "mkv"   => "video",
+            "html" | "htm" | "css" | "csv" => "text",
+            "otf" | "ttf" | "woff" | "woff2" => "font",
+            "json" | "rtf" | "xml" | "zip" => "application",
+            "aac" | "opus" | "wav" | "flac" => "audio",
+            "mp4" | "mpeg" | "webm" | "mkv" => "video",
             "" | "txt" => "text/plain",
-            _ => return Err("Unknown extension")
+            _ => return Err("Unknown extension"),
         };
-        Ok(
-            if major.contains('/') {
-                Mime::new(major)?
-            } else {
-                Mime(major.into(),ext.into())
-            }
-          )
+        Ok(if major.contains('/') {
+            Mime::new(major)?
+        } else {
+            Mime(major.into(), ext.into())
+        })
     }
     pub fn into_owned(self) -> Mime<'static> {
-        Mime(self.0.into_owned().into(),
-             self.1.into_owned().into())
+        Mime(self.0.into_owned().into(), self.1.into_owned().into())
     }
-    pub fn major(&self) -> &str { &self.0 }
-    pub fn minor(&self) -> &str { &self.1 }
+    pub fn major(&self) -> &str {
+        &self.0
+    }
+    pub fn minor(&self) -> &str {
+        &self.1
+    }
 }
 
 impl Display for Mime<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}/{}", self.major(),self.minor())
+        write!(f, "{}/{}", self.major(), self.minor())
     }
 }
-

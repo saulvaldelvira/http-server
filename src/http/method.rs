@@ -1,18 +1,24 @@
-use std::fmt::Display;
-use std::str::FromStr;
+use std::{fmt::Display, str::FromStr};
 
-use crate::server::error::err;
-use crate::server::ServerError;
-use crate::Result;
+use crate::{
+    server::{error::err, ServerError},
+    Result,
+};
 
 /// Request Method
 ///
 /// Represents the method of the HTTP request
-#[derive(Debug,Eq,Hash,PartialEq,Clone,Copy)]
+#[derive(Debug, Eq, Hash, PartialEq, Clone, Copy)]
 pub enum HttpMethod {
-    GET, POST, PUT, DELETE,
-    HEAD, PATCH, CONNECT,
-    OPTIONS, TRACE,
+    GET,
+    POST,
+    PUT,
+    DELETE,
+    HEAD,
+    PATCH,
+    CONNECT,
+    OPTIONS,
+    TRACE,
 }
 
 impl FromStr for HttpMethod {
@@ -28,7 +34,7 @@ impl FromStr for HttpMethod {
             "CONNECT" => Ok(Self::CONNECT),
             "OPTIONS" => Ok(Self::OPTIONS),
             "TRACE" => Ok(Self::TRACE),
-            _ => err!("Couldn't parse request method \"{t}\"")
+            _ => err!("Couldn't parse request method \"{t}\""),
         }
     }
 }

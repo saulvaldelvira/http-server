@@ -1,10 +1,13 @@
-use std::{io::{stderr, Write}, sync::Mutex};
+use std::{
+    io::{stderr, Write},
+    sync::Mutex,
+};
 
 use delay_init::delay;
 
 use crate::ServerError;
 
-#[derive(PartialEq,PartialOrd)]
+#[derive(PartialEq, PartialOrd)]
 pub enum LogLevel {
     None = 0,
     Error = 1,
@@ -16,17 +19,14 @@ impl TryFrom<u8> for LogLevel {
     type Error = ServerError;
 
     fn try_from(value: u8) -> crate::Result<Self> {
-        Ok(
-            match value {
-                0 => LogLevel::None,
-                1 => LogLevel::Error,
-                2 => LogLevel::Warn,
-                3 => LogLevel::Info,
-                _ => return Err(format!("Invalid log level: {value}").into())
-            }
-        )
+        Ok(match value {
+            0 => LogLevel::None,
+            1 => LogLevel::Error,
+            2 => LogLevel::Warn,
+            3 => LogLevel::Info,
+            _ => return Err(format!("Invalid log level: {value}").into()),
+        })
     }
-
 }
 
 pub fn set_level(level: LogLevel) {
@@ -34,7 +34,7 @@ pub fn set_level(level: LogLevel) {
     LOGGER.lock().unwrap().set_level(level);
 }
 
-pub trait Logger : Send + Sync {
+pub trait Logger: Send + Sync {
     fn log(&mut self, level: LogLevel, args: core::fmt::Arguments);
     fn set_level(&mut self, level: LogLevel);
 }
@@ -91,8 +91,8 @@ macro_rules! __log_error {
 
 pub mod prelude {
     pub use __log_error as log_error;
-    pub use __log_warn as log_warn;
     pub use __log_info as log_info;
+    pub use __log_warn as log_warn;
 }
 
 #[doc(hidden)]

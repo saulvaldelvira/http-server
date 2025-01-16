@@ -1,17 +1,17 @@
 use alloc::{
     borrow::Cow,
+    string::{String, ToString},
     vec::Vec,
-    string::{String,ToString}
 };
 
 use crate::Result;
 
 /// UrlDecode the given string
 pub fn decode(url: &str) -> Result<Cow<str>> {
-    if !url.contains(['%','+']) {
-        return Ok(url.into())
+    if !url.contains(['%', '+']) {
+        return Ok(url.into());
     }
-    let mut result:Vec<u8> = Vec::new();
+    let mut result: Vec<u8> = Vec::new();
     let mut it = url.as_bytes().iter();
     while let Some(b) = it.next() {
         if *b == b'+' {
@@ -28,7 +28,7 @@ pub fn decode(url: &str) -> Result<Cow<str>> {
         let second = from_hex_digit(*second)?;
         let c = first << 4 | second;
         result.push(c);
-    };
+    }
     let result = String::from_utf8(result).map_err(|err| err.to_string())?;
     Ok(result.into())
 }
@@ -42,4 +42,3 @@ fn from_hex_digit(digit: u8) -> Result<u8> {
         _ => Err(format!("{digit} is not a valid hex digit").into()),
     }
 }
-

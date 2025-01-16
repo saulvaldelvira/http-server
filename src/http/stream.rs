@@ -1,4 +1,9 @@
-use std::{cmp::min, io::{self, Read, Write}, net::TcpStream, time::Duration};
+use std::{
+    cmp::min,
+    io::{self, Read, Write},
+    net::TcpStream,
+    time::Duration,
+};
 
 #[derive(Debug)]
 struct StringStream(Vec<u8>, usize);
@@ -26,8 +31,8 @@ impl StringStream {
 #[derive(Debug)]
 enum HttpStreamInner {
     Tcp(TcpStream),
-    String(StringStream,Vec<u8>),
-    Dummy
+    String(StringStream, Vec<u8>),
+    Dummy,
 }
 
 /// Holds a "stream" for a [`request`]
@@ -72,9 +77,8 @@ impl HttpStream {
     pub fn set_read_timeout(&self, d: Option<Duration>) -> io::Result<()> {
         match &self.inner {
             HttpStreamInner::Tcp(tcp_stream) => tcp_stream.set_read_timeout(d),
-            HttpStreamInner::Dummy
-            | HttpStreamInner::String(_, _) => Ok(()),
-         }
+            HttpStreamInner::Dummy | HttpStreamInner::String(..) => Ok(()),
+        }
     }
     pub fn peek(&self, buf: &mut [u8]) -> std::io::Result<usize> {
         match &self.inner {
@@ -107,15 +111,16 @@ impl Write for HttpStream {
     fn flush(&mut self) -> std::io::Result<()> {
         match &mut self.inner {
             HttpStreamInner::Tcp(tcp_stream) => tcp_stream.flush(),
-            HttpStreamInner::Dummy
-            | HttpStreamInner::String(_, _) => Ok(()),
+            HttpStreamInner::Dummy | HttpStreamInner::String(..) => Ok(()),
         }
     }
 }
 
 impl From<TcpStream> for HttpStream {
     fn from(value: TcpStream) -> Self {
-        Self { inner: HttpStreamInner::Tcp(value) }
+        Self {
+            inner: HttpStreamInner::Tcp(value),
+        }
     }
 }
 
@@ -123,7 +128,9 @@ impl From<String> for HttpStream {
     fn from(value: String) -> Self {
         let src_vec = value.into_bytes();
         let stream = StringStream(src_vec, 0);
-        Self { inner: HttpStreamInner::String(stream, Vec::new()) }
+        Self {
+            inner: HttpStreamInner::String(stream, Vec::new()),
+        }
     }
 }
 
@@ -136,6 +143,8 @@ impl<'a> From<&'a str> for HttpStream {
 impl HttpStream {
     #[must_use]
     pub fn dummy() -> Self {
-        Self { inner: HttpStreamInner::Dummy }
+        Self {
+            inner: HttpStreamInner::Dummy,
+        }
     }
 }

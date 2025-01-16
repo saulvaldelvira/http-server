@@ -1,8 +1,12 @@
-use std::fs::DirEntry;
-use std::{env, fs::read_dir, path::Path};
+use std::{
+    env,
+    fs::{read_dir, DirEntry},
+    path::Path,
+};
+
+use html::{html, HtmlBuilder, HtmlNode};
 
 use crate::Result;
-use html::{HtmlBuilder, HtmlNode, html};
 
 macro_rules! path_to_str {
     ($path:expr) => {
@@ -13,10 +17,14 @@ macro_rules! path_to_str {
 fn size_human(size: u64) -> String {
     const UNITS: [&str; 4] = ["bytes", "KiB", "MiB", "GiB"];
     let mut i = 0;
-    let Ok(size) = u32::try_from(size) else { return format!("{size}") };
+    let Ok(size) = u32::try_from(size) else {
+        return format!("{size}");
+    };
     let mut size = f64::from(size);
     while i < UNITS.len() {
-        if size < 1024.0 { break; }
+        if size < 1024.0 {
+            break;
+        }
         size /= 1024.0;
         i += 1;
     }
@@ -52,8 +60,7 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     let title = Path::new(filename).strip_prefix(cwd)?;
     let title = "Index of /".to_owned() + path_to_str!(title)?;
     let mut html = HtmlBuilder::with_title(&title);
-    html.body()
-        .append(html!("h1",{text: &title}));
+    html.body().append(html!("h1",{text: &title}));
     html.head().append(html!("style", {text: "
         body {
             text-align: left;
@@ -72,22 +79,18 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     }
     files.sort_by_key(DirEntry::path);
 
-    let mut table = html!("table", [
-        html!("tr", [
-            html!("th"),
-            html!("th", {text: "Name"}),
-            html!("th", {text: "Size"}),
-        ])
-    ]);
+    let mut table = html!("table", [html!("tr", [
+        html!("th"),
+        html!("th", {text: "Name"}),
+        html!("th", {text: "Size"}),
+    ])]);
     if let Some(parent) = Path::new(filename).parent() {
         if parent.starts_with(cwd) {
             let url = parent.strip_prefix(cwd)?;
             let url = encode_path(url, show_hidden)?;
             table.append(html!("tr", [
-                    html!("td", {text: "&larr; "}),
-                    html!("td", [
-                        html!("a", {"href": url},{text: ".."})
-                    ]),
+                html!("td", {text: "&larr; "}),
+                html!("td", [html!("a", {"href": url},{text: ".."})]),
             ]));
         }
     }
@@ -100,12 +103,11 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
             continue;
         }
 
-        let icon =
-            if file.is_dir() {
-                "&#128447;"
-            } else {
-                "&#128456;"
-            };
+        let icon = if file.is_dir() {
+            "&#128447;"
+        } else {
+            "&#128456;"
+        };
         let url = path.strip_prefix(cwd)?;
         let mut tr = html!("tr", [
             html!("td", {text: icon}),
@@ -122,4 +124,3 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     html.body().append(table);
     Ok(html.to_string())
 }
-

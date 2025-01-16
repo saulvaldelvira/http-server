@@ -8,7 +8,7 @@
 #[macro_use]
 extern crate alloc;
 
-type Result<T> = core::result::Result<T,Cow<'static,str>>;
+type Result<T> = core::result::Result<T, Cow<'static, str>>;
 
 mod decode;
 use alloc::borrow::Cow;

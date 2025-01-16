@@ -1,11 +1,11 @@
-use std::io::{Read, Write, Result};
+use std::io::{Read, Result, Write};
 
 const CHUNK_SIZE: usize = 1024;
 pub struct Chunked<R: Read> {
-   reader: R,
-   chunk: Vec<u8>,
-   offset: usize,
-   finish: bool,
+    reader: R,
+    chunk: Vec<u8>,
+    offset: usize,
+    finish: bool,
 }
 
 impl<R: Read> Chunked<R> {
@@ -14,11 +14,13 @@ impl<R: Read> Chunked<R> {
             reader,
             chunk: Vec::with_capacity(CHUNK_SIZE + 8),
             offset: 0,
-            finish: false
+            finish: false,
         }
     }
     fn next_chunk(&mut self) -> Result<bool> {
-        if self.finish { return Ok(false); }
+        if self.finish {
+            return Ok(false);
+        }
         self.chunk.clear();
         self.offset = 0;
 
@@ -36,12 +38,15 @@ impl<R: Read> Chunked<R> {
 
 impl<R: Read> Read for Chunked<R> {
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        if self.offset >= self.chunk.len() && !self.next_chunk()? { return Ok(0); }
+        if self.offset >= self.chunk.len() && !self.next_chunk()? {
+            return Ok(0);
+        }
         let mut n = self.chunk.len() - self.offset;
         if n > buf.len() {
             n = buf.len();
         }
-        buf.as_mut().write_all(&self.chunk[self.offset..self.offset+n])?;
+        buf.as_mut()
+            .write_all(&self.chunk[self.offset..self.offset + n])?;
         self.offset += n;
         Ok(n)
     }

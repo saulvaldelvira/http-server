@@ -1,22 +1,24 @@
+mod auth;
 mod indexing;
 mod ranges;
-mod auth;
+use std::{
+    borrow::Cow,
+    collections::HashMap,
+    fs::{self, File, OpenOptions},
+    io::{self, stdout, BufReader, Read, Seek, SeekFrom, Write},
+    ops::Range,
+    path::Path,
+    sync::Mutex,
+};
+
 pub use auth::AuthConfig;
-
-use std::borrow::Cow;
-use std::collections::HashMap;
-use std::fs::{self, File, OpenOptions};
-use std::io::{self, stdout, BufReader, Read, Seek, SeekFrom, Write};
-use std::ops::Range;
-use std::path::Path;
-use std::sync::Mutex;
-
-use crate::request::{HttpRequest, HttpMethod};
-use crate::Result;
-use self::indexing::index_of;
-use self::ranges::get_range_for;
-
 use mime::Mime;
+
+use self::{indexing::index_of, ranges::get_range_for};
+use crate::{
+    request::{HttpMethod, HttpRequest},
+    Result,
+};
 
 /* /// HandlerFunc trait */
 /* /// */
@@ -30,11 +32,10 @@ use mime::Mime;
 ///
 /// Represents a function that "intercepts" a request.
 /// It can change it's state or log it's output.
-pub trait Interceptor: Fn(&mut HttpRequest) + Send + Sync + 'static { }
-impl<T> Interceptor for T
-where T: Fn(&mut HttpRequest) + Send + Sync + 'static { }
+pub trait Interceptor: Fn(&mut HttpRequest) + Send + Sync + 'static {}
+impl<T> Interceptor for T where T: Fn(&mut HttpRequest) + Send + Sync + 'static {}
 
-pub type HandlerTable = HashMap<HttpMethod,HashMap<String,Box<dyn RequestHandler>>>;
+pub type HandlerTable = HashMap<HttpMethod, HashMap<String, Box<dyn RequestHandler>>>;
 
 pub trait RequestHandler: Send + Sync + 'static {
     /// Handler the request
@@ -44,8 +45,9 @@ pub trait RequestHandler: Send + Sync + 'static {
     fn handle(&self, req: &mut HttpRequest) -> Result<()>;
 }
 
-impl <T> RequestHandler for T
-where T: Fn(&mut HttpRequest) -> Result<()>  + Send + Sync + 'static
+impl<T> RequestHandler for T
+where
+    T: Fn(&mut HttpRequest) -> Result<()> + Send + Sync + 'static,
 {
     fn handle(&self, req: &mut HttpRequest) -> Result<()> {
         self(req)
@@ -72,7 +74,7 @@ where T: Fn(&mut HttpRequest) -> Result<()>  + Send + Sync + 'static
 /// ```
 pub struct Handler {
     handlers: HandlerTable,
-    defaults: HashMap<HttpMethod,Box<dyn RequestHandler>>,
+    defaults: HashMap<HttpMethod, Box<dyn RequestHandler>>,
     pre_interceptors: Vec<Box<dyn Interceptor>>,
     post_interceptors: Vec<Box<dyn Interceptor>>,
 }
@@ -80,28 +82,32 @@ pub struct Handler {
 impl Handler {
     #[must_use]
     pub fn new() -> Self {
-        Self { handlers: HashMap::new(), defaults: HashMap::new(),
-               pre_interceptors: Vec::new(), post_interceptors: Vec::new() }
+        Self {
+            handlers: HashMap::new(),
+            defaults: HashMap::new(),
+            pre_interceptors: Vec::new(),
+            post_interceptors: Vec::new(),
+        }
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::GET`], ...)
     #[inline]
     pub fn get(&mut self, url: &str, f: impl RequestHandler) {
-        self.add(HttpMethod::GET,url,f);
+        self.add(HttpMethod::GET, url, f);
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::POST`], ...)
     #[inline]
     pub fn post(&mut self, url: &str, f: impl RequestHandler) {
-        self.add(HttpMethod::POST,url,f);
+        self.add(HttpMethod::POST, url, f);
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::DELETE`], ...)
     #[inline]
     pub fn delete(&mut self, url: &str, f: impl RequestHandler) {
-        self.add(HttpMethod::DELETE,url,f);
+        self.add(HttpMethod::DELETE, url, f);
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::HEAD`], ...)
     #[inline]
     pub fn head(&mut self, url: &str, f: impl RequestHandler) {
-        self.add(HttpMethod::HEAD,url,f);
+        self.add(HttpMethod::HEAD, url, f);
     }
     /// Adds a handler for a request type
     ///
@@ -138,7 +144,8 @@ impl Handler {
         match self.handlers.get(method) {
             Some(map) => map.get(url).or_else(|| self.defaults.get(method)),
             None => self.defaults.get(method),
-        }.map(|b| &**b)
+        }
+        .map(|b| &**b)
     }
     /// Handles a request if it finds a [`RequestHandler`] for it.
     /// Else, it returns a 403 FORBIDDEN response
@@ -211,17 +218,22 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
             if metadata.is_file() {
                 req.set_header("Content-Length", len.to_string());
             }
-            let Some(range) = req.header("Range") else { return Ok(None); };
+            let Some(range) = req.header("Range") else {
+                return Ok(None);
+            };
             let range = get_range_for(range, len)?;
             if range.end > len || range.end <= range.start {
                 req.set_status(416);
             } else {
                 req.set_status(206);
                 req.set_header("Content-Length", (range.end - range.start).to_string());
-                req.set_header("Content-Range", format!("bytes {}-{}/{}", range.start, range.end - 1, len));
+                req.set_header(
+                    "Content-Range",
+                    format!("bytes {}-{}/{}", range.start, range.end - 1, len),
+                );
             }
             return Ok(Some(range));
-        },
+        }
         Err(err) => {
             let status = match err.kind() {
                 io::ErrorKind::PermissionDenied => 403,
@@ -246,12 +258,13 @@ fn show_hidden(req: &HttpRequest) -> bool {
 pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
     head_headers(req)?;
     let filename = req.filename()?;
-    let len =
-    if req.is_http_err() {
+    let len = if req.is_http_err() {
         req.error_page().len()
     } else if dir_exists(&filename) {
         index_of(&filename, show_hidden(req))?.len()
-    } else { 0 };
+    } else {
+        0
+    };
 
     if len > 0 {
         req.set_header("Content-Length", len.to_string());
@@ -265,7 +278,7 @@ pub fn head_handler(req: &mut HttpRequest) -> Result<()> {
 /// If the request returns an Error variant on send
 pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let range = head_headers(req)?;
-    if req.is_http_err()  {
+    if req.is_http_err() {
         return req.respond_error_page();
     };
     let filename = req.filename()?;
@@ -276,8 +289,7 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let mut file = File::open(&*req.filename()?)?;
     if let Some(range) = range {
         file.seek(SeekFrom::Start(range.start))?;
-        let mut reader = BufReader::new(file)
-                                   .take(range.end - range.start);
+        let mut reader = BufReader::new(file).take(range.end - range.start);
         req.respond_reader(&mut reader)
     } else {
         let mut reader = BufReader::new(file);
@@ -295,7 +307,7 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
         Ok(mut file) => {
             req.read_body(&mut file)?;
             req.ok()
-        },
+        }
         Err(err) => {
             println!("Error opening {}: {err}", &filename);
             match err.kind() {
@@ -312,12 +324,11 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
 /// If the request returns an Error variant on send
 pub fn delete_handler(req: &mut HttpRequest) -> Result<()> {
     match fs::remove_file(&*req.filename()?) {
-       Ok(()) => req.ok(),
-       Err(err) =>
-           match err.kind() {
-                io::ErrorKind::PermissionDenied => req.forbidden(),
-                _ => req.not_found(),
-           }
+        Ok(()) => req.ok(),
+        Err(err) => match err.kind() {
+            io::ErrorKind::PermissionDenied => req.forbidden(),
+            _ => req.not_found(),
+        },
     }
 }
 
@@ -337,8 +348,10 @@ fn dir_exists(filename: &str) -> bool {
 /// append a suffix ('.html', '.php'), and if it
 /// exists, modify the url.
 pub fn suffix_html(req: &mut HttpRequest) {
-    if file_exists(&req.url()[1..]) { return; }
-    for suffix in [".html",".php"] {
+    if file_exists(&req.url()[1..]) {
+        return;
+    }
+    for suffix in [".html", ".php"] {
         let mut filename = req.url().to_owned();
         filename.push_str(suffix);
         if file_exists(&filename[1..]) {
@@ -350,7 +363,15 @@ pub fn suffix_html(req: &mut HttpRequest) {
 
 macro_rules! log {
     ($w:expr , $req:expr) => {
-        writeln!($w, "{} {} {} {}", $req.method(), $req.url(), $req.status(), $req.status_msg()).unwrap();
+        writeln!(
+            $w,
+            "{} {} {} {}",
+            $req.method(),
+            $req.url(),
+            $req.status(),
+            $req.status_msg()
+        )
+        .unwrap();
     };
 }
 
@@ -368,20 +389,16 @@ pub fn log_stdout(req: &mut HttpRequest) {
 #[allow(clippy::missing_panics_doc)]
 pub fn log_file(filename: &str) -> crate::Result<Box<dyn Interceptor>> {
     let file = OpenOptions::new()
-                .append(true)
-                .create(true)
-                .open(filename)
-                .map_err(|err| Cow::Owned(format!("Error creating file: {filename}: {err}")))?;
+        .append(true)
+        .create(true)
+        .open(filename)
+        .map_err(|err| Cow::Owned(format!("Error creating file: {filename}: {err}")))?;
     let file = Mutex::new(file);
-    Ok(
-        Box::new(
-            move |req: &mut HttpRequest| {
-                #[allow(clippy::unwrap_used)]
-                let mut file = file.lock().unwrap();
-                log!(&mut *file, req);
-            }
-        )
-    )
+    Ok(Box::new(move |req: &mut HttpRequest| {
+        #[allow(clippy::unwrap_used)]
+        let mut file = file.lock().unwrap();
+        log!(&mut *file, req);
+    }))
 }
 
 /// Rewrites / to /index.html

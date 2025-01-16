@@ -53,8 +53,7 @@ impl StatusCode for u16 {
             429 => "TOO MANY REQUESTS",
             501 => "NOT IMPLEMENTED",
             500 => "INTERNAL SERVER ERROR",
-            _ => "?"
+            _ => "?",
         }
     }
 }
-

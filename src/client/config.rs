@@ -1,14 +1,15 @@
 use std::{process, str::FromStr};
+
 use crate::{HttpMethod, Result};
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum OutFile {
     Stdout,
     Filename(String),
     GetFromUrl,
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct ClientConfig {
     pub url: String,
     pub method: HttpMethod,
@@ -20,7 +21,8 @@ pub struct ClientConfig {
 impl ClientConfig {
     /// Parse the configuration from the command line args
     pub fn parse<I>(args: I) -> Result<Self>
-    where I: Iterator<Item = String>
+    where
+        I: Iterator<Item = String>,
     {
         let mut conf = Self::default();
         let mut args = args.into_iter();
@@ -32,12 +34,10 @@ impl ClientConfig {
                         format!("Missing or incorrect argument for \"{}\"", arg.as_str())
                     })?
                 };
-                (as $t:ty) => {
-                    {
-                        let _next: $t = parse_next!();
-                        _next
-                    }
-                };
+                (as $t:ty) => {{
+                    let _next: $t = parse_next!();
+                    _next
+                }};
             }
 
             match arg.as_str() {
@@ -47,7 +47,7 @@ impl ClientConfig {
                 "-h" | "--help" => help(),
                 "-O" => conf.out_file = OutFile::GetFromUrl,
                 "-o" => conf.out_file = OutFile::Filename(parse_next!()),
-                _ => conf.url = arg
+                _ => conf.url = arg,
             }
         }
 
@@ -69,7 +69,8 @@ impl ClientConfig {
 }
 
 fn help() -> ! {
-    println!("\
+    println!(
+        "\
 USAGE: http-srv [... PARAMS ...] url<:port>
 PARAMETERS:
     -m, --method Set HTTP method
@@ -79,7 +80,8 @@ PARAMETERS:
 EXAMPLES:
   http-srv -p 8080 -d /var/html
   http-srv -d ~/desktop -n 1024 --keep-alive 120
-  http-srv --log /var/log/http-srv.log");
+  http-srv --log /var/log/http-srv.log"
+    );
     process::exit(0);
 }
 
@@ -88,7 +90,8 @@ trait ParseIterator {
 }
 
 impl<I> ParseIterator for I
-where I: Iterator<Item = String>
+where
+    I: Iterator<Item = String>,
 {
     fn next_parse<T: FromStr>(&mut self) -> Option<T> {
         self.next()?.parse().ok()
@@ -109,14 +112,14 @@ impl Default for ClientConfig {
             url: String::new(),
             host: String::new(),
             user_agent: "http-client".to_string(),
-            out_file: OutFile::Stdout
+            out_file: OutFile::Stdout,
         }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{ServerConfig,Result};
+    use crate::{Result, ServerConfig};
 
     fn parse_from_vec(v: Vec<&str>) -> Result<ServerConfig> {
         let conf = v.iter().map(|s| s.to_string());
@@ -131,7 +134,9 @@ mod test {
 
     macro_rules! expect_err {
         ($conf:expr , $msg:literal) => {
-            let Err(msg) = parse_from_vec($conf) else { panic!() };
+            let Err(msg) = parse_from_vec($conf) else {
+                panic!()
+            };
             assert_eq!(msg.get_message(), $msg);
         };
     }
@@ -145,12 +150,12 @@ mod test {
     #[test]
     fn missing() {
         let conf = vec!["-n"];
-        expect_err!(conf,"Missing or incorrect argument for \"-n\"");
+        expect_err!(conf, "Missing or incorrect argument for \"-n\"");
     }
 
     #[test]
     fn parse_error() {
-        let conf = vec!["-p","abc"];
-        expect_err!(conf,"Missing or incorrect argument for \"-p\"");
+        let conf = vec!["-p", "abc"];
+        expect_err!(conf, "Missing or incorrect argument for \"-p\"");
     }
 }

@@ -1,7 +1,6 @@
-use std::process;
-use std::{env, thread, time::Duration};
-use http_srv::prelude::*;
-use http_srv::http::encoding::StreamReader;
+use std::{env, process, thread, time::Duration};
+
+use http_srv::{http::encoding::StreamReader, prelude::*};
 
 pub fn main() {
     let config = ServerConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
@@ -17,12 +16,12 @@ pub fn main() {
 
     handler.get("/params", |req: &mut HttpRequest| {
         let mut s = "".to_string();
-        for (k,v) in req.params() {
+        for (k, v) in req.params() {
             s.push_str(k);
             s.push_str(" = ");
             s.push_str(v);
             s.push('\n');
-        };
+        }
         req.respond_str(&s)
     });
 
@@ -30,7 +29,9 @@ pub fn main() {
         let mut i = 0;
         let chars = b"hello, world!\n";
         let inf = || {
-            if i >= chars.len() { i = 0; }
+            if i >= chars.len() {
+                i = 0;
+            }
             i += 1;
             Some(chars[i - 1])
         };
@@ -58,16 +59,13 @@ pub fn main() {
     /*     println!("{:?}", req.headers()); */
     /* }); */
 
-    let auth = AuthConfig::of_list(&[
-                                   ("test", "test"),
-                                   ("abc", "abc"),
-                                    ]);
-    handler.get("/priv", auth.apply(|req: &mut HttpRequest| {
-        req.respond_str("Secret message")
-    }));
+    let auth = AuthConfig::of_list(&[("test", "test"), ("abc", "abc")]);
+    handler.get(
+        "/priv",
+        auth.apply(|req: &mut HttpRequest| req.respond_str("Secret message")),
+    );
 
     let mut server = HttpServer::new(config);
     server.set_handler(handler);
     server.run();
 }
-

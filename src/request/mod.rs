@@ -1,27 +1,34 @@
 pub mod handler;
 use builders::Builder;
 mod parse;
+use std::{
+    collections::HashMap,
+    env,
+    ffi::OsStr,
+    io::{BufReader, Read, Write},
+    path::Path,
+};
+
 use parse::parse_request;
 
-use std::{collections::HashMap, env, ffi::OsStr, io::{BufReader, Read, Write}, path::Path};
-use crate::{http::{HttpMethod, StatusCode}, HttpResponse, Result};
-use crate::http::HttpStream;
-
-use crate::http::encoding::Chunked;
+use crate::{
+    http::{encoding::Chunked, HttpMethod, HttpStream, StatusCode},
+    HttpResponse, Result,
+};
 
 /// HTTP Request
 ///
 /// Represents an HTTP request
-#[derive(Builder,Debug)]
+#[derive(Builder, Debug)]
 pub struct HttpRequest {
     method: HttpMethod,
     url: Box<str>,
     #[builder(each = "header")]
-    headers: HashMap<Box<str>,Box<str>>,
+    headers: HashMap<Box<str>, Box<str>>,
     #[builder(each = "param")]
-    params: HashMap<Box<str>,Box<str>>,
+    params: HashMap<Box<str>, Box<str>>,
     #[builder(each = "response_header")]
-    response_headers: HashMap<Box<str>,Box<str>>,
+    response_headers: HashMap<Box<str>, Box<str>>,
     #[builder(def = 1.0)]
     version: f32,
     #[builder(disabled = true)]
@@ -35,7 +42,7 @@ pub struct HttpRequest {
 
 impl HttpRequest {
     /// Read and parse an HTTP request from the given [`HttpStream`]
-    pub fn parse(stream: impl Into<HttpStream>) -> Result<Self>  {
+    pub fn parse(stream: impl Into<HttpStream>) -> Result<Self> {
         let stream = BufReader::new(stream.into());
         parse_request(stream)
     }
@@ -47,22 +54,32 @@ impl HttpRequest {
     }
     #[inline]
     #[must_use]
-    pub fn stream(&self) -> &HttpStream { self.stream.get_ref() }
+    pub fn stream(&self) -> &HttpStream {
+        self.stream.get_ref()
+    }
     /// Url of the request
     #[inline]
     #[must_use]
-    pub fn url(&self) -> &str { &self.url }
+    pub fn url(&self) -> &str {
+        &self.url
+    }
 
     #[inline]
-    pub fn set_url(&mut self, url: impl Into<Box<str>>) { self.url = url.into(); }
+    pub fn set_url(&mut self, url: impl Into<Box<str>>) {
+        self.url = url.into();
+    }
     /// Get the query parameters
     #[inline]
     #[must_use]
-    pub fn params(&self) -> &HashMap<Box<str>,Box<str>> { &self.params }
+    pub fn params(&self) -> &HashMap<Box<str>, Box<str>> {
+        &self.params
+    }
 
     #[inline]
     #[must_use]
-    pub fn param(&self, key: &str) -> Option<&str> { self.params.get(key).map(AsRef::as_ref) }
+    pub fn param(&self, key: &str) -> Option<&str> {
+        self.params.get(key).map(AsRef::as_ref)
+    }
     /// Get the filename for the request
     ///
     /// It computes the path in the server corresponding to the
@@ -70,11 +87,7 @@ impl HttpRequest {
     ///
     pub fn filename(&self) -> Result<Box<str>> {
         let mut cwd = env::current_dir()?;
-        cwd.push(
-            Path::new(
-                OsStr::new(&self.url[1..])
-            )
-        );
+        cwd.push(Path::new(OsStr::new(&self.url[1..])));
         let cwd = cwd.to_str().ok_or("Error getting cwd")?;
         Ok(Box::from(cwd))
     }
@@ -82,7 +95,7 @@ impl HttpRequest {
         write!(f, "{} {}", self.method(), self.url())?;
         if !self.params().is_empty() {
             write!(f, "?")?;
-            for (k,v) in self.params() {
+            for (k, v) in self.params() {
                 let ke = url::encode(k).unwrap_or("".into());
                 let ve = url::encode(v).unwrap_or("".into());
                 write!(f, "{ke}={ve}&")?;
@@ -90,7 +103,7 @@ impl HttpRequest {
         }
         write!(f, " HTTP/{}\r\n", self.version())?;
 
-        for (k,v) in self.headers() {
+        for (k, v) in self.headers() {
             write!(f, "{k}: {v}\r\n")?;
         }
 
@@ -113,11 +126,15 @@ impl HttpRequest {
     }
     #[inline]
     #[must_use]
-    pub fn method(&self) -> &HttpMethod { &self.method }
+    pub fn method(&self) -> &HttpMethod {
+        &self.method
+    }
 
     #[inline]
     #[must_use]
-    pub fn status(&self) -> u16 { self.status }
+    pub fn status(&self) -> u16 {
+        self.status
+    }
 
     #[inline]
     pub fn set_status(&mut self, status: u16) -> &mut Self {
@@ -127,7 +144,9 @@ impl HttpRequest {
 
     #[inline]
     #[must_use]
-    pub fn version(&self) -> f32 { self.version }
+    pub fn version(&self) -> f32 {
+        self.version
+    }
 
     /// Get the value of the *Content-Length* HTTP header
     ///
@@ -151,7 +170,9 @@ impl HttpRequest {
 
     #[inline]
     #[must_use]
-    pub fn headers(&self) -> &HashMap<Box<str>,Box<str>> { &self.headers }
+    pub fn headers(&self) -> &HashMap<Box<str>, Box<str>> {
+        &self.headers
+    }
 
     #[inline]
     pub fn set_header(&mut self, key: impl Into<Box<str>>, value: impl Into<Box<str>>) {
@@ -171,8 +192,8 @@ impl HttpRequest {
     /// # Errors
     /// If, while reading of writing, some io Error is found
     pub fn read_body(&mut self, writer: &mut dyn Write) -> Result<()> {
-        const CHUNK_SIZE:usize = 1024;
-        let mut buf:[u8;CHUNK_SIZE] = [0;CHUNK_SIZE];
+        const CHUNK_SIZE: usize = 1024;
+        let mut buf: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
         let len = self.content_length();
         let n = len / CHUNK_SIZE;
         let remainder = len % CHUNK_SIZE;
@@ -194,14 +215,19 @@ impl HttpRequest {
     /// # Errors
     /// If some io error is produced while sending the request
     pub fn respond(&mut self) -> Result<()> {
-        let response_line = format!("HTTP/{} {} {}\r\n", self.version, self.status, self.status_msg());
+        let response_line = format!(
+            "HTTP/{} {} {}\r\n",
+            self.version,
+            self.status,
+            self.status_msg()
+        );
         self.stream.get_mut().write_all(response_line.as_bytes())?;
         let stream = self.stream.get_mut();
-        for (k,v) in &self.response_headers {
-           stream.write_all(k.as_bytes())?;
-           stream.write_all(b": ")?;
-           stream.write_all(v.as_bytes())?;
-           stream.write_all(b"\r\n")?;
+        for (k, v) in &self.response_headers {
+            stream.write_all(k.as_bytes())?;
+            stream.write_all(b": ")?;
+            stream.write_all(v.as_bytes())?;
+            stream.write_all(b"\r\n")?;
         }
         stream.write_all(b"\r\n")?;
         Ok(())
@@ -234,7 +260,9 @@ impl HttpRequest {
 
         let stream = self.stream.get_mut();
         while let Ok(n) = reader.read(&mut buf) {
-            if n == 0 { break; }
+            if n == 0 {
+                break;
+            }
             stream.write_all(&buf[0..n])?;
         }
         Ok(())
@@ -320,7 +348,7 @@ impl HttpRequest {
         let code = self.status;
         let msg = self.status_msg();
         format!(
-"<!DOCTYPE html>
+            "<!DOCTYPE html>
 <html lang=\"en\">
     <head>
         <meta charset=\"utf-8\">
@@ -329,19 +357,20 @@ impl HttpRequest {
 <body>
     <h1>{code} {msg}</h1>
 </body>
-</html>")
+</html>"
+        )
     }
 }
 
 impl PartialEq for HttpRequest {
     fn eq(&self, other: &Self) -> bool {
         self.method == other.method
-        && self.url == other.url
-        && self.headers == other.headers
-        && self.params == other.params
-        && self.response_headers == other.response_headers
-        && self.version == other.version
-        && self.status == other.status
+            && self.url == other.url
+            && self.headers == other.headers
+            && self.params == other.params
+            && self.response_headers == other.response_headers
+            && self.version == other.version
+            && self.status == other.status
     }
 }
 

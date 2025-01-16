@@ -1,7 +1,8 @@
-use core::ffi::{c_char, CStr};
-use core::{ptr, slice};
-use alloc::borrow::Cow;
-use alloc::boxed::Box;
+use alloc::{borrow::Cow, boxed::Box};
+use core::{
+    ffi::{c_char, CStr},
+    ptr, slice,
+};
 
 #[repr(C)]
 pub struct Buffer {
@@ -9,7 +10,7 @@ pub struct Buffer {
     len: usize,
 
     /// IGNORE
-    __is_owned: bool
+    __is_owned: bool,
 }
 
 #[inline(always)]
@@ -25,14 +26,14 @@ unsafe fn __bind_fn(ptr: *const c_char, f: fn(&str) -> crate::Result<Cow<str>>) 
                     return Buffer {
                         ptr: Box::into_raw(own) as *const u8,
                         len,
-                        __is_owned: true
-                    }
-                },
+                        __is_owned: true,
+                    };
+                }
                 Cow::Borrowed(bor) => {
                     return Buffer {
                         ptr: bor.as_ptr(),
                         len: bor.len(),
-                        __is_owned: false
+                        __is_owned: false,
                     }
                 }
             }
@@ -41,7 +42,7 @@ unsafe fn __bind_fn(ptr: *const c_char, f: fn(&str) -> crate::Result<Cow<str>>) 
     Buffer {
         ptr: ptr::null(),
         len: 0,
-        __is_owned: true
+        __is_owned: true,
     }
 }
 
@@ -52,8 +53,7 @@ unsafe fn __bind_fn(ptr: *const c_char, f: fn(&str) -> crate::Result<Cow<str>>) 
 /// # Safety
 /// ptr must be a valid null-terminated C-string
 #[no_mangle]
-pub unsafe extern "C"
-fn url_decode(ptr: *const c_char) -> Buffer {
+pub unsafe extern "C" fn url_decode(ptr: *const c_char) -> Buffer {
     __bind_fn(ptr, crate::decode)
 }
 
@@ -64,15 +64,13 @@ fn url_decode(ptr: *const c_char) -> Buffer {
 /// # Safety
 /// ptr must be a valid null-terminated C-string
 #[no_mangle]
-pub unsafe extern "C"
-fn url_encode(ptr: *const c_char) -> Buffer {
+pub unsafe extern "C" fn url_encode(ptr: *const c_char) -> Buffer {
     __bind_fn(ptr, crate::encode)
 }
 
 /// Frees the given buffer
 #[no_mangle]
-pub extern "C"
-fn url_buffer_free(ptr: Buffer) {
+pub extern "C" fn url_buffer_free(ptr: Buffer) {
     if ptr.__is_owned && !ptr.ptr.is_null() {
         let slice = unsafe { slice::from_raw_parts_mut(ptr.ptr as *mut u8, ptr.len) };
         let b = unsafe { Box::from_raw(slice) };

@@ -1,15 +1,22 @@
-#![allow(
-    clippy::cast_sign_loss,
-    clippy::cast_possible_truncation
-)]
+#![allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 
+use std::{
+    env, fs,
+    path::{Path, PathBuf},
+    process,
+    str::FromStr,
+    time::Duration,
+};
 
-use std::{env, fs, path::{Path, PathBuf}, process, str::FromStr, time::Duration};
-use crate::{log::{self}, log_info, log_warn, Result};
 use jsonrs::Json;
 use pool::PoolConfig;
 
-#[derive(Clone,Debug)]
+use crate::{
+    log::{self},
+    log_info, log_warn, Result,
+};
+
+#[derive(Clone, Debug)]
 pub struct ServerConfig {
     pub port: u16,
     pub pool_conf: PoolConfig,
@@ -55,7 +62,8 @@ fn get_default_conf_file() -> Option<PathBuf> {
 impl ServerConfig {
     /// Parse the configuration from the command line args
     pub fn parse<I, R: AsRef<str>>(args: I) -> Result<Self>
-    where I: Iterator<Item = R>
+    where
+        I: Iterator<Item = R>,
     {
         let mut conf = Self::default();
         let mut args = args.into_iter();
@@ -71,31 +79,31 @@ impl ServerConfig {
                         format!("Missing or incorrect argument for \"{}\"", arg.as_ref())
                     })?
                 };
-                (as $t:ty) => {
-                    {
-                        let _next: $t = parse_next!();
-                        _next
-                    }
-                };
+                (as $t:ty) => {{
+                    let _next: $t = parse_next!();
+                    _next
+                }};
             }
 
             let mut pool_conf_builder = PoolConfig::builder();
 
             match arg.as_ref() {
                 "-p" | "--port" => conf.port = parse_next!(),
-                "-n" | "-n-workers" => { pool_conf_builder.n_workers( parse_next!(as u16) ); },
+                "-n" | "-n-workers" => {
+                    pool_conf_builder.n_workers(parse_next!(as u16));
+                }
                 "-d" | "--dir" => {
-                    let path:String = parse_next!();
+                    let path: String = parse_next!();
                     env::set_current_dir(Path::new(&path))?;
-                },
+                }
                 "-k" | "--keep-alive" => {
                     let timeout = parse_next!();
-                     conf.keep_alive_timeout = Duration::from_secs_f32(timeout);
-                },
+                    conf.keep_alive_timeout = Duration::from_secs_f32(timeout);
+                }
                 "-r" | "--keep-alive-requests" => conf.keep_alive_requests = parse_next!(),
-                "-l" | "--log" => conf.log_file = Some( parse_next!() ),
+                "-l" | "--log" => conf.log_file = Some(parse_next!()),
                 "--log-level" => {
-                    let n : u8 = parse_next!();
+                    let n: u8 = parse_next!();
                     log::set_level(n.try_into()?);
                 }
                 "--config-file" => {
@@ -104,19 +112,23 @@ impl ServerConfig {
                     if file.exists() {
                         conf.parse_conf_file(file)?;
                     } else {
-                        log_warn!("Config path: {} doesn't exist", file.as_os_str().to_str().unwrap_or("[??]"));
+                        log_warn!(
+                            "Config path: {} doesn't exist",
+                            file.as_os_str().to_str().unwrap_or("[??]")
+                        );
                     }
-                },
+                }
                 "-h" | "--help" => help(),
-                unknown => return Err(format!("Unknow argument: {unknown}").into())
+                unknown => return Err(format!("Unknow argument: {unknown}").into()),
             }
-
         }
         log_info!("{conf:#?}");
         Ok(conf)
     }
     fn parse_conf_file(&mut self, conf_file: &Path) -> crate::Result<()> {
-        if !conf_file.exists() { return Ok(()) }
+        if !conf_file.exists() {
+            return Ok(());
+        }
         let conf_str = conf_file.as_os_str().to_str().unwrap_or("");
         let f = fs::read_to_string(conf_file).unwrap_or_else(|err| {
             eprintln!("Error reading config file \"{conf_str}\": {err}");
@@ -127,59 +139,73 @@ impl ServerConfig {
             std::process::exit(1);
         });
         log_info!("Parsing config file: {conf_str}");
-        let Json::Object(obj) = json else { return Err("Expected json object".into()) };
-        for (k,v) in obj {
+        let Json::Object(obj) = json else {
+            return Err("Expected json object".into());
+        };
+        for (k, v) in obj {
             macro_rules! num {
                 () => {
                     num!(v)
                 };
                 ($v:ident) => {
-                    $v.number().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected number for \"{k}\""))?
+                    $v.number().ok_or_else(|| {
+                        format!("Parsing config file ({conf_str}): Expected number for \"{k}\"")
+                    })?
                 };
-                ($v:ident as $t:ty) => {
-                    {
-                        let _n = num!($v);
-                        _n as $t
-                    }
-                };
+                ($v:ident as $t:ty) => {{
+                    let _n = num!($v);
+                    _n as $t
+                }};
             }
             macro_rules! string {
                 () => {
-                    v.string().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected string for \"{k}\""))?.to_string()
+                    v.string()
+                        .ok_or_else(|| {
+                            format!("Parsing config file ({conf_str}): Expected string for \"{k}\"")
+                        })?
+                        .to_string()
                 };
             }
             macro_rules! obj {
                 () => {
-                    v.object().ok_or_else(|| format!("Parsing config file ({conf_str}): Expected object for \"{k}\""))?
+                    v.object().ok_or_else(|| {
+                        format!("Parsing config file ({conf_str}): Expected object for \"{k}\"")
+                    })?
                 };
             }
 
             match &*k {
                 "port" => self.port = num!() as u16,
                 "root_dir" => {
-                    let path:String = string!();
-                    let path = path.replacen('~', env::var("HOME").as_ref().map(String::as_str).unwrap_or("~"), 1);
+                    let path: String = string!();
+                    let path = path.replacen(
+                        '~',
+                        env::var("HOME").as_ref().map(String::as_str).unwrap_or("~"),
+                        1,
+                    );
                     env::set_current_dir(Path::new(&path))?;
-                },
+                }
                 "keep_alive_timeout" => self.keep_alive_timeout = Duration::from_secs_f64(num!()),
                 "keep_alive_requests" => self.keep_alive_requests = num!() as u16,
-                "log_file" => self.log_file = Some( string!() ),
+                "log_file" => self.log_file = Some(string!()),
                 "log_level" => {
                     let n = num!(v as u8);
                     log::set_level(n.try_into()?);
-                },
+                }
                 "pool_config" => {
-                    for (k,v) in obj!() {
+                    for (k, v) in obj!() {
                         match &**k {
                             "n_workers" => self.pool_conf.n_workers = num!(v as u16),
                             "pending_buffer_size" => {
                                 let n = v.number().map(|n| n as u16);
                                 self.pool_conf.incoming_buf_size = n;
-                            },
-                            _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
+                            }
+                            _ => log_warn!(
+                                "Parsing config file ({conf_str}): Unexpected key: \"{k}\""
+                            ),
                         }
                     }
-                },
+                }
                 _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
             };
         }
@@ -193,7 +219,7 @@ impl ServerConfig {
     }
     #[inline]
     #[must_use]
-    pub fn port(mut self, port:u16) -> Self {
+    pub fn port(mut self, port: u16) -> Self {
         self.port = port;
         self
     }
@@ -212,7 +238,8 @@ impl ServerConfig {
 }
 
 fn help() -> ! {
-    println!("\
+    println!(
+        "\
 USAGE: http-srv [-p <port>] [-n <n-workers>] [-d <working-dir>]
 PARAMETERS:
     -p, --port <port>    TCP Port to listen for requests
@@ -225,7 +252,8 @@ PARAMETERS:
 EXAMPLES:
   http-srv -p 8080 -d /var/html
   http-srv -d ~/desktop -n 1024 --keep-alive 120
-  http-srv --log /var/log/http-srv.log");
+  http-srv --log /var/log/http-srv.log"
+    );
     process::exit(0);
 }
 
@@ -234,7 +262,8 @@ trait ParseIterator {
 }
 
 impl<I, R: AsRef<str>> ParseIterator for I
-where I: Iterator<Item = R>
+where
+    I: Iterator<Item = R>,
 {
     fn next_parse<T: FromStr>(&mut self) -> Option<T> {
         self.next()?.as_ref().parse().ok()
@@ -264,7 +293,7 @@ impl Default for ServerConfig {
 mod test {
     #![allow(clippy::unwrap_used)]
 
-    use crate::{ServerConfig,Result};
+    use crate::{Result, ServerConfig};
 
     fn parse_from_list(v: &[&str]) -> Result<ServerConfig> {
         let conf = v.iter().map(|s| s.to_string());
@@ -279,7 +308,9 @@ mod test {
 
     macro_rules! expect_err {
         ($conf:expr , $msg:literal) => {
-            let Err(msg) = parse_from_list(&$conf) else { panic!() };
+            let Err(msg) = parse_from_list(&$conf) else {
+                panic!()
+            };
             assert_eq!(msg.get_message(), $msg);
         };
     }
@@ -293,12 +324,12 @@ mod test {
     #[test]
     fn missing() {
         let conf = vec!["-n"];
-        expect_err!(conf,"Missing or incorrect argument for \"-n\"");
+        expect_err!(conf, "Missing or incorrect argument for \"-n\"");
     }
 
     #[test]
     fn parse_error() {
-        let conf = vec!["-p","abc"];
-        expect_err!(conf,"Missing or incorrect argument for \"-p\"");
+        let conf = vec!["-p", "abc"];
+        expect_err!(conf, "Missing or incorrect argument for \"-p\"");
     }
 }
