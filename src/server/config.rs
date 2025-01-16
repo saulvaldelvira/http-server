@@ -25,6 +25,8 @@ pub struct ServerConfig {
     pub log_file: Option<String>,
 }
 
+
+#[cfg(not(test))]
 fn get_default_conf_file() -> Option<PathBuf> {
     if let Ok(path) = env::var("XDG_CONFIG_HOME") {
         let mut p = PathBuf::new();
@@ -44,6 +46,9 @@ fn get_default_conf_file() -> Option<PathBuf> {
     }
 }
 
+#[cfg(test)]
+fn get_default_conf_file() -> Option<PathBuf> { None }
+
 /// [`crate::HttpServer`] configuration
 ///
 /// # Example
@@ -61,17 +66,17 @@ fn get_default_conf_file() -> Option<PathBuf> {
 /// ```
 impl ServerConfig {
     /// Parse the configuration from the command line args
-    pub fn parse(args: &[String]) -> Result<Self> {
+    pub fn parse<S: AsRef<str>>(args: &[S]) -> Result<Self> {
         let mut conf = Self::default();
 
         let mut conf_file = get_default_conf_file();
 
         /* Parse the --config-file before the rest */
-        let mut args = args.iter();
-        while let Some(arg) = args.next() {
-            if arg == "--config-file" {
-                if let Some(fname) = args.next() {
-                    let filename = PathBuf::from(fname);
+        let mut first_pass = args.iter();
+        while let Some(arg) = first_pass.next() {
+            if arg.as_ref() == "--config-file" {
+                if let Some(fname) = first_pass.next() {
+                    let filename = PathBuf::from(fname.as_ref());
                     if filename.exists() {
                         conf_file = Some(filename);
                     } else {
@@ -88,11 +93,12 @@ impl ServerConfig {
             conf.parse_conf_file(&cfile)?;
         }
 
+        let mut args = args.iter();
         while let Some(arg) = args.next() {
             macro_rules! parse_next {
                 () => {
                     args.next_parse().ok_or_else(|| {
-                        format!("Missing or incorrect argument for \"{}\"", arg)
+                        format!("Missing or incorrect argument for \"{}\"", arg.as_ref())
                     })?
                 };
                 (as $t:ty) => {{
@@ -301,25 +307,20 @@ impl Default for ServerConfig {
 mod test {
     #![allow(clippy::unwrap_used)]
 
-    use crate::{Result, ServerConfig};
-
-    fn parse_from_list(v: &[&str]) -> Result<ServerConfig> {
-        let conf = v.iter().map(|s| (*s).to_string());
-        ServerConfig::parse(conf)
-    }
+    use super::ServerConfig;
 
     #[test]
     fn valid_args() {
-        let conf = ["-p", "80"];
-        parse_from_list(&conf).unwrap();
+        let conf = vec!["-p".to_string(), "80".to_string()];
+        ServerConfig::parse(&conf).unwrap();
     }
 
     macro_rules! expect_err {
         ($conf:expr , $msg:literal) => {
-            let Err(msg) = parse_from_list(&$conf) else {
-                panic!()
-            };
-            assert_eq!(msg.get_message(), $msg);
+            match ServerConfig::parse(&$conf) {
+                Ok(c) => panic!("Didn't panic: {c:#?}"),
+                Err(msg) => assert_eq!(msg.get_message(), $msg),
+            }
         };
     }
 
