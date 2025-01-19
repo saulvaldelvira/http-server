@@ -1,9 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{
-    server::{error::err, ServerError},
-    Result,
-};
+use crate::{err, Result, ServerError};
 
 /// Request Method
 ///

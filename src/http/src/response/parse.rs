@@ -4,7 +4,7 @@ use std::{
 };
 
 use super::HttpResponse;
-use crate::{http::HttpStream, server::error::err};
+use crate::{err, HttpStream};
 
 pub(super) fn parse_response(mut stream: BufReader<HttpStream>) -> crate::Result<HttpResponse> {
     let mut line = String::new();

@@ -1,6 +1,6 @@
 use std::{process, str::FromStr};
 
-use crate::{HttpMethod, Result};
+use http::{HttpMethod, Result};
 
 #[derive(Debug, Clone)]
 pub enum OutFile {
@@ -121,8 +121,8 @@ impl Default for ClientConfig {
 mod test {
     #![allow(clippy::unwrap_used)]
 
-    use crate::Result;
     use super::ClientConfig;
+    use crate::Result;
 
     fn parse_from_vec(v: &[&str]) -> Result<ClientConfig> {
         let conf = v.iter().map(|s| (*s).to_string());

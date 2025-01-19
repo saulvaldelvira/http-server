@@ -30,19 +30,18 @@ impl ServerError {
     }
 }
 
+#[macro_export]
 macro_rules! err {
     ($($e:tt)*) => {
-        crate::ServerError::new(format!($($e)*)).err()
+        $crate::ServerError::new(format!($($e)*)).err()
     };
     ($lit:literal) => {
-        crate::ServerError::new($lit).err()
+        $crate::ServerError::new($lit).err()
     };
     ($e:expr) => {
-        crate::ServerError::new($e).err()
+        $crate::ServerError::new($e).err()
     };
 }
-
-pub(crate) use err;
 
 impl From<io::Error> for ServerError {
     #[inline]

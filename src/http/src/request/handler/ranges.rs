@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use crate::{server::error::err, Result};
+use crate::{err, Result};
 
 pub fn get_range_for(range: &str, len: u64) -> Result<Range<u64>> {
     let mut range = range.split('=');

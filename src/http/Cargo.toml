@@ -1,0 +1,19 @@
+[package]
+name = "http-utils"
+version = "0.1.0"
+edition = "2021"
+description = "Http utils"
+authors = ["Saúl Valdelvira <saul@saulv.es>"]
+license = "MIT"
+readme = "README"
+
+[lib]
+name = "http"
+path = "src/lib.rs"
+
+[dependencies]
+builders.workspace = true
+url.workspace = true
+base64.workspace = true
+html.workspace = true
+mime.workspace = true

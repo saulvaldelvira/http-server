@@ -25,7 +25,6 @@ pub struct ServerConfig {
     pub log_file: Option<String>,
 }
 
-
 #[cfg(not(test))]
 fn get_default_conf_file() -> Option<PathBuf> {
     if let Ok(path) = env::var("XDG_CONFIG_HOME") {
@@ -47,7 +46,9 @@ fn get_default_conf_file() -> Option<PathBuf> {
 }
 
 #[cfg(test)]
-fn get_default_conf_file() -> Option<PathBuf> { None }
+fn get_default_conf_file() -> Option<PathBuf> {
+    None
+}
 
 /// [`crate::HttpServer`] configuration
 ///

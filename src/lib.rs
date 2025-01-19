@@ -31,25 +31,22 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
 
-pub mod http;
 mod log;
-pub mod request;
 pub mod server;
-
-pub mod response;
 
 #[doc(hidden)]
 pub mod prelude {
-    pub use crate::{
-        http::*,
+    pub use http::{
         request::{
             handler::{self, AuthConfig, Handler},
             HttpRequest,
         },
-        response::HttpResponse,
-        server::{HttpServer, ServerConfig},
+        response::*,
+        *,
     };
-    pub(crate) use crate::{log::prelude::*, server::ServerError};
+
+    pub(crate) use crate::log::prelude::*;
+    pub use crate::server::{HttpServer, ServerConfig};
 }
 use prelude::*;
 

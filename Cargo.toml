@@ -3,7 +3,7 @@ members = [
     "src/html",
     "src/url",
     "src/mime"
-]
+, "src/http"]
 
 [package]
 name = "http-srv"
@@ -29,15 +29,18 @@ required-features = ["server"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-html = { package = "rhtml", version = ">=0.1.0", path = "src/html" }
+http = { package = "http-utils", path = "src/http", version = ">=0.1.0" }
 pool = { package = "job-pool", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/job-pool" }
-url = { package = "url-utils", version = ">=0.1.0", path = "src/url" }
-mime = { package = "rmime", version = ">=0.1.0", path = "src/mime" }
-base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
 delay_init = { package = "delay_init" , version = ">=0.2.0", git = "https://github.com/saulvaldelvira/delay-init" }
 
-[dependencies.builders]
+[workspace.dependencies]
+url = { package = "url-utils", version = ">=0.1.0", path = "src/url" }
+base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
+html = { package = "rhtml", version = ">=0.1.0", path = "src/html" }
+mime = { package = "rmime", version = ">=0.1.0", path = "src/mime" }
+
+[workspace.dependencies.builders]
 package = "builders"
 default-features = false
 features = ["builder"]

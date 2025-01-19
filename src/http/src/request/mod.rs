@@ -11,10 +11,7 @@ use std::{
 
 use parse::parse_request;
 
-use crate::{
-    http::{encoding::Chunked, HttpMethod, HttpStream, StatusCode},
-    HttpResponse, Result,
-};
+use crate::{encoding::Chunked, HttpMethod, HttpResponse, HttpStream, Result, StatusCode};
 
 /// HTTP Request
 ///

@@ -1,6 +1,7 @@
 use std::{env, process, thread, time::Duration};
 
-use http_srv::{http::encoding::StreamReader, prelude::*};
+use http::encoding::StreamReader;
+use http_srv::prelude::*;
 
 pub fn main() {
     let args: Vec<_> = env::args().skip(1).collect();

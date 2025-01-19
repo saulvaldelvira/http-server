@@ -6,7 +6,7 @@ use std::{
 use builders::Builder;
 use parse::parse_response;
 
-use crate::http::HttpStream;
+use crate::HttpStream;
 
 mod parse;
 

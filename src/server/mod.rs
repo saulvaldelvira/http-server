@@ -1,17 +1,15 @@
 pub mod config;
-pub use config::ServerConfig;
-pub mod error;
 use std::{
     net::{TcpListener, TcpStream},
     sync::Arc,
     time::{Duration, Instant},
 };
 
-pub use error::ServerError;
+pub use config::ServerConfig;
+use http::HttpStream;
 use pool::ThreadPool;
 
 use crate::{
-    http::HttpStream,
     log_error,
     request::{handler::Handler, HttpRequest},
     Result,

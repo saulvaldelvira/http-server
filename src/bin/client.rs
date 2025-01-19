@@ -6,11 +6,8 @@ use std::{
     process,
 };
 
-use http_srv::{
-    client::{config, ClientConfig},
-    http::{HttpMethod, HttpStream},
-    request::HttpRequest,
-};
+use http::{HttpMethod, HttpRequest, HttpStream};
+use http_srv::client::{config, ClientConfig};
 
 fn open_file(fname: &str) -> Box<dyn Write> {
     Box::new(File::create(fname).unwrap_or_else(|_| {
