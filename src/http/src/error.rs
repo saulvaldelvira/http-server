@@ -43,6 +43,8 @@ macro_rules! err {
     };
 }
 
+use regexpr::RegexError;
+
 impl From<io::Error> for HttpError {
     #[inline]
     fn from(value: io::Error) -> Self {
@@ -79,6 +81,13 @@ impl From<Cow<'static, str>> for HttpError {
         Self(value)
     }
 }
+
+impl From<RegexError> for HttpError {
+    fn from(value: RegexError) -> Self {
+        Self::new(value.inner().clone())
+    }
+}
+
 impl Debug for HttpError {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

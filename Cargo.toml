@@ -39,6 +39,7 @@ url = { package = "url-utils", version = ">=0.1.0", path = "src/url" }
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 html = { package = "rhtml", version = ">=0.1.0", path = "src/html" }
 mime = { package = "rmime", version = ">=0.1.0", path = "src/mime" }
+regexpr = { version = ">=0.3.3", git = "https://github.com/saulvaldelvira/regexpr" }
 
 [workspace.dependencies.builders]
 package = "builders"
