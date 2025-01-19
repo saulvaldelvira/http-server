@@ -5,7 +5,7 @@ use std::{
 
 use delay_init::delay;
 
-use crate::ServerError;
+use crate::HttpError;
 
 #[derive(PartialEq, PartialOrd)]
 pub enum LogLevel {
@@ -16,7 +16,7 @@ pub enum LogLevel {
 }
 
 impl TryFrom<u8> for LogLevel {
-    type Error = ServerError;
+    type Error = HttpError;
 
     fn try_from(value: u8) -> crate::Result<Self> {
         Ok(match value {

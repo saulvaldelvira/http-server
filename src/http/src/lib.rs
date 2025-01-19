@@ -16,6 +16,6 @@ pub mod response;
 pub use response::HttpResponse;
 
 mod error;
-pub use error::ServerError;
+pub use error::HttpError;
 
-pub type Result<T> = std::result::Result<T, ServerError>;
+pub type Result<T> = std::result::Result<T, HttpError>;

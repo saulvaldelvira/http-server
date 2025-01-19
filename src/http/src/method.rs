@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{err, Result, ServerError};
+use crate::{err, Result, HttpError};
 
 /// Request Method
 ///
@@ -19,7 +19,7 @@ pub enum HttpMethod {
 }
 
 impl FromStr for HttpMethod {
-    type Err = ServerError;
+    type Err = HttpError;
     fn from_str(t: &str) -> Result<Self> {
         match t {
             "GET" => Ok(Self::GET),

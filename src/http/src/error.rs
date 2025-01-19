@@ -9,9 +9,9 @@ use std::{
 };
 
 /// Server Error
-pub struct ServerError(Cow<'static, str>);
+pub struct HttpError(Cow<'static, str>);
 
-impl ServerError {
+impl HttpError {
     /// Creates a [`ServerError`] from a &'static [str]
     #[inline]
     pub fn new(msg: impl Into<Cow<'static, str>>) -> Self {
@@ -33,76 +33,76 @@ impl ServerError {
 #[macro_export]
 macro_rules! err {
     ($($e:tt)*) => {
-        $crate::ServerError::new(format!($($e)*)).err()
+        $crate::HttpError::new(format!($($e)*)).err()
     };
     ($lit:literal) => {
-        $crate::ServerError::new($lit).err()
+        $crate::HttpError::new($lit).err()
     };
     ($e:expr) => {
-        $crate::ServerError::new($e).err()
+        $crate::HttpError::new($e).err()
     };
 }
 
-impl From<io::Error> for ServerError {
+impl From<io::Error> for HttpError {
     #[inline]
     fn from(value: io::Error) -> Self {
         Self::new(value.to_string())
     }
 }
-impl From<FromUtf8Error> for ServerError {
+impl From<FromUtf8Error> for HttpError {
     #[inline]
     fn from(value: FromUtf8Error) -> Self {
         Self::new(value.to_string())
     }
 }
-impl From<Utf8Error> for ServerError {
+impl From<Utf8Error> for HttpError {
     #[inline]
     fn from(value: Utf8Error) -> Self {
         Self::new(value.to_string())
     }
 }
-impl From<std::path::StripPrefixError> for ServerError {
+impl From<std::path::StripPrefixError> for HttpError {
     #[inline]
     fn from(value: StripPrefixError) -> Self {
         Self::new(value.to_string())
     }
 }
-impl From<ParseIntError> for ServerError {
+impl From<ParseIntError> for HttpError {
     #[inline]
     fn from(value: ParseIntError) -> Self {
         Self::new(value.to_string())
     }
 }
-impl From<Cow<'static, str>> for ServerError {
+impl From<Cow<'static, str>> for HttpError {
     #[inline]
     fn from(value: Cow<'static, str>) -> Self {
         Self(value)
     }
 }
-impl Debug for ServerError {
+impl Debug for HttpError {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.get_message())
     }
 }
 
-impl Display for ServerError {
+impl Display for HttpError {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.get_message())
     }
 }
 
-impl From<&'static str> for ServerError {
+impl From<&'static str> for HttpError {
     fn from(value: &'static str) -> Self {
         Self(value.into())
     }
 }
 
-impl From<String> for ServerError {
+impl From<String> for HttpError {
     fn from(value: String) -> Self {
         Self(value.into())
     }
 }
 
-impl std::error::Error for ServerError {}
+impl std::error::Error for HttpError {}
