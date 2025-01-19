@@ -38,8 +38,8 @@ impl<T> Interceptor for T where T: Fn(&mut HttpRequest) + Send + Sync + 'static 
 
 #[derive(Default)]
 struct HandlerMethodAssoc {
-    exact: HashMap<String,Box<dyn RequestHandler>>,
-    regex: Vec<(Regex,Box<dyn RequestHandler>)>,
+    exact: HashMap<String, Box<dyn RequestHandler>>,
+    regex: Vec<(Regex, Box<dyn RequestHandler>)>,
     def: Option<Box<dyn RequestHandler>>,
 }
 
@@ -108,7 +108,7 @@ impl From<String> for UrlMatcher {
 /// handler.post_interceptor(handler::log_stdout);
 /// ```
 pub struct Handler {
-    handlers: HashMap<HttpMethod,HandlerMethodAssoc>,
+    handlers: HashMap<HttpMethod, HandlerMethodAssoc>,
     pre_interceptors: Vec<Box<dyn Interceptor>>,
     post_interceptors: Vec<Box<dyn Interceptor>>,
 }
@@ -116,28 +116,31 @@ pub struct Handler {
 impl Handler {
     #[must_use]
     pub fn new() -> Self {
-        Self { handlers: HashMap::new(),
-               pre_interceptors: Vec::new(), post_interceptors: Vec::new(), }
+        Self {
+            handlers: HashMap::new(),
+            pre_interceptors: Vec::new(),
+            post_interceptors: Vec::new(),
+        }
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::GET`], ...)
     #[inline]
     pub fn get(&mut self, url: impl Into<UrlMatcher>, f: impl RequestHandler) {
-        self.add(HttpMethod::GET,url,f);
+        self.add(HttpMethod::GET, url, f);
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::POST`], ...)
     #[inline]
     pub fn post(&mut self, url: impl Into<UrlMatcher>, f: impl RequestHandler) {
-        self.add(HttpMethod::POST,url,f);
+        self.add(HttpMethod::POST, url, f);
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::DELETE`], ...)
     #[inline]
     pub fn delete(&mut self, url: impl Into<UrlMatcher>, f: impl RequestHandler) {
-        self.add(HttpMethod::DELETE,url,f);
+        self.add(HttpMethod::DELETE, url, f);
     }
     /// Shortcut for [add](Handler::add)([`HttpMethod::HEAD`], ...)
     #[inline]
     pub fn head(&mut self, url: impl Into<UrlMatcher>, f: impl RequestHandler) {
-        self.add(HttpMethod::HEAD,url,f);
+        self.add(HttpMethod::HEAD, url, f);
     }
     /// Adds a handler for a request type
     ///
@@ -150,10 +153,10 @@ impl Handler {
         match url.into().0 {
             UrlMatcherInner::Literal(lit) => {
                 map.exact.insert(lit, Box::new(f));
-            },
+            }
             UrlMatcherInner::Regex(regex) => {
-                map.regex.push((regex,Box::new(f)));
-            },
+                map.regex.push((regex, Box::new(f)));
+            }
         }
     }
     /// Adds a default handler for all requests of a certain type
@@ -180,16 +183,18 @@ impl Handler {
     pub fn get_handler(&self, method: &HttpMethod, url: &str) -> Option<&dyn RequestHandler> {
         let handler = self.handlers.get(method)?;
 
-        handler.exact
+        handler
+            .exact
             .get(url)
             .or_else(|| {
-                handler.regex
+                handler
+                    .regex
                     .iter()
-                    .find(|(r,_)| r.test(url))
-                    .map(|(_,f)| f)
+                    .find(|(r, _)| r.test(url))
+                    .map(|(_, f)| f)
             })
-        .or(handler.def.as_ref())
-        .map(|b| &**b)
+            .or(handler.def.as_ref())
+            .map(|b| &**b)
     }
     /// Handles a request if it finds a [`RequestHandler`] for it.
     /// Else, it returns a 403 FORBIDDEN response
