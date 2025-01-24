@@ -101,12 +101,10 @@ impl HttpServer {
     ///
     pub fn new(config: ServerConfig) -> Result<Self> {
         let address = format!("::0:{}", config.port);
-        let listener = TcpListener::bind(address).map_err(|err| {
-            format!("Could not bind to port {}: {}", config.port, err)
-        })?;
-        let pool = ThreadPool::new(config.pool_conf).map_err(|_| {
-            "Error initializing thread pool"
-        })?;
+        let listener = TcpListener::bind(address)
+            .map_err(|err| format!("Could not bind to port {}: {}", config.port, err))?;
+        let pool =
+            ThreadPool::new(config.pool_conf).map_err(|_| "Error initializing thread pool")?;
         let handler = Some(Handler::new());
         let srv = Self {
             listener,
@@ -155,7 +153,8 @@ impl Default for HttpServer {
     fn default() -> Self {
         let conf = ServerConfig::default();
         #[allow(clippy::expect_used)]
-        let mut srv = Self::new(conf).expect("Fatal error: HttpServer failed to initialize with default config");
+        let mut srv = Self::new(conf)
+            .expect("Fatal error: HttpServer failed to initialize with default config");
         let handler = Handler::default();
         srv.set_handler(handler);
         srv

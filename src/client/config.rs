@@ -65,7 +65,7 @@ impl ClientConfig {
         conf.url = url.to_string();
 
         if conf.host.is_empty() {
-            return Err("Missing host".into())
+            return Err("Missing host".into());
         }
 
         Ok(conf)
