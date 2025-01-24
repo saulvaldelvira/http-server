@@ -73,7 +73,10 @@ pub fn main() {
         auth.apply(|req: &mut HttpRequest| req.respond_str("Secret message")),
     );
 
-    let mut server = HttpServer::new(config);
+    let mut server = HttpServer::new(config).unwrap_or_else(|err| {
+        eprintln!("ERROR: {err}");
+        std::process::exit(1)
+    });
     server.set_handler(handler);
     server.run();
 }

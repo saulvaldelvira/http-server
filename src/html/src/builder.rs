@@ -22,10 +22,13 @@ impl<'a> HtmlBuilder<'a> {
     /// </html>
     /// ```
     pub fn new() -> Self {
-        let root = html!("html", [
-            html!("head", [html!("meta", {"charset": "UTF-8"})]),
-            html!("body")
-        ]);
+        let root = html!(
+            "html",
+            [
+                html!("head", [html!("meta", {"charset": "UTF-8"})]),
+                html!("body")
+            ]
+        );
         Self { root }
     }
     /// Create a new [HtmlBuilder] with a title

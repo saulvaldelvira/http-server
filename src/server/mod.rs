@@ -95,24 +95,26 @@ fn handle_connection(
 impl HttpServer {
     /// Create a new HTTP Server
     ///
-    /// # Panics
+    /// # Errors
     /// - If the server fails to bind to the TCP port
     /// - If the thread pool fails to initialize
     ///
-    #[must_use]
-    pub fn new(config: ServerConfig) -> Self {
+    pub fn new(config: ServerConfig) -> Result<Self> {
         let address = format!("::0:{}", config.port);
-        let listener = TcpListener::bind(address).unwrap_or_else(|err| {
-            panic!("Could not bind to port {}: {}", config.port, err);
-        });
-        let pool = ThreadPool::new(config.pool_conf).expect("Error initializing thread pool");
+        let listener = TcpListener::bind(address).map_err(|err| {
+            format!("Could not bind to port {}: {}", config.port, err)
+        })?;
+        let pool = ThreadPool::new(config.pool_conf).map_err(|_| {
+            "Error initializing thread pool"
+        })?;
         let handler = Some(Handler::new());
-        Self {
+        let srv = Self {
             listener,
             pool,
             handler,
             config,
-        }
+        };
+        Ok(srv)
     }
     /// Starts the server
     #[allow(clippy::missing_panics_doc)]
@@ -147,9 +149,13 @@ impl Default for HttpServer {
     ///
     /// - Configuration: [`ServerConfig::default`]
     /// - Handler: [`Handler::default`]
+    ///
+    /// # Panics
+    /// If the [`HttpServer`] fails to initialize
     fn default() -> Self {
         let conf = ServerConfig::default();
-        let mut srv = Self::new(conf);
+        #[allow(clippy::expect_used)]
+        let mut srv = Self::new(conf).expect("Fatal error: HttpServer failed to initialize with default config");
         let handler = Handler::default();
         srv.set_handler(handler);
         srv

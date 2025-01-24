@@ -79,19 +79,28 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     }
     files.sort_by_key(DirEntry::path);
 
-    let mut table = html!("table", [html!("tr", [
-        html!("th"),
-        html!("th", {text: "Name"}),
-        html!("th", {text: "Size"}),
-    ])]);
+    let mut table = html!(
+        "table",
+        [html!(
+            "tr",
+            [
+                html!("th"),
+                html!("th", {text: "Name"}),
+                html!("th", {text: "Size"}),
+            ]
+        )]
+    );
     if let Some(parent) = Path::new(filename).parent() {
         if parent.starts_with(cwd) {
             let url = parent.strip_prefix(cwd)?;
             let url = encode_path(url, show_hidden)?;
-            table.append(html!("tr", [
-                html!("td", {text: "&larr; "}),
-                html!("td", [html!("a", {"href": url},{text: ".."})]),
-            ]));
+            table.append(html!(
+                "tr",
+                [
+                    html!("td", {text: "&larr; "}),
+                    html!("td", [html!("a", {"href": url},{text: ".."})]),
+                ]
+            ));
         }
     }
     for file in files {
@@ -109,12 +118,16 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
             "&#128456;"
         };
         let url = path.strip_prefix(cwd)?;
-        let mut tr = html!("tr", [
-            html!("td", {text: icon}),
-            html!("td", [
-                html!("a", {"href": encode_path(url,show_hidden)?}, {text: text}),
-            ]),
-        ]);
+        let mut tr = html!(
+            "tr",
+            [
+                html!("td", {text: icon}),
+                html!(
+                    "td",
+                    [html!("a", {"href": encode_path(url,show_hidden)?}, {text: text}),]
+                ),
+            ]
+        );
         if file.is_file() {
             html!("td", {text: size_human(file.len())}).append_to(&mut tr);
         }

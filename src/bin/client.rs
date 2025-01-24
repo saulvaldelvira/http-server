@@ -17,7 +17,10 @@ fn open_file(fname: &str) -> Box<dyn Write> {
 }
 
 pub fn main() -> http_srv::Result<()> {
-    let conf = ClientConfig::parse(env::args().skip(1)).unwrap();
+    let conf = ClientConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
+        eprint!("ERROR: {err}");
+        std::process::exit(1)
+    });
 
     let addrs = conf.host.to_socket_addrs().unwrap().next().unwrap();
 
