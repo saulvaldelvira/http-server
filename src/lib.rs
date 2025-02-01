@@ -34,6 +34,8 @@
 mod log;
 pub mod server;
 
+pub use http::{self, request, response, HttpRequest, HttpResponse};
+
 #[doc(hidden)]
 pub mod prelude {
     pub use http::{
