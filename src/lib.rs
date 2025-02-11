@@ -54,7 +54,7 @@ use prelude::*;
 
 /// Result type for the [`http_srv`](self) crate
 ///
-/// It serves as a shortcut for an [`std::result::Result`]<T,[`ServerError`]>
+/// It serves as a shortcut for an [`std::result::Result`]<T,[`HttpError`]>
 pub type Result<T> = std::result::Result<T, HttpError>;
 
 pub mod client;

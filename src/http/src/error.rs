@@ -12,17 +12,17 @@ use std::{
 pub struct HttpError(Cow<'static, str>);
 
 impl HttpError {
-    /// Creates a [`ServerError`] from a &'static [str]
+    /// Creates a [`HttpError`] from a &'static [str]
     #[inline]
     pub fn new(msg: impl Into<Cow<'static, str>>) -> Self {
         Self(msg.into())
     }
-    /// Turns the [`ServerError`] into a [Result]<T`ServerError`or]>
+    /// Turns the [`HttpError`] into a [Result]<T,[`HttpError`]>
     #[inline]
     pub fn err<T>(self) -> Result<T, Self> {
         Err(self)
     }
-    /// Gets the message inside the [`ServerError`]
+    /// Gets the message inside the [`HttpError`]
     #[inline]
     #[must_use]
     pub fn get_message(&self) -> &str {

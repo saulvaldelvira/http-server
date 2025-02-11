@@ -1,4 +1,8 @@
 Http Server
 ===========
-Simple HTTP Server in rust.
 
+Simple HTTP server + client in rust.
+
+== Documentation ==
+To build the documentation, run `cargo doc`
+Or browse it online at https://docs.rs/http-srv
