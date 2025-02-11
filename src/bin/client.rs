@@ -22,7 +22,8 @@ pub fn main() -> http_srv::Result<()> {
         std::process::exit(1)
     });
 
-    let addrs = conf.host.to_socket_addrs().unwrap().next().unwrap();
+    let addr = format!("{}:{}", conf.host, conf.port);
+    let addrs = addr.to_socket_addrs().unwrap().next().unwrap();
 
     let mut out: Box<dyn Write> = match conf.out_file {
         config::OutFile::Stdout => Box::new(stdout()),

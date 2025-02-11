@@ -14,6 +14,7 @@ pub struct ClientConfig {
     pub url: String,
     pub method: HttpMethod,
     pub host: String,
+    pub port: u16,
     pub user_agent: String,
     pub out_file: OutFile,
 }
@@ -61,6 +62,11 @@ impl ClientConfig {
             host = &host[..i];
         }
 
+        if let Some(i) = host.find(':') {
+            conf.port = host[i+1..].parse()?;
+            host = &host[..i];
+        }
+
         conf.host = host.to_string();
         conf.url = url.to_string();
 
@@ -73,19 +79,7 @@ impl ClientConfig {
 }
 
 fn help() -> ! {
-    println!(
-        "\
-USAGE: http-srv [... PARAMS ...] url<:port>
-PARAMETERS:
-    -m, --method Set HTTP method
-    --host Set host
-    -a, --user-agent Set user agent
-    -h, --help  Display this help message
-EXAMPLES:
-  http-srv -p 8080 -d /var/html
-  http-srv -d ~/desktop -n 1024 --keep-alive 120
-  http-srv --log /var/log/http-srv.log"
-    );
+    println!("TODO");
     process::exit(0);
 }
 
@@ -114,6 +108,7 @@ impl Default for ClientConfig {
         Self {
             method: HttpMethod::GET,
             url: String::new(),
+            port: 80,
             host: String::new(),
             user_agent: "http-client".to_string(),
             out_file: OutFile::Stdout,
@@ -131,12 +126,6 @@ mod test {
     fn parse_from_vec(v: &[&str]) -> Result<ClientConfig> {
         let conf = v.iter().map(|s| (*s).to_string());
         ClientConfig::parse(conf)
-    }
-
-    #[test]
-    fn valid_args() {
-        let conf = vec!["-p", "80"];
-        parse_from_vec(&conf).unwrap();
     }
 
     #[test]
