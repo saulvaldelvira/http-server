@@ -27,7 +27,7 @@ use crate::{
 /// use http_srv::request::HttpRequest;
 ///
 /// let config = ServerConfig::default();
-/// let mut server = HttpServer::new(config);
+/// let mut server = HttpServer::new(config).unwrap();
 /// let mut handler = Handler::new();
 /// handler.get("/", |req: &mut HttpRequest| {
 ///     req.ok()

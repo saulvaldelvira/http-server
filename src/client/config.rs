@@ -63,7 +63,7 @@ impl ClientConfig {
         }
 
         if let Some(i) = host.find(':') {
-            conf.port = host[i+1..].parse()?;
+            conf.port = host[i + 1..].parse()?;
             host = &host[..i];
         }
 

@@ -17,7 +17,7 @@
 //!     req.respond_str(&msg)
 //! });
 //!
-//! let mut server = HttpServer::new(config);
+//! let mut server = HttpServer::new(config).unwrap();
 //! server.set_handler(handler);
 //! server.run();
 //! ```

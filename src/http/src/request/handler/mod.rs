@@ -96,9 +96,9 @@ impl From<String> for UrlMatcher {
 ///
 /// # Example
 /// ```
-/// use http_srv::request::handler::{self,*};
-/// use http_srv::request::HttpRequest;
-/// use http_srv::http::HttpMethod;
+/// use http::request::handler::{self,*};
+/// use http::request::HttpRequest;
+/// use http::HttpMethod;
 ///
 /// let mut handler = Handler::new();
 /// handler.get("/", |req: &mut HttpRequest| {

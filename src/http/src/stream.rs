@@ -44,8 +44,7 @@ enum HttpStreamInner {
 /// that are not parsed from any source
 ///
 /// ```
-/// use http_srv::http::*;
-/// use http_srv::request::*;
+/// use http::*;
 /// use std::net::TcpStream;
 ///
 /// fn from_str() -> HttpRequest {

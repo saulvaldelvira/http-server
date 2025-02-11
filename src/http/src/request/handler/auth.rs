@@ -15,8 +15,8 @@ use crate::{err, HttpRequest, Result};
 ///
 /// # Example
 /// ```
-/// use http_srv::prelude::*;
-/// use http_srv::request::handler::AuthConfig;
+/// use http::*;
+/// use http::request::handler::*;
 ///
 /// let auth = AuthConfig::of_list(&[("user", "passwd")]);
 ///
