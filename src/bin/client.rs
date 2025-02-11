@@ -18,7 +18,7 @@ fn open_file(fname: &str) -> Box<dyn Write> {
 
 pub fn main() -> http_srv::Result<()> {
     let conf = ClientConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
-        eprint!("ERROR: {err}");
+        eprintln!("ERROR: {err}");
         std::process::exit(1)
     });
 
@@ -63,7 +63,7 @@ pub fn main() -> http_srv::Result<()> {
 
     match result.write_to(&mut out) {
         Ok(_) => { /* eprintln!("\n\n{n} bytes transfered") */ }
-        Err(err) => eprint!("\n\nERROR: {err}"),
+        Err(err) => eprintln!("\n\nERROR: {err}"),
     }
 
     Ok(())
