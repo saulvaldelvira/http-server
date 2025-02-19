@@ -34,18 +34,17 @@
 pub use http::{self, request, response, HttpRequest, HttpResponse};
 pub mod config;
 
+pub mod handler;
+
 #[doc(hidden)]
 pub mod prelude {
-    pub use http::{
-        request::{
-            handler::{self, AuthConfig, Handler},
-            HttpRequest,
-        },
-        response::*,
-        *,
-    };
+    pub use http::{request::HttpRequest, response::*, *};
 
-    pub use crate::{config::*, HttpServer};
+    pub use crate::{
+        config::*,
+        handler::{self, AuthConfig, Handler},
+        HttpServer,
+    };
 }
 use prelude::*;
 
@@ -75,7 +74,7 @@ use log::prelude::*;
 /// ```rust,no_run
 /// use http_srv::HttpServer;
 /// use http_srv::ServerConfig;
-/// use http_srv::http::request::handler::Handler;
+/// use http_srv::handler::Handler;
 /// use http_srv::request::HttpRequest;
 ///
 /// let config = ServerConfig::default();

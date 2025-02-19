@@ -12,14 +12,12 @@ use std::{
 };
 
 pub use auth::AuthConfig;
+use http::HttpMethod;
 use mime::Mime;
 use regexpr::Regex;
 
 use self::{indexing::index_of, ranges::get_range_for};
-use crate::{
-    request::{HttpMethod, HttpRequest},
-    Result,
-};
+use crate::{request::HttpRequest, Result};
 
 /* /// HandlerFunc trait */
 /* /// */
@@ -69,7 +67,8 @@ pub struct UrlMatcher(UrlMatcherInner);
 
 impl UrlMatcher {
     pub fn regex(src: &str) -> Result<Self> {
-        Ok(UrlMatcher(UrlMatcherInner::Regex(Regex::compile(src)?)))
+        let regex = Regex::compile(src).map_err(|err| err.to_string())?;
+        Ok(UrlMatcher(UrlMatcherInner::Regex(regex)))
     }
     #[must_use]
     pub fn literal(src: String) -> Self {
@@ -96,7 +95,7 @@ impl From<String> for UrlMatcher {
 ///
 /// # Example
 /// ```
-/// use http::request::handler::{self,*};
+/// use http_srv::handler::{self,*};
 /// use http::request::HttpRequest;
 /// use http::HttpMethod;
 ///

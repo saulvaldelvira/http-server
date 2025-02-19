@@ -1,6 +1,6 @@
 [package]
 name = "http-utils"
-version = "0.1.2"
+version = "0.2.0"
 edition = "2021"
 description = "Http utils"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
@@ -13,10 +13,7 @@ path = "src/lib.rs"
 
 [dependencies]
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
-mime = { package = "rmime", version = ">=0.1.0", path = "../mime" }
 url = { package = "url-utils", version = ">=0.1.0", path = "../url" }
-html = { package = "rhtml", version = ">=0.1.0", path = "../html" }
-regexpr = { version = ">=0.3.3", git = "https://github.com/saulvaldelvira/regexpr" }
 
 [dependencies.builders]
 package = "builders"
