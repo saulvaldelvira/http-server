@@ -1,0 +1,15 @@
+[package]
+name = "httpcli"
+version = "0.1.0"
+edition = "2021"
+description = "Http client"
+authors = ["Saúl Valdelvira <saul@saulv.es>"]
+license = "MIT"
+repository = "https://git.saulv.es/http-server"
+
+[[bin]]
+name = "http-client"
+path = "src/main.rs"
+
+[dependencies]
+http.workspace = true

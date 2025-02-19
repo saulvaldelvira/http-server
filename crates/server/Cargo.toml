@@ -1,0 +1,15 @@
+[package]
+name = "http-srv"
+description = "Http Server"
+authors = ["Saúl Valdelvira <saul@saulv.es>"]
+version = "0.3.3"
+edition = "2021"
+license = "MIT"
+readme = "README"
+repository = "https://git.saulv.es/http-server"
+
+[dependencies]
+http.workspace = true
+pool = { package = "job-pool", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/job-pool" }
+jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
+delay_init = { package = "delay_init" , version = ">=0.2.0", git = "https://github.com/saulvaldelvira/delay-init" }

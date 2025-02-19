@@ -1,4 +1,59 @@
+//! Http Server Crate
+//!
+//! This crate contains all the libraries necessary to run an HTTP Server
+//!
+//! # Example
+//! ```rust,no_run
+//! use http_srv::prelude::*;
+//!
+//! let config = ServerConfig::default();
+//!
+//! let mut handler = Handler::new();
+//! handler.add_default(HttpMethod::GET, handler::cat_handler);
+//! handler.get("/", handler::root_handler);
+//! handler.get("/hello", |req: &mut HttpRequest| {
+//!     let name = req.param("name").unwrap_or("friend");
+//!     let msg = format!("Hello {name}!");
+//!     req.respond_str(&msg)
+//! });
+//!
+//! let mut server = HttpServer::new(config).unwrap();
+//! server.set_handler(handler);
+//! server.run();
+//! ```
+
+#![deny(
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::expect_used,
+    unused_must_use
+)]
+#![warn(clippy::pedantic)]
+#![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
+
+pub use http::{self, request, response, HttpRequest, HttpResponse};
 pub mod config;
+
+#[doc(hidden)]
+pub mod prelude {
+    pub use http::{
+        request::{
+            handler::{self, AuthConfig, Handler},
+            HttpRequest,
+        },
+        response::*,
+        *,
+    };
+
+    pub use crate::{config::*, HttpServer};
+}
+use prelude::*;
+
+/// Result type for the [`http_srv`](self) crate
+///
+/// It serves as a shortcut for an [`std::result::Result`]<T,[`HttpError`]>
+pub type Result<T> = std::result::Result<T, HttpError>;
+
 use std::{
     net::{TcpListener, TcpStream},
     sync::Arc,
@@ -9,11 +64,8 @@ pub use config::ServerConfig;
 use http::HttpStream;
 use pool::ThreadPool;
 
-use crate::{
-    log_error,
-    request::{handler::Handler, HttpRequest},
-    Result,
-};
+mod log;
+use log::prelude::*;
 
 /// HTTP Server
 ///
@@ -21,9 +73,9 @@ use crate::{
 ///
 /// # Example
 /// ```rust,no_run
-/// use http_srv::server::HttpServer;
-/// use http_srv::server::ServerConfig;
-/// use http_srv::request::handler::Handler;
+/// use http_srv::HttpServer;
+/// use http_srv::ServerConfig;
+/// use http_srv::http::request::handler::Handler;
 /// use http_srv::request::HttpRequest;
 ///
 /// let config = ServerConfig::default();

@@ -1,54 +1,13 @@
 [workspace]
+resolver = "2"
 members = [
-    "src/html",
-    "src/url",
-    "src/mime"
-, "src/http"]
-
-[package]
-name = "http-srv"
-description = "Http Server"
-authors = ["Saúl Valdelvira <saul@saulv.es>"]
-version = "0.3.3"
-edition = "2021"
-license = "MIT"
-readme = "README"
-repository = "https://git.saulv.es/http-server"
-default-run = "http-srv"
-
-[[bin]]
-name = "http-client"
-path = "src/bin/client.rs"
-required-features = ["client"]
-
-[[bin]]
-name = "http-srv"
-path = "src/bin/server.rs"
-required-features = ["server"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-http = { package = "http-utils", path = "src/http", version = ">=0.1.0" }
-pool = { package = "job-pool", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/job-pool" }
-jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
-delay_init = { package = "delay_init" , version = ">=0.2.0", git = "https://github.com/saulvaldelvira/delay-init" }
+    "crates/html",
+    "crates/url",
+    "crates/mime",
+    "crates/http",
+    "crates/client",
+    "crates/server"
+]
 
 [workspace.dependencies]
-url = { package = "url-utils", version = ">=0.1.0", path = "src/url" }
-base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
-html = { package = "rhtml", version = ">=0.1.0", path = "src/html" }
-mime = { package = "rmime", version = ">=0.1.0", path = "src/mime" }
-regexpr = { version = ">=0.3.3", git = "https://github.com/saulvaldelvira/regexpr" }
-
-[workspace.dependencies.builders]
-package = "builders"
-default-features = false
-features = ["builder"]
-version = ">=0.1.0"
-git = "https://github.com/saulvaldelvira/builders"
-
-[features]
-default = ["client", "server"]
-client = []
-server = []
+http = { package = "http-utils", path = "crates/http", version = ">=0.1.0" }

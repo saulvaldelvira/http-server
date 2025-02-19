@@ -1,0 +1,7 @@
+Url Utils
+=========
+Utility functions for url Percent encoding and decoding
+
+== Documentation ==
+To build the documentation, run `cargo doc`
+Or browse it online at https://docs.rs/url-utils

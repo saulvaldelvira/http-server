@@ -54,7 +54,7 @@ fn get_default_conf_file() -> Option<PathBuf> {
 ///
 /// # Example
 /// ```
-/// use http_srv::server::ServerConfig;
+/// use http_srv::ServerConfig;
 /// use pool::PoolConfig;
 ///
 /// let pool_conf = PoolConfig::builder()
@@ -308,7 +308,7 @@ impl Default for ServerConfig {
 mod test {
     #![allow(clippy::unwrap_used)]
 
-    use super::ServerConfig;
+    use crate::ServerConfig;
 
     #[test]
     fn valid_args() {

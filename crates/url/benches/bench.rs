@@ -14,7 +14,7 @@ fn encode_nop(b: &mut Bencher) {
         }
     }
     b.iter(|| {
-        url_utils::encode(&s).unwrap();
+        url::encode(&s).unwrap();
     });
 }
 
@@ -28,7 +28,7 @@ fn encode(b: &mut Bencher) {
         s.push('ñ');
     }
     b.iter(|| {
-        url_utils::encode(&s).unwrap();
+        url::encode(&s).unwrap();
     });
 }
 
@@ -41,7 +41,7 @@ fn decode_nop(b: &mut Bencher) {
         }
     }
     b.iter(|| {
-        url_utils::decode(&s).unwrap();
+        url::decode(&s).unwrap();
     });
 }
 
@@ -55,6 +55,6 @@ fn decode(b: &mut Bencher) {
         s.push('+');
     }
     b.iter(|| {
-        url_utils::decode(&s).unwrap();
+        url::decode(&s).unwrap();
     });
 }

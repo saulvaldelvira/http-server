@@ -7,7 +7,7 @@ use std::{
 };
 
 use http::{HttpMethod, HttpRequest, HttpStream};
-use http_srv::client::{config, ClientConfig};
+use httpcli::*;
 
 fn open_file(fname: &str) -> Box<dyn Write> {
     Box::new(File::create(fname).unwrap_or_else(|_| {
@@ -16,7 +16,7 @@ fn open_file(fname: &str) -> Box<dyn Write> {
     }))
 }
 
-pub fn main() -> http_srv::Result<()> {
+pub fn main() -> http::Result<()> {
     let conf = ClientConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
         eprintln!("ERROR: {err}");
         std::process::exit(1)

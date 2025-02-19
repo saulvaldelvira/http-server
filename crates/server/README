@@ -1,0 +1,8 @@
+Http Server
+===========
+
+Simple HTTP server
+
+== Documentation ==
+To build the documentation, run `cargo doc`
+Or browse it online at https://docs.rs/http-srv
