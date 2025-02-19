@@ -1,21 +1,34 @@
-mod stream;
-pub use stream::HttpStream;
-
-mod status;
-pub use status::StatusCode;
-
-mod method;
-pub use method::HttpMethod;
+//! Http utils
+//!
+//! This crate contains utilities to work with the HTTP protocol
+//!
+//! # Example
+//! ```rust,no_run
+//! use http::prelude::*;
+//! use std::net::TcpStream;
+//!
+//! let req = HttpRequest::builder()
+//!             .method(HttpMethod::GET)
+//!             .url("/")
+//!             .build().unwrap();
+//! let tcp = TcpStream::connect("127.0.0.1:80").unwrap();
+//! req.send_to(HttpStream::from(tcp)).unwrap();
+//! ```
 
 pub mod encoding;
-
-pub mod request;
-pub use request::HttpRequest;
-
-pub mod response;
-pub use response::HttpResponse;
-
 mod error;
-pub use error::HttpError;
+mod method;
+pub mod request;
+pub mod response;
+mod status;
+mod stream;
+
+pub mod prelude {
+    pub use crate::{
+        error::HttpError, method::HttpMethod, request::HttpRequest, response::HttpResponse,
+        status::StatusCode, stream::HttpStream,
+    };
+}
+pub use prelude::*;
 
 pub type Result<T> = std::result::Result<T, HttpError>;

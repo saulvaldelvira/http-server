@@ -7,7 +7,8 @@ use std::{
 };
 
 use http::{HttpMethod, HttpRequest, HttpStream};
-use httpcli::*;
+mod config;
+use config::ClientConfig;
 
 fn open_file(fname: &str) -> Box<dyn Write> {
     Box::new(File::create(fname).unwrap_or_else(|_| {
