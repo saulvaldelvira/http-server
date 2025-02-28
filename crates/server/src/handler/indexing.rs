@@ -1,10 +1,10 @@
 use std::{
     env,
-    fs::{read_dir, DirEntry},
+    fs::{DirEntry, read_dir},
     path::Path,
 };
 
-use html::{html, HtmlBuilder, HtmlNode};
+use html::{HtmlBuilder, HtmlNode, html};
 
 use crate::Result;
 

@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, boxed::Box};
 use core::{
-    ffi::{c_char, CStr},
+    ffi::{CStr, c_char},
     ptr, slice,
 };
 
@@ -34,7 +34,7 @@ unsafe fn __bind_fn(ptr: *const c_char, f: fn(&str) -> crate::Result<Cow<str>>) 
                         ptr: bor.as_ptr(),
                         len: bor.len(),
                         __is_owned: false,
-                    }
+                    };
                 }
             }
         }
@@ -52,9 +52,9 @@ unsafe fn __bind_fn(ptr: *const c_char, f: fn(&str) -> crate::Result<Cow<str>>) 
 ///
 /// # Safety
 /// ptr must be a valid null-terminated C-string
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn url_decode(ptr: *const c_char) -> Buffer {
-    __bind_fn(ptr, crate::decode)
+    unsafe { __bind_fn(ptr, crate::decode) }
 }
 
 /// Encodes the given string
@@ -63,13 +63,13 @@ pub unsafe extern "C" fn url_decode(ptr: *const c_char) -> Buffer {
 ///
 /// # Safety
 /// ptr must be a valid null-terminated C-string
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn url_encode(ptr: *const c_char) -> Buffer {
-    __bind_fn(ptr, crate::encode)
+    unsafe { __bind_fn(ptr, crate::encode) }
 }
 
 /// Frees the given buffer
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "C" fn url_buffer_free(ptr: Buffer) {
     if ptr.__is_owned && !ptr.ptr.is_null() {
         let slice = unsafe { slice::from_raw_parts_mut(ptr.ptr as *mut u8, ptr.len) };

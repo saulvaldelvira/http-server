@@ -3,7 +3,7 @@ name = "url-utils"
 description = "Url Encode and Decode"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
 version = "0.1.2"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 readme = "README"
 

@@ -1,7 +1,7 @@
 use std::{
     env,
     fs::File,
-    io::{stdout, Write},
+    io::{Write, stdout},
     net::{TcpStream, ToSocketAddrs},
     process,
 };

@@ -31,7 +31,7 @@
 #![warn(clippy::pedantic)]
 #![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
 
-pub use http::{self, request, response, HttpRequest, HttpResponse};
+pub use http::{self, HttpRequest, HttpResponse, request, response};
 pub mod config;
 
 pub mod handler;
@@ -41,9 +41,9 @@ pub mod prelude {
     pub use http::{request::HttpRequest, response::*, *};
 
     pub use crate::{
+        HttpServer,
         config::*,
         handler::{self, AuthConfig, Handler},
-        HttpServer,
     };
 }
 use prelude::*;

@@ -3,7 +3,7 @@ name = "rhtml"
 description = "Html Utils"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
 version = "0.1.6"
-edition = "2021"
+edition = "2024"
 license = "MIT"
 readme = "README"
 

@@ -2,7 +2,7 @@
 name = "rmime"
 description = "MIME Type utils"
 version = "0.1.6"
-edition = "2021"
+edition = "2024"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
 license = "MIT"
 readme = "README"

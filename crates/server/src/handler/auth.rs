@@ -7,7 +7,7 @@ use std::{
 };
 
 use super::RequestHandler;
-use crate::{err, HttpRequest, Result};
+use crate::{HttpRequest, Result, err};
 
 /// Authentication Config
 ///

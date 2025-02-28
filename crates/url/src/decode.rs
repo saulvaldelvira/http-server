@@ -26,7 +26,7 @@ pub fn decode(url: &str) -> Result<Cow<str>> {
         let second = it.next().ok_or("Missing byte after '%'")?;
         let first = from_hex_digit(*first)?;
         let second = from_hex_digit(*second)?;
-        let c = first << 4 | second;
+        let c = (first << 4) | second;
         result.push(c);
     }
     let result = String::from_utf8(result).map_err(|err| err.to_string())?;

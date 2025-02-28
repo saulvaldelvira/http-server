@@ -1,6 +1,6 @@
 use std::{borrow::Cow, fmt::Display};
 
-use crate::{html, HtmlNode};
+use crate::{HtmlNode, html};
 
 /// Html Builder
 ///

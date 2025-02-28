@@ -1,5 +1,5 @@
 use std::{
-    io::{stderr, Write},
+    io::{Write, stderr},
     sync::Mutex,
 };
 

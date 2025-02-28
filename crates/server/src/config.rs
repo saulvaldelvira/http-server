@@ -12,8 +12,9 @@ use jsonrs::Json;
 use pool::PoolConfig;
 
 use crate::{
+    Result,
     log::{self},
-    log_info, log_warn, Result,
+    log_info, log_warn,
 };
 
 #[derive(Clone, Debug)]

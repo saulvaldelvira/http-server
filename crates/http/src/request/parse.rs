@@ -3,7 +3,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use crate::{err, request::HttpRequest, HttpStream, Result};
+use crate::{HttpStream, Result, err, request::HttpRequest};
 
 pub(super) fn parse_request(mut stream: BufReader<HttpStream>) -> Result<HttpRequest> {
     let mut line = String::new();

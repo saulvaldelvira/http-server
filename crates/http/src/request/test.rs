@@ -3,8 +3,8 @@
 use std::str::FromStr;
 
 use crate::{
-    request::HttpMethod::{self, *},
     HttpRequest,
+    request::HttpMethod::{self, *},
 };
 
 #[test]

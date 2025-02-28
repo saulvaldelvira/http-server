@@ -5,7 +5,7 @@ use std::{
     borrow::Cow,
     collections::HashMap,
     fs::{self, File, OpenOptions},
-    io::{self, stdout, BufReader, Read, Seek, SeekFrom, Write},
+    io::{self, BufReader, Read, Seek, SeekFrom, Write, stdout},
     ops::Range,
     path::Path,
     sync::Mutex,
@@ -17,7 +17,7 @@ use mime::Mime;
 use regexpr::Regex;
 
 use self::{indexing::index_of, ranges::get_range_for};
-use crate::{request::HttpRequest, Result};
+use crate::{Result, request::HttpRequest};
 
 /* /// HandlerFunc trait */
 /* /// */

@@ -1,6 +1,6 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{err, HttpError, Result};
+use crate::{HttpError, Result, err};
 
 /// Request Method
 ///
