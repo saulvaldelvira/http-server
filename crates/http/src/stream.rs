@@ -14,12 +14,22 @@ impl Read for StringStream {
         self.1 += n;
         Ok(n)
     }
+
+    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
+        const CHUNK_SIZE: usize = 1024;
+        let mut chunk: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
+        let n = self.1;
+        while self.read(&mut chunk)? > 0 {
+            buf.write_all(&chunk)?;
+        }
+        Ok(self.1 - n)
+    }
 }
 
 impl StringStream {
     fn peek(&self, buf: &mut [u8]) -> io::Result<usize> {
-        if self.1 >= self.0.len() {
-            return Err(io::Error::new(io::ErrorKind::WouldBlock, ""));
+        if buf.is_empty() || self.1 >= self.0.len() {
+            return Ok(0);
         }
         let src = &self.0[self.1..];
         let n = min(buf.len(), src.len());
@@ -85,6 +95,15 @@ impl HttpStream {
             HttpStreamInner::Dummy => Ok(0),
             HttpStreamInner::String(read, _) => read.peek(buf),
         }
+    }
+    pub fn is_ready(&self) -> std::io::Result<bool> {
+        let mut buf = [0_u8; 1];
+        let n = match &self.inner {
+            HttpStreamInner::Tcp(tcp_stream) => tcp_stream.peek(&mut buf)?,
+            HttpStreamInner::String(string_stream, _) => string_stream.peek(&mut buf)?,
+            HttpStreamInner::Dummy => 0,
+        };
+        Ok(n > 0)
     }
 }
 

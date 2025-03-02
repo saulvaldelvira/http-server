@@ -39,19 +39,13 @@ pub(super) fn parse_request(mut stream: BufReader<HttpStream>) -> Result<HttpReq
     /* Parse Headers */
     let mut headers = HashMap::new();
     while stream.read_line(&mut line).is_ok() {
-        if line == "\r\n" {
+        let l = line.trim();
+        if l.is_empty() {
             break;
         }
-        let mut splt = line.split(':');
+        let mut splt = l.split(':');
         let key = splt.next().unwrap_or("").into();
-        let value = splt
-            .next()
-            .unwrap_or("")
-            .strip_prefix(' ')
-            .unwrap_or("")
-            .strip_suffix("\r\n")
-            .unwrap_or("")
-            .into();
+        let value = splt.next().unwrap_or("").trim().into();
         headers.insert(key, value);
         line.clear();
     }

@@ -29,6 +29,8 @@ pub mod prelude {
         status::StatusCode, stream::HttpStream,
     };
 }
+
+#[doc(hidden)]
 pub use prelude::*;
 
 pub type Result<T> = std::result::Result<T, HttpError>;

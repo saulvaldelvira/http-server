@@ -77,6 +77,7 @@ impl HttpRequest {
     pub fn param(&self, key: &str) -> Option<&str> {
         self.params.get(key).map(AsRef::as_ref)
     }
+
     /// Get the filename for the request
     ///
     /// It computes the path in the server corresponding to the
@@ -88,6 +89,8 @@ impl HttpRequest {
         let cwd = cwd.to_str().ok_or("Error getting cwd")?;
         Ok(Box::from(cwd))
     }
+
+    /// Writes the request into the given [Write] object.
     pub fn write_to(&self, f: &mut dyn Write) -> Result<()> {
         write!(f, "{} {}", self.method(), self.url())?;
         if !self.params().is_empty() {
@@ -112,6 +115,7 @@ impl HttpRequest {
 
         Ok(())
     }
+
     /// Sends the ``HttpRequest`` to a [stream](HttpStream)
     ///
     /// # Errors
@@ -176,18 +180,64 @@ impl HttpRequest {
         self.response_headers.insert(key.into(), value.into());
     }
 
-    pub fn body(&mut self) -> Option<&[u8]> {
-        let len = self.content_length().max(32);
+    /// Reads the body from the stream into the buffer.
+    ///
+    /// This method is primarly used by [`body`](Self::body), and
+    /// for unit tests, where we need to force-load the body into
+    /// the stream's buffer.
+    pub(crate) fn read_body_into_buffer(&mut self) -> Result<()> {
+        let len = self.content_length();
         let mut buf = Vec::with_capacity(len);
-        if self.stream.read_to_end(&mut buf).is_ok() {
-            self.body = Some(buf.into_boxed_slice());
-        }
-        self.body.as_deref()
+        self.stream.read_to_end(&mut buf)?;
+        self.body = Some(buf.into_boxed_slice());
+        Ok(())
     }
+
+    /// Reads the body from the [`stream`] into the request's buffer.
+    ///
+    /// # NOTE
+    /// This loads the whole body of the request into memory,
+    /// and it'll stick with the request for it's lifetime.
+    /// It's not very efficient memory-wise for requests with big bodies.
+    ///
+    /// For a nicer way to process a request's body, see the
+    /// [read_body](Self::read_body) function.
+    ///
+    /// # Errors
+    /// If some IO error happens when reading the body from the [`stream`]
+    ///
+    /// # Returns
+    /// And option of &[u8]. A None variant means the request doesn't have a body.
+    /// For example, GET request don't usually have a body.
+    ///
+    /// [`stream`]: HttpStream
+    pub fn body(&mut self) -> Result<Option<&[u8]>> {
+        if self.body.is_none() {
+            self.read_body_into_buffer()?;
+        }
+        Ok(self.body.as_deref())
+    }
+
+    /// Returns true if the [`stream`](HttpStream) has a body,
+    /// and false if it's empty.
+    ///
+    /// This method is preferred to check the presence of a body,
+    /// over calling [body](Self::body) and checking the returned Option,
+    /// since this function doesn't allocate memory, nor mutates the request.
+    ///
+    /// # Errors
+    /// If some IO error happens in the process of checking the
+    /// [`stream`]'s availability
+    ///
+    /// [`stream`]: HttpStream
+    pub fn has_body(&self) -> Result<bool> {
+        Ok(self.stream.get_ref().is_ready()?)
+    }
+
     /// Reads the request body into [writer](Write)
     ///
     /// # Errors
-    /// If, while reading of writing, some io Error is found
+    /// If, while reading or writing, some io Error is found
     pub fn read_body(&mut self, writer: &mut dyn Write) -> Result<()> {
         const CHUNK_SIZE: usize = 1024;
         let mut buf: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
@@ -368,6 +418,7 @@ impl PartialEq for HttpRequest {
             && self.response_headers == other.response_headers
             && self.version == other.version
             && self.status == other.status
+            && self.body == other.body
     }
 }
 
