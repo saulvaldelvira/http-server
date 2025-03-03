@@ -5,21 +5,46 @@ pub trait StatusCode {
     /// Returns true if the status code of the
     /// request doesn't represent an OK status (200-300)
     fn is_http_err(&self) -> bool;
+
+    /// Returns true if the status code
+    /// indicates am user error (4XX)
+    fn is_user_err(&self) -> bool;
+    /// Returns true if the status code
+    /// indicates a server error (5XX)
+    fn is_server_err(&self) -> bool;
     /// Get a human-readable description of the request's status code
     fn status_msg(&self) -> &'static str;
 }
 
-impl StatusCode for u16 {
+macro_rules! into {
+    ($e:expr) => {
+        <Self as TryInto<u64>>::try_into(*$e)
+    };
+}
+
+impl<T: TryInto<u64> + Copy> StatusCode for T {
     #[inline]
     fn is_http_ok(&self) -> bool {
-        (200..300).contains(self)
+        into!(self).is_ok_and(|n| (200..300).contains(&n))
+    }
+    #[inline]
+    fn is_user_err(&self) -> bool {
+        into!(self).is_ok_and(|n| (400..500).contains(&n))
+    }
+    #[inline]
+    fn is_server_err(&self) -> bool {
+        into!(self).is_ok_and(|n| (500..600).contains(&n))
     }
     #[inline]
     fn is_http_err(&self) -> bool {
         !self.is_http_ok()
     }
+
     fn status_msg(&self) -> &'static str {
-        match self {
+        let Ok(n) = into!(self) else {
+            return "?";
+        };
+        match n {
             200 => "OK",
             201 => "CREATED",
             202 => "ACCEPTED",
@@ -55,5 +80,21 @@ impl StatusCode for u16 {
             500 => "INTERNAL SERVER ERROR",
             _ => "?",
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::StatusCode;
+
+    #[test]
+    fn code_test() {
+        for n in 200..300 {
+            assert!(n.is_http_ok());
+            assert!(!n.is_http_err());
+        }
+        assert!(!300.is_http_ok());
+        assert!(510.is_server_err());
+        assert!(!600.is_server_err());
     }
 }
