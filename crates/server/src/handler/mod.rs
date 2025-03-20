@@ -35,7 +35,7 @@ impl<T> Interceptor for T where T: Fn(&mut HttpRequest) + Send + Sync + 'static 
 
 #[derive(Default)]
 struct HandlerMethodAssoc {
-    exact: HashMap<String, Box<dyn RequestHandler>>,
+    exact: HashMap<Box<str>, Box<dyn RequestHandler>>,
     #[cfg(feature = "regex")]
     regex: Vec<(regexpr::Regex, Box<dyn RequestHandler>)>,
     def: Option<Box<dyn RequestHandler>>,
@@ -59,7 +59,7 @@ where
 }
 
 enum UrlMatcherInner {
-    Literal(String),
+    Literal(Box<str>),
     #[cfg(feature = "regex")]
     Regex(regexpr::Regex),
 }
@@ -73,19 +73,16 @@ impl UrlMatcher {
         Ok(UrlMatcher(UrlMatcherInner::Regex(regex)))
     }
     #[must_use]
-    pub fn literal(src: String) -> Self {
-        UrlMatcher(UrlMatcherInner::Literal(src))
+    pub fn literal(src: impl Into<Box<str>>) -> Self {
+        UrlMatcher(UrlMatcherInner::Literal(src.into()))
     }
 }
 
-impl From<&str> for UrlMatcher {
-    fn from(value: &str) -> Self {
-        Self::literal(value.to_string())
-    }
-}
-
-impl From<String> for UrlMatcher {
-    fn from(value: String) -> Self {
+impl<T> From<T> for UrlMatcher
+where
+    T: Into<Box<str>>,
+{
+    fn from(value: T) -> Self {
         Self::literal(value)
     }
 }
