@@ -11,10 +11,15 @@ repository = "https://git.saulv.es/http-server"
 [dependencies]
 http.workspace = true
 mime = { package = "rmime", version = ">=0.1.0", path = "../mime" }
-regexpr = { version = ">=0.3.3", git = "https://github.com/saulvaldelvira/regexpr" }
+regexpr = { version = ">=0.3.3", git = "https://github.com/saulvaldelvira/regexpr", optional = true }
 pool = { package = "job-pool", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/job-pool" }
 jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
 delay_init = { package = "delay_init" , version = ">=0.2.0", git = "https://github.com/saulvaldelvira/delay-init" }
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 url = { package = "url-utils", version = ">=0.1.0", path = "../url" }
 html = { package = "rhtml", version = ">=0.1.0", path = "../html" }
+
+[features]
+default = ["full"]
+regex = ["dep:regexpr"]
+full = ["regex"]

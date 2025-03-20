@@ -1,7 +1,6 @@
 use std::{env, process, thread, time::Duration};
 
 use encoding::StreamReader;
-use handler::UrlMatcher;
 use http_srv::prelude::*;
 
 pub fn main() {
@@ -50,8 +49,9 @@ pub fn main() {
 
     handler.get("/redirect", handler::redirect("/hello"));
 
+    #[cfg(feature = "regex")]
     handler.get(
-        UrlMatcher::regex(".*\\.php$").unwrap(),
+        handler::UrlMatcher::regex(".*\\.php$").unwrap(),
         |req: &mut HttpRequest| req.set_status(500).respond_str("PHP is not supported yet"),
     );
 

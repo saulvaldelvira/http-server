@@ -14,7 +14,6 @@ use std::{
 pub use auth::AuthConfig;
 use http::HttpMethod;
 use mime::Mime;
-use regexpr::Regex;
 
 use self::{indexing::index_of, ranges::get_range_for};
 use crate::{Result, request::HttpRequest};
@@ -37,7 +36,8 @@ impl<T> Interceptor for T where T: Fn(&mut HttpRequest) + Send + Sync + 'static 
 #[derive(Default)]
 struct HandlerMethodAssoc {
     exact: HashMap<String, Box<dyn RequestHandler>>,
-    regex: Vec<(Regex, Box<dyn RequestHandler>)>,
+    #[cfg(feature = "regex")]
+    regex: Vec<(regexpr::Regex, Box<dyn RequestHandler>)>,
     def: Option<Box<dyn RequestHandler>>,
 }
 
@@ -60,14 +60,16 @@ where
 
 enum UrlMatcherInner {
     Literal(String),
-    Regex(Regex),
+    #[cfg(feature = "regex")]
+    Regex(regexpr::Regex),
 }
 
 pub struct UrlMatcher(UrlMatcherInner);
 
 impl UrlMatcher {
+    #[cfg(feature = "regex")]
     pub fn regex(src: &str) -> Result<Self> {
-        let regex = Regex::compile(src).map_err(|err| err.to_string())?;
+        let regex = regexpr::Regex::compile(src).map_err(|err| err.to_string())?;
         Ok(UrlMatcher(UrlMatcherInner::Regex(regex)))
     }
     #[must_use]
@@ -153,6 +155,7 @@ impl Handler {
             UrlMatcherInner::Literal(lit) => {
                 map.exact.insert(lit, Box::new(f));
             }
+            #[cfg(feature = "regex")]
             UrlMatcherInner::Regex(regex) => {
                 map.regex.push((regex, Box::new(f)));
             }
@@ -180,20 +183,20 @@ impl Handler {
     /// Get the handler for a certain method and url
     #[must_use]
     pub fn get_handler(&self, method: &HttpMethod, url: &str) -> Option<&dyn RequestHandler> {
-        let handler = self.handlers.get(method)?;
+        let handler_table = self.handlers.get(method)?;
 
-        handler
-            .exact
-            .get(url)
-            .or_else(|| {
-                handler
-                    .regex
-                    .iter()
-                    .find(|(r, _)| r.test(url))
-                    .map(|(_, f)| f)
-            })
-            .or(handler.def.as_ref())
-            .map(|b| &**b)
+        let handler = handler_table.exact.get(url);
+
+        #[cfg(feature = "regex")]
+        let handler = handler.or_else(|| {
+            handler_table
+                .regex
+                .iter()
+                .find(|(r, _)| r.test(url))
+                .map(|(_, f)| f)
+        });
+
+        handler.or(handler_table.def.as_ref()).map(|b| &**b)
     }
     /// Handles a request if it finds a [`RequestHandler`] for it.
     /// Else, it returns a 403 FORBIDDEN response
