@@ -8,6 +8,7 @@ members = [
     "crates/client",
     "crates/server"
 ]
+default-members = ["crates/server"]
 
 [workspace.dependencies]
 http = { package = "http-utils", path = "crates/http", version = ">=0.1.0" }
