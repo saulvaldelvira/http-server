@@ -19,6 +19,8 @@ pub fn get_range_for(range: &str, len: u64) -> Result<Range<u64>> {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
+#[allow(clippy::panic)]
 mod test {
     use super::get_range_for;
 

@@ -170,20 +170,15 @@ impl HttpServer {
     pub fn run(mut self) {
         let handler = Arc::new(self.handler.take().unwrap());
         println!("Sever listening on port {}", self.config.port);
-        for stream in self.listener.incoming() {
-            match stream {
-                Ok(stream) => {
-                    let handler = Arc::clone(&handler);
-                    let timeout = self.config.keep_alive_timeout;
-                    let req = self.config.keep_alive_requests;
-                    self.pool.execute(move || {
-                        handle_connection(stream, &handler, timeout, req).unwrap_or_else(|err| {
-                            log_error!("{err}");
-                        });
-                    });
-                }
-                Err(_) => continue,
-            }
+        for stream in self.listener.incoming().flatten() {
+            let handler = Arc::clone(&handler);
+            let timeout = self.config.keep_alive_timeout;
+            let req = self.config.keep_alive_requests;
+            self.pool.execute(move || {
+                handle_connection(stream, &handler, timeout, req).unwrap_or_else(|err| {
+                    log_error!("{err}");
+                });
+            });
         }
         println!("Shutting down.");
     }

@@ -289,7 +289,7 @@ fn head_headers(req: &mut HttpRequest) -> Result<Option<Range<u64>>> {
             };
             req.set_status(status);
         }
-    };
+    }
     Ok(None)
 }
 
@@ -328,7 +328,7 @@ pub fn cat_handler(req: &mut HttpRequest) -> Result<()> {
     let range = head_headers(req)?;
     if req.is_http_err() {
         return req.respond_error_page();
-    };
+    }
     let filename = req.filename()?;
     if dir_exists(&filename) {
         let page = index_of(&filename, show_hidden(req))?;

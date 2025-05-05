@@ -221,7 +221,7 @@ impl ServerConfig {
                     }
                 }
                 _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
-            };
+            }
         }
         Ok(())
     }
