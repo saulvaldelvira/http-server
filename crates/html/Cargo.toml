@@ -2,10 +2,7 @@
 name = "rhtml"
 description = "Html Utils"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
-version = "0.1.6"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 readme = "README"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-

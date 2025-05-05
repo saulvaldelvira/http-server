@@ -2,7 +2,7 @@
 name = "http-srv"
 description = "Http Server"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 license = "MIT"
 readme = "README"
