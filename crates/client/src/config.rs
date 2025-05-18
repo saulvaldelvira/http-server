@@ -46,6 +46,7 @@ impl ClientConfig {
                 "--host" => conf.host = parse_next!(),
                 "-a" | "--user-agent" => conf.user_agent = parse_next!(),
                 "-h" | "--help" => help(),
+                "--license" => license(),
                 "-O" => conf.out_file = OutFile::GetFromUrl,
                 "-o" => conf.out_file = OutFile::Filename(parse_next!()),
                 _ => conf.url = arg,
@@ -79,7 +80,31 @@ impl ClientConfig {
 }
 
 fn help() -> ! {
-    println!("TODO");
+    println!(
+        "\
+http-client: Copyright (C) 2025 Saúl Valdelvira
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, version 3.
+Use http-client --license to read a copy of the GPL v3
+
+USAGE: http-client [--method <HTTP Method>] [--host <hostname>]
+                   [--user-agent <User Agent>] [-O] [-o <output-file>]
+PARAMETERS:
+    -m, --method    Set HTTP method
+    --host  Set target hostname
+    -a, --user-agent Set user agent string
+    -O  Get output filename from the url
+    -o  Set output filename
+    -h, --help Display this help guide
+    --license Display the license for this program"
+    );
+    process::exit(0);
+}
+
+fn license() -> ! {
+    println!(include_str!("../COPYING"));
     process::exit(0);
 }
 

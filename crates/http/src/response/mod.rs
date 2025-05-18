@@ -13,7 +13,7 @@ mod parse;
 /// An Http response
 #[derive(Builder, Debug)]
 pub struct HttpResponse {
-    #[builder(each = "header")]
+    #[builder(map = "header")]
     headers: HashMap<String, String>,
     #[builder(disabled = true)]
     #[builder(def = { BufReader::new(HttpStream::dummy()) })]

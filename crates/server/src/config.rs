@@ -126,6 +126,7 @@ impl ServerConfig {
                 }
                 "-r" | "--keep-alive-requests" => conf.keep_alive_requests = parse_next!(),
                 "-l" | "--log" => conf.log_file = Some(parse_next!()),
+                "--license" => license(),
                 "--log-level" => {
                     let n: u8 = parse_next!();
                     log::set_level(n.try_into()?);
@@ -254,22 +255,35 @@ impl ServerConfig {
 fn help() -> ! {
     println!(
         "\
+http-srv: Copyright (C) 2025 Saúl Valdelvira
+
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, version 3.
+Use http-srv --license to read a copy of the GPL v3
+
 USAGE: http-srv [-p <port>] [-n <n-workers>] [-d <working-dir>]
 PARAMETERS:
     -p, --port <port>    TCP Port to listen for requests
     -n, --n-workers <n>  Number of concurrent workers
     -d, --dir <working-dir>  Root directory of the server
     -k, --keep-alive <sec>   Keep alive seconds
-    -r, --keep-alive-requests <num>  Keep alive max requests
+    -r, --keep-alive-requests <num> Keep alive max requests
     -l, --log <file>   Set log file
-    --log-level <n>    Set log level
-    -h, --help  Display this help message
-    --conf <file> Use the given config file instead of the default one
+    -h, --help      Display this help message
+    --log-level <n> Set log level
+    --conf <file>   Use the given config file instead of the default one
+    --license       Output the license of this program
 EXAMPLES:
   http-srv -p 8080 -d /var/html
   http-srv -d ~/desktop -n 1024 --keep-alive 120
   http-srv --log /var/log/http-srv.log"
     );
+    process::exit(0);
+}
+
+fn license() -> ! {
+    println!(include_str!("../COPYING"));
     process::exit(0);
 }
 

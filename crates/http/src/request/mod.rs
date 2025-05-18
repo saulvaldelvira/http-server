@@ -20,11 +20,11 @@ use crate::{HttpMethod, HttpResponse, HttpStream, Result, StatusCode, encoding::
 pub struct HttpRequest {
     method: HttpMethod,
     url: Box<str>,
-    #[builder(each = "header")]
+    #[builder(map = "header")]
     headers: HashMap<Box<str>, Box<str>>,
-    #[builder(each = "param")]
+    #[builder(map = "param")]
     params: HashMap<Box<str>, Box<str>>,
-    #[builder(each = "response_header")]
+    #[builder(map = "response_header")]
     response_headers: HashMap<Box<str>, Box<str>>,
     #[builder(def = 1.0)]
     version: f32,
