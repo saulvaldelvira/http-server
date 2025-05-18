@@ -6,6 +6,7 @@ description = "Http utils"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
 license = "GPL-3.0-only"
 readme = "README"
+repository = "https://github.com/saulvaldelvira/http-server"
 
 [lib]
 name = "http"

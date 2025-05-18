@@ -2,11 +2,11 @@
 name = "http-srv"
 description = "Http Server"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
-version = "0.6.0"
+version = "0.6.1"
 edition = "2024"
 license = "GPL-3.0-only"
 readme = "README"
-repository = "https://git.saulv.es/http-server"
+repository = "https://github.com/saulvaldelvira/http-server"
 
 [dependencies]
 http.workspace = true

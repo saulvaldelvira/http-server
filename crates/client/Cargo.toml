@@ -5,7 +5,7 @@ edition = "2024"
 description = "Http client"
 authors = ["Saúl Valdelvira <saul@saulv.es>"]
 license = "GPL-3.0-only"
-repository = "https://git.saulv.es/http-server"
+repository = "https://github.com/saulvaldelvira/http-server"
 
 [[bin]]
 name = "http-client"
