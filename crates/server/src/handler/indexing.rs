@@ -1,10 +1,9 @@
+use core::fmt::Write;
 use std::{
     env,
     fs::{DirEntry, read_dir},
     path::Path,
 };
-
-use html::{HtmlBuilder, HtmlNode, html};
 
 use crate::Result;
 
@@ -57,21 +56,15 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     let cwd_path = env::current_dir()?;
     let cwd = path_to_str!(&cwd_path)?;
 
+    let mut html = String::from(
+        "<html><head><meta charset=\"UTF-8\" />\
+        <style>body{text-align:left;}\
+        td{padding-right:1em;}\
+        td:first-child{padding-right:0.2em;}</style></head><body>",
+    );
+
     let title = Path::new(filename).strip_prefix(cwd)?;
-    let title = "Index of /".to_owned() + path_to_str!(title)?;
-    let mut html = HtmlBuilder::with_title(&title);
-    html.body().append(html!("h1",{text: &title}));
-    html.head().append(html!("style", {text: "
-        body {
-            text-align: left;
-        }
-        td {
-            padding-right: 1em;
-        }
-        td:first-child {
-            padding-right: 0.2em;
-        }
-        ".replace([' ', '\n'], "")}));
+    html.write_fmt(format_args!("<h1>Index of / {}</h1>", path_to_str!(title)?))?;
 
     let mut files = Vec::new();
     for f in read_dir(filename)? {
@@ -79,19 +72,14 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     }
     files.sort_by_key(DirEntry::path);
 
-    let mut table = html!("table", [html!("tr", [
-        html!("th"),
-        html!("th", {text: "Name"}),
-        html!("th", {text: "Size"}),
-    ])]);
+    html.push_str("<table><tr><th>Name</th><th>Size</th></tr>");
     if let Some(parent) = Path::new(filename).parent() {
         if parent.starts_with(cwd) {
             let url = parent.strip_prefix(cwd)?;
             let url = encode_path(url, show_hidden)?;
-            table.append(html!("tr", [
-                html!("td", {text: "&larr; "}),
-                html!("td", [html!("a", {"href": url},{text: ".."})]),
-            ]));
+            html.write_fmt(format_args!(
+                "<tr><td>&larr;</td><td><a href=\"{url}\">..</a></td></tr>"
+            ))?;
         }
     }
     for file in files {
@@ -109,18 +97,15 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
             "&#128456;"
         };
         let url = path.strip_prefix(cwd)?;
-        let mut tr = html!("tr", [
-            html!("td", {text: icon}),
-            html!("td", [
-                html!("a", {"href": encode_path(url,show_hidden)?}, {text: text}),
-            ]),
-        ]);
-        if file.is_file() {
-            html!("td", {text: size_human(file.len())}).append_to(&mut tr);
-        }
-        table.append(tr);
-    }
 
-    html.body().append(table);
-    Ok(html.to_string())
+        let encoded_path = encode_path(url, show_hidden)?;
+        html.write_fmt(format_args!(
+            "<tr><td>{icon}</td><td><a href=\"{encoded_path}\">{text}</a></td>"
+        ))?;
+        html.write_fmt(format_args!("<td>{}</td>", size_human(file.len())))?;
+        html.write_str("</tr>")?;
+    }
+    html.push_str("</table></body></html>");
+
+    Ok(html)
 }

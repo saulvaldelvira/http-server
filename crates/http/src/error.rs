@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     borrow::Cow,
     fmt::{Debug, Display},
@@ -103,6 +104,12 @@ impl From<&'static str> for HttpError {
 impl From<String> for HttpError {
     fn from(value: String) -> Self {
         Self(value.into())
+    }
+}
+
+impl From<fmt::Error> for HttpError {
+    fn from(value: fmt::Error) -> Self {
+        Self(value.to_string().into())
     }
 }
 
