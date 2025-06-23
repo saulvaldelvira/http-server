@@ -69,6 +69,8 @@ fn get_default_conf_file() -> Option<PathBuf> {
 impl ServerConfig {
     /// Parse the configuration from the command line args
     pub fn parse<S: AsRef<str>>(args: &[S]) -> Result<Self> {
+        const CONFIG_FILE_ARG: &str = "--conf";
+
         let mut conf = Self::default();
 
         let mut conf_file = get_default_conf_file();
@@ -76,17 +78,18 @@ impl ServerConfig {
         /* Parse the --config-file before the rest */
         let mut first_pass = args.iter();
         while let Some(arg) = first_pass.next() {
-            if arg.as_ref() == "--config-file" {
-                if let Some(fname) = first_pass.next() {
-                    let filename = PathBuf::from(fname.as_ref());
-                    if filename.exists() {
-                        conf_file = Some(filename);
-                    } else {
-                        log_warn!(
-                            "Config path: {} doesn't exist",
-                            filename.as_os_str().to_str().unwrap_or("[??]")
-                        );
-                    }
+            if arg.as_ref() == CONFIG_FILE_ARG {
+                let fname = first_pass
+                    .next()
+                    .ok_or_else(|| format!("Missing argument for \"{CONFIG_FILE_ARG}\""))?;
+                let filename = PathBuf::from(fname.as_ref());
+                if filename.exists() {
+                    conf_file = Some(filename);
+                } else {
+                    log_warn!(
+                        "Config path: {} doesn't exist",
+                        filename.as_os_str().to_str().unwrap_or("[??]")
+                    );
                 }
             }
         }
@@ -131,7 +134,9 @@ impl ServerConfig {
                     let n: u8 = parse_next!();
                     log::set_level(n.try_into()?);
                 }
-                "--config-file" => {}
+                CONFIG_FILE_ARG => {
+                    let _ = args.next();
+                }
                 "-h" | "--help" => help(),
                 unknown => return Err(format!("Unknow argument: {unknown}").into()),
             }
