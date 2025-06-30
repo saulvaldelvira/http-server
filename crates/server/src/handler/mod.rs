@@ -16,7 +16,11 @@ use http::HttpMethod;
 use mime::Mime;
 
 use self::{indexing::index_of, ranges::get_range_for};
-use crate::{log::{self, LogLevel}, request::HttpRequest, Result};
+use crate::{
+    Result,
+    log::{self, LogLevel},
+    request::HttpRequest,
+};
 
 /* /// HandlerFunc trait */
 /* /// */

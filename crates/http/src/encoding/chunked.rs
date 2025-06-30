@@ -1,7 +1,7 @@
 use std::io::{Read, Result, Write};
 
 /// A reader for [HTTP Chunked transfer encoding]
-/// 
+///
 /// [HTTP Chunked transfer encoding]: <https://en.wikipedia.org/wiki/Chunked_transfer_encoding>
 pub struct Chunked<R: Read, const CHUNK_SIZE: usize = 1024> {
     reader: R,
@@ -17,7 +17,6 @@ impl<R: Read> Chunked<R> {
 }
 
 impl<R: Read, const CHUNK_SIZE: usize> Chunked<R, CHUNK_SIZE> {
-
     /// The size of the chunks
     pub const CHUNK_SIZE: usize = CHUNK_SIZE;
 
@@ -35,7 +34,7 @@ impl<R: Read, const CHUNK_SIZE: usize> Chunked<R, CHUNK_SIZE> {
         let mut tmpbuf: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
         let n = self.reader.read(&mut tmpbuf)?;
         if n == 0 {
-            return Ok(false)
+            return Ok(false);
         }
         self.chunk.write_all(format!("{n:X}\r\n").as_bytes())?;
         self.chunk.write_all(&tmpbuf[0..n])?;
@@ -44,16 +43,20 @@ impl<R: Read, const CHUNK_SIZE: usize> Chunked<R, CHUNK_SIZE> {
     }
 
     /// Returns the current chunk
-    /// 
+    ///
     /// # NOTE
-    /// This method returns the whole chunk, even the parts alredy 
+    /// This method returns the whole chunk, even the parts alredy
     /// read. If you want to know the remaining portion of the chunk
     /// that hasn't been polled, see [offset](Self::offset)
-    pub fn current_chunk(&self) -> &[u8] { &self.chunk }
+    pub fn current_chunk(&self) -> &[u8] {
+        &self.chunk
+    }
 
-    /// Returns the current offset. This is: The offset to the 
+    /// Returns the current offset. This is: The offset to the
     /// part of the current chunk that hasn't been read yet
-    pub fn offset(&self) -> usize { self.offset }
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
 }
 
 impl<R: Read, const CHUNK_SIZE: usize> Read for Chunked<R, CHUNK_SIZE> {

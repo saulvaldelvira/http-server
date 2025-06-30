@@ -57,7 +57,9 @@ impl Logger for StdErrLogger {
     fn set_level(&mut self, level: LogLevel) {
         self.0 = level;
     }
-    fn get_level(&self) -> LogLevel { self.0 }
+    fn get_level(&self) -> LogLevel {
+        self.0
+    }
 }
 
 #[cfg(not(debug_assertions))]

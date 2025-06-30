@@ -31,10 +31,7 @@ pub use stream::HttpStream;
 
 #[doc(hidden)]
 pub mod prelude {
-    pub use crate::{
-        HttpError, HttpMethod, HttpRequest, 
-        HttpResponse, StatusCode, HttpStream,
-    };
+    pub use crate::{HttpError, HttpMethod, HttpRequest, HttpResponse, HttpStream, StatusCode};
 }
 
 pub type Result<T> = std::result::Result<T, HttpError>;
