@@ -7,7 +7,7 @@ use delay_init::delay;
 
 use crate::HttpError;
 
-#[derive(PartialEq, PartialOrd)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub enum LogLevel {
     None = 0,
     Error = 1,
@@ -29,6 +29,11 @@ impl TryFrom<u8> for LogLevel {
     }
 }
 
+pub fn get_level() -> LogLevel {
+    #[allow(clippy::unwrap_used)]
+    LOGGER.lock().unwrap().get_level()
+}
+
 pub fn set_level(level: LogLevel) {
     #[allow(clippy::unwrap_used)]
     LOGGER.lock().unwrap().set_level(level);
@@ -37,6 +42,7 @@ pub fn set_level(level: LogLevel) {
 pub trait Logger: Send + Sync {
     fn log(&mut self, level: LogLevel, args: core::fmt::Arguments);
     fn set_level(&mut self, level: LogLevel);
+    fn get_level(&self) -> LogLevel;
 }
 
 struct StdErrLogger(LogLevel);
@@ -51,10 +57,17 @@ impl Logger for StdErrLogger {
     fn set_level(&mut self, level: LogLevel) {
         self.0 = level;
     }
+    fn get_level(&self) -> LogLevel { self.0 }
 }
 
+#[cfg(not(debug_assertions))]
+const DEFAULT_LOG_LEVEL: LogLevel = LogLevel::Warn;
+
+#[cfg(debug_assertions)]
+const DEFAULT_LOG_LEVEL: LogLevel = LogLevel::Info;
+
 delay! {
-    static LOGGER : Mutex<Box<dyn Logger>> = Mutex::new(Box::new(StdErrLogger(LogLevel::Error)));
+    static LOGGER : Mutex<Box<dyn Logger>> = Mutex::new(Box::new(StdErrLogger(DEFAULT_LOG_LEVEL)));
 }
 
 #[macro_export]

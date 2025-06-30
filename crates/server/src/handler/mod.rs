@@ -16,7 +16,7 @@ use http::HttpMethod;
 use mime::Mime;
 
 use self::{indexing::index_of, ranges::get_range_for};
-use crate::{Result, request::HttpRequest};
+use crate::{log::{self, LogLevel}, request::HttpRequest, Result};
 
 /* /// HandlerFunc trait */
 /* /// */
@@ -245,7 +245,9 @@ impl Default for Handler {
         handler.get("/", root_handler);
         handler.head("/", root_handler);
 
-        handler.post_interceptor(log_stdout);
+        if log::get_level() >= LogLevel::Info {
+            handler.post_interceptor(log_stdout);
+        }
         handler
     }
 }
