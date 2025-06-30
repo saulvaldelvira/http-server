@@ -231,7 +231,7 @@ impl HttpRequest {
     ///
     /// [`stream`]: HttpStream
     pub fn has_body(&self) -> Result<bool> {
-        Ok(self.stream.get_ref().is_ready()?)
+        Ok(self.body.is_some() || self.stream.get_ref().is_ready()?)
     }
 
     /// Reads the request body into [writer](Write)
@@ -322,7 +322,7 @@ impl HttpRequest {
     /// If some io error is produced while sending the request
     pub fn respond_chunked(&mut self, reader: &mut dyn Read) -> Result<()> {
         self.set_header("Transfer-Encoding", "chunked");
-        let mut reader = Chunked::new(reader);
+        let mut reader = Chunked::with_default_size(reader);
         self.respond_reader(&mut reader)
     }
     /// Respond with a basic HTML error page
