@@ -17,20 +17,24 @@
 
 pub mod encoding;
 mod error;
+pub use error::HttpError;
 mod method;
+pub use method::HttpMethod;
 pub mod request;
+pub use request::HttpRequest;
 pub mod response;
+pub use response::HttpResponse;
 mod status;
+pub use status::StatusCode;
 mod stream;
-
-pub mod prelude {
-    pub use crate::{
-        error::HttpError, method::HttpMethod, request::HttpRequest, response::HttpResponse,
-        status::StatusCode, stream::HttpStream,
-    };
-}
+pub use stream::HttpStream;
 
 #[doc(hidden)]
-pub use prelude::*;
+pub mod prelude {
+    pub use crate::{
+        HttpError, HttpMethod, HttpRequest, 
+        HttpResponse, StatusCode, HttpStream,
+    };
+}
 
 pub type Result<T> = std::result::Result<T, HttpError>;
