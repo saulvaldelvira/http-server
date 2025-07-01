@@ -8,11 +8,11 @@ use std::{
 use rustls::{ConnectionCommon, SideData};
 
 pub trait HttpStream: Read + Write {
-    fn set_non_blocking(&mut self) -> io::Result<()> {
+    fn set_blocking(&mut self) -> io::Result<()> {
         Ok(())
     }
 
-    fn set_blocking(&mut self, timeout: Duration) -> io::Result<()> {
+    fn set_non_blocking(&mut self, timeout: Duration) -> io::Result<()> {
         let _ = timeout;
         Ok(())
     }
@@ -99,11 +99,11 @@ impl<S: HttpStream + 'static> IntoHttpStream for S {
 }
 
 impl HttpStream for TcpStream {
-    fn set_blocking(&mut self, timeout: Duration) -> io::Result<()> {
+    fn set_non_blocking(&mut self, timeout: Duration) -> io::Result<()> {
         self.set_read_timeout(Some(timeout))
     }
 
-    fn set_non_blocking(&mut self) -> io::Result<()> {
+    fn set_blocking(&mut self) -> io::Result<()> {
         self.set_read_timeout(None)
     }
 }
@@ -138,11 +138,11 @@ where
     SD: SideData,
     C: core::ops::DerefMut<Target = ConnectionCommon<SD>>,
 {
-    fn set_non_blocking(&mut self) -> io::Result<()> {
-        self.sock.set_non_blocking()
+    fn set_blocking(&mut self) -> io::Result<()> {
+        self.sock.set_blocking()
     }
 
-    fn set_blocking(&mut self, timeout: Duration) -> io::Result<()> {
-        self.sock.set_blocking(timeout)
+    fn set_non_blocking(&mut self, timeout: Duration) -> io::Result<()> {
+        self.sock.set_non_blocking(timeout)
     }
 }

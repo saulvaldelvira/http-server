@@ -99,9 +99,9 @@ fn peek_stream(
     stream: &mut BufReader<Box<dyn HttpStream>>,
     duration: Duration,
 ) -> io::Result<bool> {
-    stream.get_mut().set_blocking(duration)?;
+    stream.get_mut().set_non_blocking(duration)?;
     let result = !stream.fill_buf()?.is_empty();
-    stream.get_mut().set_non_blocking()?;
+    stream.get_mut().set_blocking()?;
     Ok(result)
 }
 
