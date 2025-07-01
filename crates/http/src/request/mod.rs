@@ -1,23 +1,29 @@
 /* pub mod handler; */
 use builders::Builder;
 mod parse;
+use core::fmt;
 use std::{
     collections::HashMap,
     env,
     ffi::OsStr,
-    io::{BufReader, Read, Write},
+    io::{BufRead, BufReader, Read, Write},
     path::Path,
 };
 
 use parse::parse_request;
 
-use crate::{HttpMethod, HttpResponse, HttpStream, Result, StatusCode, encoding::Chunked};
+use crate::{
+    HttpMethod, HttpResponse, HttpStream, Result, StatusCode,
+    encoding::Chunked,
+    stream::{self, IntoHttpStream},
+};
 
 /// HTTP Request
 ///
 /// Represents an HTTP request
-#[derive(Builder, Debug)]
+#[derive(Builder)]
 pub struct HttpRequest {
+    #[builder(def = { HttpMethod::GET })]
     method: HttpMethod,
     url: Box<str>,
     #[builder(map = "header")]
@@ -28,35 +34,55 @@ pub struct HttpRequest {
     response_headers: HashMap<Box<str>, Box<str>>,
     #[builder(def = 1.0)]
     version: f32,
-    #[builder(disabled = true)]
-    #[builder(def = { BufReader::new(HttpStream::dummy()) })]
-    stream: BufReader<HttpStream>,
+    #[builder(def = { BufReader::new(stream::dummy())} )]
+    stream: BufReader<Box<dyn HttpStream>>,
     #[builder(def = 200u16)]
     status: u16,
     #[builder(optional = true)]
     body: Option<Box<[u8]>>,
 }
 
+impl fmt::Debug for HttpRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HttpRequest")
+            .field("method", &self.method)
+            .field("url", &self.url)
+            .field("headers", &self.headers)
+            .field("params", &self.params)
+            .field("response_headers", &self.response_headers)
+            .field("version", &self.version)
+            .field("status", &self.status)
+            .field("body", &self.body)
+            .finish()
+    }
+}
+
 impl HttpRequest {
     /// Read and parse an HTTP request from the given [`HttpStream`]
-    pub fn parse(stream: impl Into<HttpStream>) -> Result<Self> {
-        let stream = BufReader::new(stream.into());
-        parse_request(stream)
+    pub fn parse<S: IntoHttpStream>(stream: S) -> Result<Self> {
+        let stream: Box<dyn HttpStream> = Box::new(stream.into_http_stream());
+        parse_request(BufReader::new(stream))
     }
+
     #[inline]
     pub fn keep_alive(self) -> Result<Self> {
         let mut req = parse_request(self.stream)?;
         req.set_header("Connection", "keep-alive");
         Ok(req)
     }
+
     #[inline]
-    #[must_use]
-    pub fn stream(&self) -> &HttpStream {
-        self.stream.get_ref()
+    pub fn stream(&self) -> &BufReader<Box<dyn HttpStream>> {
+        &self.stream
     }
+
+    #[inline]
+    pub fn stream_mut(&mut self) -> &mut BufReader<Box<dyn HttpStream>> {
+        &mut self.stream
+    }
+
     /// Url of the request
     #[inline]
-    #[must_use]
     pub fn url(&self) -> &str {
         &self.url
     }
@@ -120,7 +146,8 @@ impl HttpRequest {
     ///
     /// # Errors
     /// If the transfer fails, returns the error
-    pub fn send_to(&self, mut stream: HttpStream) -> crate::Result<HttpResponse> {
+    pub fn send_to<Out: IntoHttpStream>(&self, stream: Out) -> crate::Result<HttpResponse> {
+        let mut stream = stream.into_http_stream();
         self.write_to(&mut stream)?;
         stream.flush()?;
         HttpResponse::parse(stream)
@@ -230,8 +257,8 @@ impl HttpRequest {
     /// [`stream`]'s availability
     ///
     /// [`stream`]: HttpStream
-    pub fn has_body(&self) -> Result<bool> {
-        Ok(self.body.is_some() || self.stream.get_ref().is_ready()?)
+    pub fn has_body(&mut self) -> Result<bool> {
+        Ok(self.body.is_some() || !self.stream.fill_buf()?.is_empty())
     }
 
     /// Reads the request body into [writer](Write)

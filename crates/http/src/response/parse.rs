@@ -6,7 +6,9 @@ use std::{
 use super::HttpResponse;
 use crate::{HttpStream, err};
 
-pub(super) fn parse_response(mut stream: BufReader<HttpStream>) -> crate::Result<HttpResponse> {
+pub(super) fn parse_response(
+    mut stream: BufReader<Box<dyn HttpStream>>,
+) -> crate::Result<HttpResponse> {
     let mut line = String::new();
     /* Parse request line */
     stream.read_line(&mut line)?;

@@ -16,10 +16,19 @@ path = "src/lib.rs"
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 url = { package = "url-utils", version = ">=0.1.0", path = "../url" }
 
+[dependencies.rustls]
+version = "0.23.28"
+optional = true
+default-features = false
+features = ["std"]
+
 [dependencies.builders]
 package = "builders"
 default-features = false
 features = ["builder"]
-version = ">=0.1.0"
+version = ">=0.5.0"
 git = "https://github.com/saulvaldelvira/builders"
 
+[features]
+default = []
+tls = ["dep:rustls"]

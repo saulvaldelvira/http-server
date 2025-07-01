@@ -1,23 +1,27 @@
+use core::fmt;
 use std::{
     collections::HashMap,
-    io::{self, BufReader, Read, Write},
+    io::{self, BufRead, BufReader, Read, Write},
 };
 
 use builders::Builder;
 use parse::parse_response;
 
-use crate::{HttpStream, Result};
+use crate::{
+    HttpStream, Result,
+    stream::{self, IntoHttpStream},
+};
 
 mod parse;
 
 /// An Http response
-#[derive(Builder, Debug)]
+#[derive(Builder)]
 pub struct HttpResponse {
     #[builder(map = "header")]
     headers: HashMap<String, String>,
     #[builder(disabled = true)]
-    #[builder(def = { BufReader::new(HttpStream::dummy()) })]
-    stream: BufReader<HttpStream>,
+    #[builder(def = { BufReader::new(stream::dummy())} )]
+    stream: BufReader<Box<dyn HttpStream>>,
     #[builder(def = 200u16)]
     status: u16,
     #[builder(optional = true)]
@@ -26,10 +30,21 @@ pub struct HttpResponse {
     version: f32,
 }
 
+impl fmt::Debug for HttpResponse {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("HttpResponse")
+            .field("headers", &self.headers)
+            .field("status", &self.status)
+            .field("body", &self.body)
+            .field("version", &self.version)
+            .finish()
+    }
+}
+
 impl HttpResponse {
-    pub fn parse(stream: impl Into<HttpStream>) -> crate::Result<Self> {
-        let stream = BufReader::new(stream.into());
-        parse_response(stream)
+    pub fn parse<S: IntoHttpStream>(stream: S) -> crate::Result<Self> {
+        let stream: Box<dyn HttpStream> = Box::new(stream.into_http_stream());
+        parse_response(BufReader::new(stream))
     }
     #[inline]
     #[must_use]
@@ -115,8 +130,8 @@ impl HttpResponse {
     /// [`stream`]'s availability
     ///
     /// [`stream`]: HttpStream
-    pub fn has_body(&self) -> Result<bool> {
-        Ok(self.stream.get_ref().is_ready()?)
+    pub fn has_body(&mut self) -> Result<bool> {
+        Ok(self.body.is_some() || !self.stream.fill_buf()?.is_empty())
     }
 
     /// Reads the response's body into [writer](Write)

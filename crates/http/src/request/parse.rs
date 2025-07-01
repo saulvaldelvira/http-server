@@ -5,7 +5,7 @@ use std::{
 
 use crate::{HttpStream, Result, err, request::HttpRequest};
 
-pub(super) fn parse_request(mut stream: BufReader<HttpStream>) -> Result<HttpRequest> {
+pub(super) fn parse_request(mut stream: BufReader<Box<dyn HttpStream>>) -> Result<HttpRequest> {
     let mut line = String::new();
     /* Parse request line */
     stream.read_line(&mut line)?;

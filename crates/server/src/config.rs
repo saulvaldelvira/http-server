@@ -60,7 +60,7 @@ fn get_default_conf_file() -> Option<PathBuf> {
 ///
 /// let pool_conf = PoolConfig::builder()
 ///                 .n_workers(120_u16)
-///                 .build().unwrap();
+///                 .build();
 /// let conf =
 /// ServerConfig::default()
 ///     .port(8080)
@@ -117,7 +117,7 @@ impl ServerConfig {
             match arg.as_ref() {
                 "-p" | "--port" => conf.port = parse_next!(),
                 "-n" | "-n-workers" => {
-                    pool_conf_builder.n_workers(parse_next!(as u16));
+                    pool_conf_builder.set_n_workers(parse_next!(as u16));
                 }
                 "-d" | "--dir" => {
                     let path: String = parse_next!();
@@ -140,6 +140,8 @@ impl ServerConfig {
                 "-h" | "--help" => help(),
                 unknown => return Err(format!("Unknow argument: {unknown}").into()),
             }
+
+            conf.pool_conf = pool_conf_builder.build();
         }
 
         log_info!("{conf:#?}");

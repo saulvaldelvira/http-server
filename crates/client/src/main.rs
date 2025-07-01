@@ -6,7 +6,7 @@ use std::{
     process,
 };
 
-use http::{HttpMethod, HttpRequest, HttpStream};
+use http::{HttpMethod, HttpRequest};
 mod config;
 use config::ClientConfig;
 
@@ -57,7 +57,6 @@ pub fn main() -> http::Result<()> {
             process::exit(1);
         }
     };
-    let tcp = HttpStream::from(tcp);
     let mut result = req.send_to(tcp).unwrap_or_else(|err| {
         eprint!("ERROR: {err}");
         process::exit(1);

@@ -54,6 +54,7 @@ use prelude::*;
 pub type Result<T> = std::result::Result<T, HttpError>;
 
 use std::{
+    io::{self, BufRead, BufReader},
     net::{TcpListener, TcpStream},
     sync::Arc,
     time::{Duration, Instant},
@@ -93,19 +94,14 @@ pub struct HttpServer {
     config: ServerConfig,
 }
 
-fn peek_stream(stream: &HttpStream, duration: Duration) -> bool {
-    if stream.set_read_timeout(Some(duration)).is_err() {
-        return false;
-    }
-    let mut buf: [u8; 1] = [0];
-    let result = match stream.peek(&mut buf) {
-        Ok(n) => n > 0,
-        Err(_) => false,
-    };
-    if stream.set_read_timeout(None).is_err() {
-        return false;
-    }
-    result
+fn peek_stream(
+    stream: &mut BufReader<Box<dyn HttpStream>>,
+    duration: Duration,
+) -> io::Result<bool> {
+    stream.get_mut().set_blocking(duration)?;
+    let result = !stream.fill_buf()?.is_empty();
+    stream.get_mut().set_non_blocking()?;
+    Ok(result)
 }
 
 fn handle_connection(
@@ -123,8 +119,10 @@ fn handle_connection(
         let mut n = 1;
         while start.elapsed() < keep_alive_timeout && n < keep_alive_requests {
             let offset = keep_alive_timeout - start.elapsed();
-            if !peek_stream(req.stream(), offset) {
-                break;
+
+            match peek_stream(req.stream_mut(), offset) {
+                Ok(false) | Err(_) => break,
+                _ => {}
             }
 
             req = req.keep_alive()?;

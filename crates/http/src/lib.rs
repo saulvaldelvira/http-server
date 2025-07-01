@@ -12,7 +12,7 @@
 //!             .url("/")
 //!             .build().unwrap();
 //! let tcp = TcpStream::connect("127.0.0.1:80").unwrap();
-//! req.send_to(HttpStream::from(tcp)).unwrap();
+//! req.send_to(tcp).unwrap();
 //! ```
 
 pub mod encoding;
