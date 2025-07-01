@@ -100,7 +100,13 @@ fn peek_stream(
     duration: Duration,
 ) -> io::Result<bool> {
     stream.get_mut().set_non_blocking(duration)?;
-    let result = !stream.fill_buf()?.is_empty();
+    let result = match stream.fill_buf() {
+        Ok(b) => !b.is_empty(),
+        Err(err) => match err.kind() {
+            io::ErrorKind::WouldBlock => false,
+            _ => return Err(err),
+        },
+    };
     stream.get_mut().set_blocking()?;
     Ok(result)
 }
@@ -123,7 +129,11 @@ fn handle_connection(
             let offset = keep_alive_timeout - start.elapsed();
 
             match peek_stream(req.stream_mut(), offset) {
-                Ok(false) | Err(_) => break,
+                Ok(false) => break,
+                Err(err) => {
+                    log_error!("Error on peek_stream: {err}");
+                    break;
+                }
                 _ => {}
             }
 
