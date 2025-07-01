@@ -57,6 +57,7 @@ use std::{
     io::{self, BufRead, BufReader},
     net::{TcpListener, TcpStream},
     sync::Arc,
+    thread,
     time::{Duration, Instant},
 };
 
@@ -117,6 +118,7 @@ fn handle_connection(
     if connection.is_some_and(|conn| conn == "keep-alive") && keep_alive {
         let start = Instant::now();
         let mut n = 1;
+        log_info!("[{:?}] Start keep alive", thread::current().id());
         while start.elapsed() < keep_alive_timeout && n < keep_alive_requests {
             let offset = keep_alive_timeout - start.elapsed();
 
@@ -134,6 +136,7 @@ fn handle_connection(
                 break;
             }
         }
+        log_info!("[{:?}] End keep alive", thread::current().id());
     }
     Ok(())
 }

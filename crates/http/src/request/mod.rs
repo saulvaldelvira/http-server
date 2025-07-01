@@ -265,24 +265,21 @@ impl HttpRequest {
     ///
     /// # Errors
     /// If, while reading or writing, some io Error is found
-    pub fn read_body(&mut self, writer: &mut dyn Write) -> Result<()> {
-        const CHUNK_SIZE: usize = 1024;
-        let mut buf: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
-        let len = self.content_length();
-        let n = len / CHUNK_SIZE;
-        let remainder = len % CHUNK_SIZE;
+    pub fn read_body(&mut self, out: &mut dyn Write) -> Result<usize> {
+        let mut total = 0;
+        loop {
+            let slice = self.stream.fill_buf()?;
+            if slice.is_empty() {
+                break;
+            }
+            out.write_all(slice)?;
 
-        for _ in 0..n {
-            self.stream.read_exact(&mut buf)?;
-            writer.write_all(&buf)?;
+            let len = slice.len();
+            self.stream.consume(len);
+            total += len;
         }
-
-        if remainder > 0 {
-            self.stream.read_exact(&mut buf[0..remainder])?;
-            writer.write_all(&buf[0..remainder])?;
-        }
-
-        Ok(())
+        out.flush()?;
+        Ok(total)
     }
     /// Respond to the request without a body
     ///

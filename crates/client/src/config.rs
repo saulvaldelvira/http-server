@@ -10,6 +10,12 @@ pub enum OutFile {
 }
 
 #[derive(Clone, Debug)]
+pub enum HttpType {
+    Http,
+    Https,
+}
+
+#[derive(Clone, Debug)]
 pub struct ClientConfig {
     pub url: String,
     pub method: HttpMethod,
@@ -17,6 +23,7 @@ pub struct ClientConfig {
     pub port: u16,
     pub user_agent: String,
     pub out_file: OutFile,
+    pub http_type: HttpType,
 }
 
 impl ClientConfig {
@@ -54,7 +61,13 @@ impl ClientConfig {
         }
 
         let mut host = conf.url.as_str();
-        host = conf.url.strip_prefix("http://").unwrap_or(host);
+        if let Some(url) = conf.url.strip_prefix("http://") {
+            host = url;
+        }
+        if let Some(url) = conf.url.strip_prefix("https://") {
+            host = url;
+            conf.http_type = HttpType::Https;
+        }
 
         let mut url = "/";
 
@@ -66,6 +79,11 @@ impl ClientConfig {
         if let Some(i) = host.find(':') {
             conf.port = host[i + 1..].parse()?;
             host = &host[..i];
+        } else {
+            conf.port = match conf.http_type {
+                HttpType::Http => 80,
+                HttpType::Https => 443,
+            }
         }
 
         conf.host = host.to_string();
@@ -82,13 +100,6 @@ impl ClientConfig {
 fn help() -> ! {
     println!(
         "\
-http-client: Copyright (C) 2025 Saúl Valdelvira
-
-This program is free software: you can redistribute it and/or modify it
-under the terms of the GNU General Public License as published by the
-Free Software Foundation, version 3.
-Use http-client --license to read a copy of the GPL v3
-
 USAGE: http-client [--method <HTTP Method>] [--host <hostname>]
                    [--user-agent <User Agent>] [-O] [-o <output-file>]
 PARAMETERS:
@@ -137,6 +148,7 @@ impl Default for ClientConfig {
             host: String::new(),
             user_agent: "http-client".to_string(),
             out_file: OutFile::Stdout,
+            http_type: HttpType::Http,
         }
     }
 }

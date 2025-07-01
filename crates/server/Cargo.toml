@@ -17,8 +17,6 @@ jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/sa
 delay_init = { package = "delay_init" , version = ">=0.2.0", git = "https://github.com/saulvaldelvira/delay-init" }
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 url = { package = "url-utils", version = ">=0.1.0", path = "../url" }
-rustls = "0.23.28"
-webpki-roots = "1.0.1"
 
 [features]
 default = ["full"]

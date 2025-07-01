@@ -159,14 +159,17 @@ impl HttpResponse {
     }
 
     pub fn write_to(&mut self, out: &mut dyn io::Write) -> io::Result<usize> {
-        let mut buf = [0_u8; 1024];
         let mut total = 0;
-        while let Ok(n) = self.stream.read(&mut buf) {
-            out.write_all(&buf[0..n])?;
-            total += n;
-            if n == 0 {
+        loop {
+            let slice = self.stream.fill_buf()?;
+            if slice.is_empty() {
                 break;
             }
+            out.write_all(slice)?;
+
+            let len = slice.len();
+            self.stream.consume(len);
+            total += len;
         }
         out.flush()?;
         Ok(total)
