@@ -10,7 +10,7 @@
 //! let req = HttpRequest::builder()
 //!             .method(HttpMethod::GET)
 //!             .url("/")
-//!             .build().unwrap();
+//!             .build();
 //! let tcp = TcpStream::connect("127.0.0.1:80").unwrap();
 //! req.send_to(tcp).unwrap();
 //! ```

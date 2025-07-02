@@ -30,8 +30,7 @@ fn parse_test() {
         .version(1.0)
         .header("HEADER-TEST", "Hello world!")
         .method(HttpMethod::GET)
-        .build()
-        .unwrap();
+        .build();
     assert_eq!(expected, parsed);
 }
 
@@ -42,8 +41,7 @@ fn send_to_test() {
         .url("/hello")
         .version(1.1)
         .body("BODY".as_bytes())
-        .build()
-        .unwrap();
+        .build();
     let mut b: Vec<u8> = Vec::new();
     req.write_to(&mut b).unwrap();
 
@@ -69,8 +67,7 @@ Hellooo";
         .param("param", "abc")
         .param("param2", "def")
         .body(*b"Hellooo")
-        .build()
-        .unwrap();
+        .build();
 
     assert_eq!(req, expected);
 }

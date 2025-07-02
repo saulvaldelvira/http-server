@@ -1,5 +1,3 @@
-/* pub mod handler; */
-use builders::Builder;
 mod parse;
 use core::fmt;
 use std::{
@@ -15,30 +13,24 @@ use parse::parse_request;
 use crate::{
     HttpMethod, HttpResponse, HttpStream, Result, StatusCode,
     encoding::Chunked,
-    stream::{self, IntoHttpStream},
+    request::builder::{HttpRequestBuilder, NoUrl},
+    stream::IntoHttpStream,
 };
+
+pub mod builder;
 
 /// HTTP Request
 ///
 /// Represents an HTTP request
-#[derive(Builder)]
 pub struct HttpRequest {
-    #[builder(def = { HttpMethod::GET })]
     method: HttpMethod,
     url: Box<str>,
-    #[builder(map = "header")]
     headers: HashMap<Box<str>, Box<str>>,
-    #[builder(map = "param")]
     params: HashMap<Box<str>, Box<str>>,
-    #[builder(map = "response_header")]
     response_headers: HashMap<Box<str>, Box<str>>,
-    #[builder(def = 1.0)]
     version: f32,
-    #[builder(def = { BufReader::new(stream::dummy())} )]
     stream: BufReader<Box<dyn HttpStream>>,
-    #[builder(def = 200u16)]
     status: u16,
-    #[builder(optional = true)]
     body: Option<Box<[u8]>>,
 }
 
@@ -58,6 +50,11 @@ impl fmt::Debug for HttpRequest {
 }
 
 impl HttpRequest {
+    /// Create a new [builder](HttpRequestBuilder) for an `HttpRequest`
+    pub fn builder() -> HttpRequestBuilder<NoUrl> {
+        HttpRequestBuilder::new()
+    }
+
     /// Read and parse an HTTP request from the given [`HttpStream`]
     pub fn parse<S: IntoHttpStream>(stream: S) -> Result<Self> {
         let stream: Box<dyn HttpStream> = Box::new(stream.into_http_stream());

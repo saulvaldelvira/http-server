@@ -4,29 +4,19 @@ use std::{
     io::{self, BufRead, BufReader, Read, Write},
 };
 
-use builders::Builder;
 use parse::parse_response;
 
-use crate::{
-    HttpStream, Result,
-    stream::{self, IntoHttpStream},
-};
+use crate::{HttpStream, Result, response::builder::HttpResponseBuilder, stream::IntoHttpStream};
 
+pub mod builder;
 mod parse;
 
 /// An Http response
-#[derive(Builder)]
 pub struct HttpResponse {
-    #[builder(map = "header")]
-    headers: HashMap<String, String>,
-    #[builder(disabled = true)]
-    #[builder(def = { BufReader::new(stream::dummy())} )]
+    headers: HashMap<Box<str>, Box<str>>,
     stream: BufReader<Box<dyn HttpStream>>,
-    #[builder(def = 200u16)]
     status: u16,
-    #[builder(optional = true)]
     body: Option<Box<[u8]>>,
-    #[builder(def = 1.0)]
     version: f32,
 }
 
@@ -42,6 +32,10 @@ impl fmt::Debug for HttpResponse {
 }
 
 impl HttpResponse {
+    pub fn builder() -> HttpResponseBuilder {
+        HttpResponseBuilder::new()
+    }
+
     pub fn parse<S: IntoHttpStream>(stream: S) -> crate::Result<Self> {
         let stream: Box<dyn HttpStream> = Box::new(stream.into_http_stream());
         parse_response(BufReader::new(stream))
@@ -64,7 +58,7 @@ impl HttpResponse {
     #[inline]
     #[must_use]
     pub fn header(&self, key: &str) -> Option<&str> {
-        self.headers.get(key).map(String::as_str)
+        self.headers.get(key).map(|s| &**s)
     }
 
     #[inline]
@@ -75,7 +69,7 @@ impl HttpResponse {
 
     #[inline]
     #[must_use]
-    pub fn headers(&self) -> &HashMap<String, String> {
+    pub fn headers(&self) -> &HashMap<Box<str>, Box<str>> {
         &self.headers
     }
 

@@ -30,8 +30,8 @@ pub(super) fn parse_response(
             break;
         }
         let mut splt = l.split(':');
-        let key = splt.next().unwrap_or("").to_string();
-        let value = splt.next().unwrap_or("").trim().to_string();
+        let key = Box::from(splt.next().unwrap_or(""));
+        let value = Box::from(splt.next().unwrap_or("").trim());
         headers.insert(key, value);
         line.clear();
     }

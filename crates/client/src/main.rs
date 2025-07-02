@@ -91,8 +91,7 @@ pub fn main() -> http::Result<()> {
         .header("User-Agent", "http-client")
         .header("Connection", "close")
         .header("Accept-Encoding", "identity")
-        .build()
-        .unwrap();
+        .build();
 
     let tcp = match TcpStream::connect(addrs) {
         Ok(tcp) => tcp,

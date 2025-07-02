@@ -1,9 +1,7 @@
 use std::{
     io::{Write, stderr},
-    sync::Mutex,
+    sync::{LazyLock, Mutex},
 };
-
-use delay_init::delay;
 
 use crate::HttpError;
 
@@ -68,9 +66,8 @@ const DEFAULT_LOG_LEVEL: LogLevel = LogLevel::Warn;
 #[cfg(debug_assertions)]
 const DEFAULT_LOG_LEVEL: LogLevel = LogLevel::Info;
 
-delay! {
-    static LOGGER : Mutex<Box<dyn Logger>> = Mutex::new(Box::new(StdErrLogger(DEFAULT_LOG_LEVEL)));
-}
+static LOGGER: LazyLock<Mutex<Box<dyn Logger>>> =
+    LazyLock::new(|| Mutex::new(Box::new(StdErrLogger(DEFAULT_LOG_LEVEL))));
 
 #[macro_export]
 #[doc(hidden)]

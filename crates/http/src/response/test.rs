@@ -26,8 +26,7 @@ aaaaaaaaaaaaaaaaaaaa"#,
         .header("Connection", "Keep-Alive")
         .header("Content-Type", "text/plain")
         .body(*b"aaaaaaaaaaaaaaaaaaaa")
-        .build()
-        .unwrap();
+        .build();
 
     assert_eq!(res, expected);
 }
