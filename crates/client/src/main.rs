@@ -5,6 +5,7 @@ use std::{
     io::{Write, stdout},
     net::{TcpStream, ToSocketAddrs},
     process,
+    time::Instant,
 };
 
 use http::{HttpMethod, HttpRequest, HttpResponse};
@@ -13,11 +14,89 @@ use config::ClientConfig;
 
 use crate::config::HttpType;
 
-fn open_file(fname: &str) -> Box<dyn Write> {
-    Box::new(File::create(fname).unwrap_or_else(|_| {
+pub struct ProgressWriter<W: Write> {
+    max: usize,
+    current: usize,
+    last_update: Instant,
+    prev_current: usize,
+    writer: W,
+}
+
+impl<W: Write> ProgressWriter<W> {
+    fn start(&self) {
+        println!(
+            "{perc:3}  {progress:8}  {total:^8}  speed",
+            perc = "%",
+            progress = "Progress",
+            total = "Total",
+        );
+    }
+
+    fn print_progress(&self) {
+        let Self { max, current, .. } = self;
+
+        fn get_unit(bytes: usize) -> String {
+            let kb = bytes / 1000;
+            if kb >= 1000 {
+                format!("{} M", kb / 1000)
+            } else {
+                format!("{kb} K")
+            }
+        }
+
+        let curr = get_unit(*current);
+        let max = get_unit(*max);
+
+        if self.max > 0 {
+            let percentage = 100 * self.current / self.max;
+            print!("\x1b[2K\r{percentage:<3}  {curr:^8}  {max:^8}  ");
+        } else {
+            print!("\x1b[2K\r{current}");
+        }
+        let kbps = (self.current - self.prev_current) / 1000;
+        if kbps >= 1000 {
+            print!("{} Mb/s", kbps / 1000);
+        } else {
+            print!("{kbps} Kb/s");
+        }
+        stdout().flush().unwrap();
+    }
+}
+
+impl<W: Write> Write for ProgressWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        let n = self.writer.write(buf)?;
+        self.current += n;
+
+        let time = Instant::now().duration_since(self.last_update);
+        if time.as_millis() >= 1000 {
+            self.print_progress();
+            self.last_update = Instant::now();
+            self.prev_current = self.current;
+        }
+
+        Ok(n)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        self.writer.flush()
+    }
+}
+
+fn open_file(fname: &str, max: usize) -> Box<dyn Write> {
+    let file = File::create(fname).unwrap_or_else(|_| {
         eprintln!("Couldn't create file: {fname}");
         process::exit(1);
-    }))
+    });
+    let p = Box::new(ProgressWriter {
+        max,
+        current: 0,
+        prev_current: 0,
+        writer: file,
+        last_update: Instant::now(),
+    });
+    p.start();
+    p
 }
 
 #[cfg(not(feature = "tls"))]
@@ -68,20 +147,6 @@ pub fn main() -> http::Result<()> {
     let addr = format!("{}:{}", conf.host, conf.port);
     let addrs = addr.to_socket_addrs().unwrap().next().unwrap();
 
-    let mut out: Box<dyn Write> = match conf.out_file {
-        config::OutFile::Stdout => Box::new(stdout()),
-        config::OutFile::Filename(s) => open_file(&s),
-        config::OutFile::GetFromUrl => {
-            let fname = conf
-                .url
-                .split('/')
-                .filter(|s| !s.is_empty())
-                .next_back()
-                .unwrap_or(&conf.host);
-            open_file(fname)
-        }
-    };
-
     let req = HttpRequest::builder()
         .method(conf.method)
         .url(conf.url.clone().into_boxed_str())
@@ -106,6 +171,21 @@ pub fn main() -> http::Result<()> {
             eprint!("ERROR: {err}");
             process::exit(1);
         });
+
+    let len = result.content_length();
+    let mut out: Box<dyn Write> = match conf.out_file {
+        config::OutFile::Stdout => Box::new(stdout()),
+        config::OutFile::Filename(s) => open_file(&s, len),
+        config::OutFile::GetFromUrl => {
+            let fname = conf
+                .url
+                .split('/')
+                .filter(|s| !s.is_empty())
+                .next_back()
+                .unwrap_or(&conf.host);
+            open_file(fname, len)
+        }
+    };
 
     if matches!(conf.method, HttpMethod::HEAD) {
         println!("Headers");
