@@ -12,7 +12,7 @@ repository = "https://github.com/saulvaldelvira/http-server"
 http.workspace = true
 mime = { package = "rmime", version = ">=0.1.0", path = "../mime" }
 regexpr = { version = ">=0.3.3", git = "https://github.com/saulvaldelvira/regexpr", optional = true }
-pool = { package = "job-pool", version = ">=0.5.0", git = "https://github.com/saulvaldelvira/job-pool" }
+pool = { package = "job-pool", version = ">=0.6.0", git = "https://github.com/saulvaldelvira/job-pool" }
 jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 url = { package = "url-utils", version = ">=0.1.0", path = "../url" }

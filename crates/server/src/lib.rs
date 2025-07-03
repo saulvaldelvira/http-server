@@ -56,7 +56,6 @@ pub type Result<T> = std::result::Result<T, HttpError>;
 use std::{
     io::{self, BufRead, BufReader},
     net::{TcpListener, TcpStream},
-    sync::Arc,
     thread,
     time::{Duration, Instant},
 };
@@ -178,19 +177,29 @@ impl HttpServer {
     }
     /// Starts the server
     #[allow(clippy::missing_panics_doc)]
-    pub fn run(mut self) {
-        let handler = Arc::new(self.handler.take().unwrap());
-        println!("Sever listening on port {}", self.config.port);
-        for stream in self.listener.incoming().flatten() {
-            let handler = Arc::clone(&handler);
-            let timeout = self.config.keep_alive_timeout;
-            let req = self.config.keep_alive_requests;
-            self.pool.execute(move || {
-                handle_connection(stream, &handler, timeout, req).unwrap_or_else(|err| {
-                    log_error!("{err}");
+    pub fn run(self) {
+        let Self {
+            listener,
+            pool,
+            handler,
+            config,
+        } = self;
+        let handler = handler.unwrap();
+        let timeout = config.keep_alive_timeout;
+        let req = config.keep_alive_requests;
+
+        println!("Sever listening on port {}", config.port);
+
+        pool.scope(|scope| {
+            for stream in listener.incoming().flatten() {
+                scope.execute(|| {
+                    handle_connection(stream, &handler, timeout, req).unwrap_or_else(|err| {
+                        log_error!("{err}");
+                    });
                 });
-            });
-        }
+            }
+        });
+
         println!("Shutting down.");
     }
     /// Set a [Handler] for all the [requests](HttpRequest) on this [server](HttpServer)
