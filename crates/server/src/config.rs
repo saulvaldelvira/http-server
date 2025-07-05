@@ -1,10 +1,12 @@
 #![allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 
+use core::fmt;
 use std::{
     env, fs,
     path::{Path, PathBuf},
     process,
     str::FromStr,
+    sync::Arc,
     time::Duration,
 };
 
@@ -17,13 +19,32 @@ use crate::{
     log_info, log_warn,
 };
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ServerConfig {
     pub port: u16,
     pub pool_conf: PoolConfig,
     pub keep_alive_timeout: Duration,
     pub keep_alive_requests: u16,
     pub log_file: Option<String>,
+
+    #[cfg(feature = "tls")]
+    pub tls_config: Option<Arc<rustls::ServerConfig>>,
+}
+
+impl fmt::Debug for ServerConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut deb = f.debug_struct("ServerConfig");
+        deb.field("port", &self.port)
+            .field("pool_conf", &self.pool_conf)
+            .field("keep_alive_timeout", &self.keep_alive_timeout)
+            .field("keep_alive_requests", &self.keep_alive_requests)
+            .field("log_file", &self.log_file);
+
+        #[cfg(feature = "tls")]
+        deb.field("tls", &self.tls_config.is_some());
+
+        deb.finish()
+    }
 }
 
 #[cfg(not(test))]
@@ -49,6 +70,31 @@ fn get_default_conf_file() -> Option<PathBuf> {
 #[cfg(test)]
 fn get_default_conf_file() -> Option<PathBuf> {
     None
+}
+
+#[cfg(feature = "tls")]
+#[allow(clippy::unwrap_used)]
+fn get_tls_config(cert: Option<String>, pkey: Option<String>) -> Result<Arc<rustls::ServerConfig>> {
+    use rustls::pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject};
+
+    let Some(cert) = cert else {
+        return Err("Missing certificate file".into());
+    };
+    let Some(pkey) = pkey else {
+        return Err("Missing private key file".into());
+    };
+
+    let certs = CertificateDer::pem_file_iter(cert)
+        .unwrap()
+        .map(|cert| cert.unwrap())
+        .collect();
+    let private_key = PrivateKeyDer::from_pem_file(pkey).unwrap();
+    let config = rustls::ServerConfig::builder()
+        .with_no_client_auth()
+        .with_single_cert(certs, private_key)
+        .map_err(|err| format!("rustls: {err}"))?;
+
+    Ok(Arc::new(config))
 }
 
 /// [`crate::HttpServer`] configuration
@@ -98,6 +144,15 @@ impl ServerConfig {
             conf.parse_conf_file(&cfile)?;
         }
 
+        let mut pool_conf_builder = PoolConfig::builder();
+
+        #[cfg(feature = "tls")]
+        let mut tls = false;
+        #[cfg(feature = "tls")]
+        let mut cert: Option<String> = None;
+        #[cfg(feature = "tls")]
+        let mut privkey: Option<String> = None;
+
         let mut args = args.iter();
         while let Some(arg) = args.next() {
             macro_rules! parse_next {
@@ -111,8 +166,6 @@ impl ServerConfig {
                     _next
                 }};
             }
-
-            let mut pool_conf_builder = PoolConfig::builder();
 
             match arg.as_ref() {
                 "-p" | "--port" => conf.port = parse_next!(),
@@ -134,19 +187,34 @@ impl ServerConfig {
                     let n: u8 = parse_next!();
                     log::set_level(n.try_into()?);
                 }
+                #[cfg(feature = "tls")]
+                "--tls" => tls = true,
+
+                #[cfg(feature = "tls")]
+                "--cert-file" => cert = Some(parse_next!()),
+
+                #[cfg(feature = "tls")]
+                "--private-key" => privkey = Some(parse_next!()),
+
                 CONFIG_FILE_ARG => {
                     let _ = args.next();
                 }
                 "-h" | "--help" => help(),
                 unknown => return Err(format!("Unknow argument: {unknown}").into()),
             }
+        }
 
-            conf.pool_conf = pool_conf_builder.build();
+        conf.pool_conf = pool_conf_builder.build();
+
+        #[cfg(feature = "tls")]
+        if conf.tls_config.is_none() && tls {
+            conf.tls_config = Some(get_tls_config(cert, privkey)?);
         }
 
         log_info!("{conf:#?}");
         Ok(conf)
     }
+    #[allow(clippy::too_many_lines)]
     fn parse_conf_file(&mut self, conf_file: &Path) -> crate::Result<()> {
         if !conf_file.exists() {
             return Ok(());
@@ -164,6 +232,16 @@ impl ServerConfig {
         let Json::Object(obj) = json else {
             return Err("Expected json object".into());
         };
+
+        #[cfg(feature = "tls")]
+        let mut tls = false;
+
+        #[cfg(feature = "tls")]
+        let mut cert: Option<String> = None;
+
+        #[cfg(feature = "tls")]
+        let mut privkey: Option<String> = None;
+
         for (k, v) in obj {
             macro_rules! num {
                 () => {
@@ -179,13 +257,23 @@ impl ServerConfig {
                     _n as $t
                 }};
             }
+            macro_rules! bool {
+                ($v:ident) => {
+                    $v.boolean().ok_or_else(|| {
+                        format!("Parsing config file ({conf_str}): Expected boolean for \"{k}\"")
+                    })?
+                };
+            }
             macro_rules! string {
-                () => {
-                    v.string()
+                ($v:ident) => {
+                    $v.string()
                         .ok_or_else(|| {
                             format!("Parsing config file ({conf_str}): Expected string for \"{k}\"")
                         })?
                         .to_string()
+                };
+                () => {
+                    string!(v)
                 };
             }
             macro_rules! obj {
@@ -196,15 +284,25 @@ impl ServerConfig {
                 };
             }
 
-            match &*k {
-                "port" => self.port = num!() as u16,
-                "root_dir" => {
-                    let path: String = string!();
-                    let path = path.replacen(
+            macro_rules! path {
+                ($v:ident) => {{
+                    let path: String = string!($v);
+                    path.replacen(
                         '~',
                         env::var("HOME").as_ref().map(String::as_str).unwrap_or("~"),
                         1,
-                    );
+                    )
+                }};
+
+                () => {
+                    path!(v)
+                };
+            }
+
+            match &*k {
+                "port" => self.port = num!() as u16,
+                "root_dir" => {
+                    let path = path!();
                     env::set_current_dir(Path::new(&path))?;
                 }
                 "keep_alive_timeout" => self.keep_alive_timeout = Duration::from_secs_f64(num!()),
@@ -213,6 +311,19 @@ impl ServerConfig {
                 "log_level" => {
                     let n = num!(v as u8);
                     log::set_level(n.try_into()?);
+                }
+                #[cfg(feature = "tls")]
+                "tls" => {
+                    for (k, v) in obj!() {
+                        match &**k {
+                            "enabled" => tls = bool!(v),
+                            "cert_file" => cert = Some(path!(v)),
+                            "private_key" => privkey = Some(path!(v)),
+                            _ => log_warn!(
+                                "Parsing config file ({conf_str}): Unexpected key: \"{k}\""
+                            ),
+                        }
+                    }
                 }
                 "pool_config" => {
                     for (k, v) in obj!() {
@@ -231,6 +342,12 @@ impl ServerConfig {
                 _ => log_warn!("Parsing config file ({conf_str}): Unexpected key: \"{k}\""),
             }
         }
+
+        #[cfg(feature = "tls")]
+        if tls {
+            self.tls_config = Some(get_tls_config(cert, privkey)?);
+        }
+
         Ok(())
     }
     #[inline]
@@ -260,7 +377,8 @@ impl ServerConfig {
 }
 
 fn help() -> ! {
-    println!(
+    /* FIXME: Don't output tls options if the tls feature is disabled */
+    println!(concat!(
         "\
 http-srv: Copyright (C) 2025 Saúl Valdelvira
 
@@ -281,11 +399,15 @@ PARAMETERS:
     --log-level <n> Set log level
     --conf <file>   Use the given config file instead of the default one
     --license       Output the license of this program
+
+    --tls           Enable TLS
+    --cert-file     Certificate file for TLS
+    --private-key   Private key for TLS
 EXAMPLES:
   http-srv -p 8080 -d /var/html
   http-srv -d ~/desktop -n 1024 --keep-alive 120
   http-srv --log /var/log/http-srv.log"
-    );
+    ));
     process::exit(0);
 }
 
@@ -322,6 +444,9 @@ impl Default for ServerConfig {
             keep_alive_timeout: Duration::from_secs(0),
             keep_alive_requests: 10000,
             log_file: None,
+
+            #[cfg(feature = "tls")]
+            tls_config: None,
         }
     }
 }

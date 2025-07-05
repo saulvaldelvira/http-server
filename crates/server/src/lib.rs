@@ -56,6 +56,7 @@ pub type Result<T> = std::result::Result<T, HttpError>;
 use std::{
     io::{self, BufRead, BufReader},
     net::{TcpListener, TcpStream},
+    sync::Arc,
     thread,
     time::{Duration, Instant},
 };
@@ -115,9 +116,25 @@ fn handle_connection(
     handlers: &Handler,
     keep_alive_timeout: Duration,
     keep_alive_requests: u16,
+
+    #[cfg(feature = "tls")] tls_config: Option<&Arc<rustls::ServerConfig>>,
 ) -> Result<()> {
+    #[cfg(feature = "tls")]
+    let mut req = match tls_config {
+        Some(config) => {
+            let conn = rustls::ServerConnection::new(Arc::clone(config))
+                .map_err(|err| format!("TLS error: {err}"))?;
+            let tls_stream = rustls::StreamOwned::new(conn, stream);
+            HttpRequest::parse(tls_stream)?
+        }
+        None => HttpRequest::parse(stream)?,
+    };
+
+    #[cfg(not(feature = "tls"))]
     let mut req = HttpRequest::parse(stream)?;
+
     handlers.handle(&mut req)?;
+
     let connection = req.header("Connection");
     let keep_alive = keep_alive_timeout.as_millis() > 0;
     if connection.is_some_and(|conn| conn == "keep-alive") && keep_alive {
@@ -188,12 +205,23 @@ impl HttpServer {
         let timeout = config.keep_alive_timeout;
         let req = config.keep_alive_requests;
 
+        #[cfg(feature = "tls")]
+        let tls_config = config.tls_config.as_ref();
+
         println!("Sever listening on port {}", config.port);
 
         pool.scope(|scope| {
             for stream in listener.incoming().flatten() {
                 scope.execute(|| {
-                    handle_connection(stream, &handler, timeout, req).unwrap_or_else(|err| {
+                    handle_connection(
+                        stream,
+                        &handler,
+                        timeout,
+                        req,
+                        #[cfg(feature = "tls")]
+                        tls_config,
+                    )
+                    .unwrap_or_else(|err| {
                         log_error!("{err}");
                     });
                 });
