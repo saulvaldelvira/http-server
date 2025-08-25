@@ -7,7 +7,7 @@ use alloc::{
 use crate::Result;
 
 /// UrlDecode the given string
-pub fn decode(url: &str) -> Result<Cow<str>> {
+pub fn decode(url: &str) -> Result<Cow<'_, str>> {
     if !url.contains(['%', '+']) {
         return Ok(url.into());
     }

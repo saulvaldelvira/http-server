@@ -3,7 +3,7 @@ use alloc::{borrow::Cow, string::String};
 use crate::Result;
 
 /// UrlEncode the given string
-pub fn encode(url: &str) -> Result<Cow<str>> {
+pub fn encode(url: &str) -> Result<Cow<'_, str>> {
     let is_ascii = |c: &u8| {
         matches!(c, b'0'..=b'9' | b'A'..=b'Z'
                   | b'a'..=b'z' | b'-' | b'.'
