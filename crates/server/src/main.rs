@@ -52,7 +52,17 @@ pub fn main() {
     #[cfg(feature = "regex")]
     handler.get(
         handler::UrlMatcher::regex(".*\\.php$").unwrap(),
-        |req: &mut HttpRequest| req.set_status(500).respond_str("PHP is not supported yet"),
+        |req: &mut HttpRequest| {
+            use std::process::{Command, Stdio};
+
+            let output = Command::new("php")
+                .arg(&*req.filename().unwrap())
+                .stdout(Stdio::piped())
+                .spawn()?
+                .wait_with_output()?;
+
+            req.respond_buf(&output.stdout)
+        },
     );
 
     if let Some(file) = &config.log_file {
