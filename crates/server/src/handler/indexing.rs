@@ -73,14 +73,14 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     files.sort_by_key(DirEntry::path);
 
     html.push_str("<table><tr><th>Name</th><th>Size</th></tr>");
-    if let Some(parent) = Path::new(filename).parent() {
-        if parent.starts_with(cwd) {
-            let url = parent.strip_prefix(cwd)?;
-            let url = encode_path(url, show_hidden)?;
-            html.write_fmt(format_args!(
-                "<tr><td>&larr;</td><td><a href=\"{url}\">..</a></td></tr>"
-            ))?;
-        }
+    if let Some(parent) = Path::new(filename).parent()
+        && parent.starts_with(cwd)
+    {
+        let url = parent.strip_prefix(cwd)?;
+        let url = encode_path(url, show_hidden)?;
+        html.write_fmt(format_args!(
+            "<tr><td>&larr;</td><td><a href=\"{url}\">..</a></td></tr>"
+        ))?;
     }
     for file in files {
         let path = file.path();

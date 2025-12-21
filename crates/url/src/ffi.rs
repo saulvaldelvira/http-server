@@ -16,26 +16,26 @@ pub struct Buffer {
 #[inline(always)]
 unsafe fn __bind_fn(ptr: *const c_char, f: fn(&str) -> crate::Result<Cow<str>>) -> Buffer {
     let cstr = unsafe { CStr::from_ptr(ptr) };
-    if let Ok(s) = cstr.to_str() {
-        if let Ok(d) = f(s) {
-            match d {
-                Cow::Owned(mut own) => {
-                    own.push('\0');
-                    let own = own.into_boxed_str();
-                    let len = own.len();
-                    return Buffer {
-                        ptr: Box::into_raw(own) as *const u8,
-                        len,
-                        __is_owned: true,
-                    };
-                }
-                Cow::Borrowed(bor) => {
-                    return Buffer {
-                        ptr: bor.as_ptr(),
-                        len: bor.len(),
-                        __is_owned: false,
-                    };
-                }
+    if let Ok(s) = cstr.to_str()
+        && let Ok(d) = f(s)
+    {
+        match d {
+            Cow::Owned(mut own) => {
+                own.push('\0');
+                let own = own.into_boxed_str();
+                let len = own.len();
+                return Buffer {
+                    ptr: Box::into_raw(own) as *const u8,
+                    len,
+                    __is_owned: true,
+                };
+            }
+            Cow::Borrowed(bor) => {
+                return Buffer {
+                    ptr: bor.as_ptr(),
+                    len: bor.len(),
+                    __is_owned: false,
+                };
             }
         }
     }

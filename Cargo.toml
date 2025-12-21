@@ -5,7 +5,7 @@ members = [
     "crates/mime",
     "crates/http",
     "crates/client",
-    "crates/server"
+    "crates/server",
 ]
 default-members = ["crates/server"]
 

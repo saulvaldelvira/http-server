@@ -4,7 +4,7 @@ use std::{
     collections::HashMap,
     env,
     ffi::OsStr,
-    io::{BufRead, BufReader, Read, Write},
+    io::{BufRead, BufReader, BufWriter, Read, Write},
     path::Path,
 };
 
@@ -315,6 +315,20 @@ impl HttpRequest {
     #[inline]
     pub fn respond_str(&mut self, text: &str) -> Result<()> {
         self.respond_buf(text.as_bytes())
+    }
+    /// Responds using the given function.
+    ///
+    /// It sends the header for this request, and then calls
+    /// the provided function with a [writer](Write).
+    pub fn respond_with<F>(&mut self, f: F) -> Result<()>
+    where
+        F: FnOnce(&mut dyn Write) -> Result<()>,
+    {
+        self.respond()?;
+        let mut out = BufWriter::new(self.stream.get_mut());
+        f(&mut out)?;
+        out.flush()?;
+        Ok(())
     }
     /// Respond to the request with the data read from reader as a body
     ///

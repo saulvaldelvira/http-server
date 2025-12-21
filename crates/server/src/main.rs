@@ -2,15 +2,32 @@ use std::{env, process, thread, time::Duration};
 
 use encoding::StreamReader;
 use http_srv::prelude::*;
+use libloading::{Library, Symbol};
 
-pub fn main() {
-    let args: Vec<_> = env::args().skip(1).collect();
-    let config = ServerConfig::parse(&args).unwrap_or_else(|err| {
-        eprintln!("{err}");
-        process::exit(1);
-    });
+type Result<T> = ::core::result::Result<T, libloading::Error>;
 
+fn load_lib(handler: &mut Handler, name: &str) -> Result<Library> {
+    unsafe {
+        let lib = libloading::Library::new(name)?;
+
+        let init_handler: Symbol<fn(*mut Handler)> = lib.get(b"init_handler")?;
+
+        init_handler(handler);
+
+        Ok(lib)
+    }
+}
+
+fn get_handler(config: &ServerConfig) -> Result<(Option<Library>, Handler)> {
     let mut handler = Handler::default();
+    let mut _lib = None;
+
+    if let Some(path) = &config.setup_lib {
+        let mut handler = Handler::new();
+        _lib = Some(load_lib(&mut handler, path)?);
+        return Ok((_lib, handler));
+    }
+
     handler.get("/sleep", |req: &mut HttpRequest| {
         thread::sleep(Duration::from_secs(5));
         req.ok()
@@ -83,10 +100,26 @@ pub fn main() {
         auth.apply(|req: &mut HttpRequest| req.respond_str("Secret message")),
     );
 
+    Ok((_lib, handler))
+}
+
+pub fn main() {
+    let args: Vec<_> = env::args().skip(1).collect();
+    let config = ServerConfig::parse(&args).unwrap_or_else(|err| {
+        eprintln!("{err}");
+        process::exit(1);
+    });
+
+    let (_lib, handler) = get_handler(&config).unwrap_or_else(|err| {
+        eprintln!("ERROR: {err}");
+        process::exit(1);
+    });
+
     let mut server = HttpServer::new(config).unwrap_or_else(|err| {
         eprintln!("ERROR: {err}");
         std::process::exit(1)
     });
+
     server.set_handler(handler);
     server.run();
 }

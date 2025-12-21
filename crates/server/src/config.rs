@@ -26,6 +26,7 @@ pub struct ServerConfig {
     pub keep_alive_timeout: Duration,
     pub keep_alive_requests: u16,
     pub log_file: Option<String>,
+    pub setup_lib: Option<String>,
 
     #[cfg(feature = "tls")]
     pub tls_config: Option<Arc<rustls::ServerConfig>>,
@@ -38,6 +39,7 @@ impl fmt::Debug for ServerConfig {
             .field("pool_conf", &self.pool_conf)
             .field("keep_alive_timeout", &self.keep_alive_timeout)
             .field("keep_alive_requests", &self.keep_alive_requests)
+            .field("setup_lib", &self.setup_lib)
             .field("log_file", &self.log_file);
 
         #[cfg(feature = "tls")]
@@ -187,6 +189,9 @@ impl ServerConfig {
                     let n: u8 = parse_next!();
                     log::set_level(n.try_into()?);
                 }
+
+                "--setup-lib" => conf.setup_lib = Some(parse_next!()),
+
                 #[cfg(feature = "tls")]
                 "--tls" => tls = true,
 
@@ -378,7 +383,7 @@ impl ServerConfig {
 
 fn help() -> ! {
     /* FIXME: Don't output tls options if the tls feature is disabled */
-    println!(concat!(
+    println!(
         "\
 http-srv: Copyright (C) 2025 Saúl Valdelvira
 
@@ -397,6 +402,7 @@ PARAMETERS:
     -l, --log <file>   Set log file
     -h, --help      Display this help message
     --log-level <n> Set log level
+    --setup-lib <file> Load the given file to setup the server
     --conf <file>   Use the given config file instead of the default one
     --license       Output the license of this program
 
@@ -407,7 +413,7 @@ EXAMPLES:
   http-srv -p 8080 -d /var/html
   http-srv -d ~/desktop -n 1024 --keep-alive 120
   http-srv --log /var/log/http-srv.log"
-    ));
+    );
     process::exit(0);
 }
 
@@ -444,7 +450,7 @@ impl Default for ServerConfig {
             keep_alive_timeout: Duration::from_secs(0),
             keep_alive_requests: 10000,
             log_file: None,
-
+            setup_lib: None,
             #[cfg(feature = "tls")]
             tls_config: None,
         }
