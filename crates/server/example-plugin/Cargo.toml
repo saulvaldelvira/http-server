@@ -10,4 +10,4 @@ name = "init_handler"
 crate-type = [ "cdylib" ]
 
 [dependencies]
-server = { package = "http-srv", path = "../crates/server" }
+server = { package = "http-srv", path = "../" }

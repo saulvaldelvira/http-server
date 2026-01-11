@@ -4,7 +4,7 @@ use http::HttpRequest;
 use server::{handler::Handler, http};
 
 #[unsafe(no_mangle)]
-pub extern "Rust" fn init_handler(handler: Option<&mut Handler>) {
+pub extern "C" fn init_handler(handler: Option<&mut Handler>) {
     let handler = handler.unwrap();
 
     handler.get("/count", |req: &mut HttpRequest| {
