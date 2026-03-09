@@ -70,15 +70,26 @@ fn get_handler(config: &ServerConfig) -> Result<(Option<Library>, Handler)> {
     handler.get(
         handler::UrlMatcher::regex(".*\\.php$").unwrap(),
         |req: &mut HttpRequest| {
-            use std::process::{Command, Stdio};
+            use std::{
+                path::Path,
+                process::{Command, Stdio},
+            };
 
+            let fname = &*req.filename().unwrap();
+            if !Path::new(fname).exists() {
+                return req.set_status(404).respond_error_page();
+            }
             let output = Command::new("php")
-                .arg(&*req.filename().unwrap())
+                .arg(fname)
                 .stdout(Stdio::piped())
                 .spawn()?
                 .wait_with_output()?;
 
-            req.respond_buf(&output.stdout)
+            if !output.status.success() {
+                req.server_error()
+            } else {
+                req.respond_buf(&output.stdout)
+            }
         },
     );
 

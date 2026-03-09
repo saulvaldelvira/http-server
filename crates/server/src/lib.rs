@@ -29,7 +29,11 @@
     unused_must_use
 )]
 #![warn(clippy::pedantic)]
-#![allow(clippy::missing_errors_doc, clippy::module_name_repetitions)]
+#![allow(
+    clippy::missing_errors_doc,
+    clippy::module_name_repetitions,
+    clippy::unchecked_time_subtraction
+)]
 
 pub use http::{self, HttpRequest, HttpResponse, request, response};
 pub mod config;
