@@ -124,7 +124,7 @@ impl<'a> Mime<'a> {
             "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
             "rar" => "application/vnd.rar",
             "sh" => "application/x-sh",
-            "sgv" => "image/svg+xml",
+            "svg" => "image/svg+xml",
             "tar" => "application/x-tar",
             "tif" | "tiff" => "image/tiff",
             "ts" => "video/mp2t",
