@@ -11,7 +11,7 @@ use std::{
 };
 
 use jsonrs::Json;
-use pool::PoolConfig;
+pub use pool::PoolConfig;
 
 use crate::{
     Result,
