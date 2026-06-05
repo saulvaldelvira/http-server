@@ -4,6 +4,7 @@ use std::{
     collections::HashMap,
     env,
     ffi::OsStr,
+    io,
     io::{BufRead, BufReader, BufWriter, Read, Write},
     path::Path,
 };
@@ -335,18 +336,9 @@ impl HttpRequest {
     /// # Errors
     /// If some io error is produced while sending the request
     pub fn respond_reader(&mut self, reader: &mut dyn Read) -> Result<()> {
-        const CHUNK_SIZE: usize = 1024;
-        let mut buf: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
-
         self.respond()?;
-
         let stream = self.stream.get_mut();
-        while let Ok(n) = reader.read(&mut buf) {
-            if n == 0 {
-                break;
-            }
-            stream.write_all(&buf[0..n])?;
-        }
+        io::copy(reader, stream)?;
         Ok(())
     }
     /// Respond to the request as a chunked transfer

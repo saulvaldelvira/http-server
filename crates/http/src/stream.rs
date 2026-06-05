@@ -38,13 +38,14 @@ impl Read for StringStream {
     }
 
     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> io::Result<usize> {
-        const CHUNK_SIZE: usize = 1024;
-        let mut chunk: [u8; CHUNK_SIZE] = [0; CHUNK_SIZE];
-        let n = self.offset;
-        while self.read(&mut chunk)? > 0 {
-            buf.write_all(&chunk)?;
+        if self.offset >= self.input.len() {
+            return Ok(0);
         }
-        Ok(self.offset - n)
+        let remaining = &self.input[self.offset..];
+        buf.reserve(remaining.len());
+        buf.extend_from_slice(remaining);
+        self.offset += remaining.len();
+        Ok(remaining.len())
     }
 }
 
@@ -144,5 +145,23 @@ where
 
     fn set_non_blocking(&mut self, timeout: Duration) -> io::Result<()> {
         self.sock.set_non_blocking(timeout)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use std::io::Read;
+
+    use crate::stream::IntoHttpStream;
+
+    #[test]
+    fn string_stream() {
+        let mut hi = String::from("Hello world!").into_http_stream();
+        let mut vec = Vec::new();
+        hi.read_to_end(&mut vec).unwrap();
+
+        assert_eq!(str::from_utf8(vec.as_slice()).unwrap(), "Hello world!");
+
+        assert_eq!(hi.read(&mut [0; 10]).unwrap(), 0)
     }
 }
