@@ -19,6 +19,13 @@ use crate::{
     log_info, log_warn,
 };
 
+#[derive(Clone, Debug)]
+pub enum Preset {
+    Read,
+    ReadWrite,
+    Post,
+}
+
 #[derive(Clone)]
 pub struct ServerConfig {
     pub port: u16,
@@ -27,6 +34,7 @@ pub struct ServerConfig {
     pub keep_alive_requests: u16,
     pub log_file: Option<String>,
     pub setup_lib: Option<String>,
+    pub preset: Preset,
 
     #[cfg(feature = "tls")]
     pub tls_config: Option<Arc<rustls::ServerConfig>>,
@@ -40,6 +48,7 @@ impl fmt::Debug for ServerConfig {
             .field("keep_alive_timeout", &self.keep_alive_timeout)
             .field("keep_alive_requests", &self.keep_alive_requests)
             .field("setup_lib", &self.setup_lib)
+            .field("preset", &self.preset)
             .field("log_file", &self.log_file);
 
         #[cfg(feature = "tls")]
@@ -97,6 +106,22 @@ fn get_tls_config(cert: Option<String>, pkey: Option<String>) -> Result<Arc<rust
         .map_err(|err| format!("rustls: {err}"))?;
 
     Ok(Arc::new(config))
+}
+
+fn parse_preset(arg: &str, is_from_cli: bool) -> Result<Preset> {
+    Ok(match arg {
+        "read" => Preset::Read,
+        "readwrite" => Preset::ReadWrite,
+        "post" => Preset::Post,
+        p => {
+            return Err(format!(
+                "Unknown argument for \"{}preset\": {p}.\
+                Valid values: read, readwrite, post",
+                if is_from_cli { "--" } else { "" }
+            )
+            .into());
+        }
+    })
 }
 
 /// [`crate::HttpServer`] configuration
@@ -188,6 +213,10 @@ impl ServerConfig {
                 "--log-level" => {
                     let n: u8 = parse_next!();
                     log::set_level(n.try_into()?);
+                }
+                "--preset" => {
+                    let arg = args.next().ok_or("Missing argument for \"--preset\"")?;
+                    conf.preset = parse_preset(arg.as_ref(), true)?;
                 }
 
                 "--setup-lib" => conf.setup_lib = Some(parse_next!()),
@@ -317,6 +346,10 @@ impl ServerConfig {
                     let n = num!(v as u8);
                     log::set_level(n.try_into()?);
                 }
+                "preset" => {
+                    let arg = string!(v);
+                    self.preset = parse_preset(arg.as_str(), false)?;
+                }
                 #[cfg(feature = "tls")]
                 "tls" => {
                     for (k, v) in obj!() {
@@ -382,6 +415,13 @@ impl ServerConfig {
         self.keep_alive_requests = n;
         self
     }
+
+    #[inline]
+    #[must_use]
+    pub fn preset(mut self, p: Preset) -> Self {
+        self.preset = p;
+        self
+    }
 }
 
 fn help() -> ! {
@@ -408,6 +448,10 @@ PARAMETERS:
     --setup-lib <file> Load the given file to setup the server
     --conf <file>   Use the given config file instead of the default one
     --license       Output the license of this program
+    --preset <read|readwrite|post>  Sets a default handler preset
+        read: Only GET and HEAD methods are allowed
+        readwrite: GET, HEAD, POST and DELETE are allowed
+        post: Only POST is allowed
 
     --tls           Enable TLS
     --cert-file     Certificate file for TLS
@@ -442,6 +486,7 @@ impl Default for ServerConfig {
     /// Default configuration
     ///
     /// - Port: 80
+    /// - Preset: Read
     /// - Nº Workers: 1024
     /// - Keep Alive Timeout: 0s (Disabled)
     /// - Keep Alove Requests: 10000
@@ -454,6 +499,7 @@ impl Default for ServerConfig {
             keep_alive_requests: 10000,
             log_file: None,
             setup_lib: None,
+            preset: Preset::Read,
             #[cfg(feature = "tls")]
             tls_config: None,
         }

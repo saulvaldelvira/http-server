@@ -19,7 +19,11 @@ fn load_lib(handler: &mut Handler, name: &str) -> Result<Library> {
 }
 
 fn get_handler(config: &ServerConfig) -> Result<(Option<Library>, Handler)> {
-    let mut handler = Handler::default();
+    let mut handler = match config.preset {
+        Preset::Read => handler::presets::read(),
+        Preset::ReadWrite => handler::presets::read_write(),
+        Preset::Post => handler::presets::post(),
+    };
     let mut _lib = None;
 
     if let Some(path) = &config.setup_lib {

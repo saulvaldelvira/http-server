@@ -241,14 +241,6 @@ impl Default for Handler {
             req.set_header("Accept-Ranges", "bytes");
         });
 
-        handler.add_default(HttpMethod::GET, cat_handler);
-        handler.add_default(HttpMethod::POST, post_handler);
-        handler.add_default(HttpMethod::DELETE, delete_handler);
-        handler.add_default(HttpMethod::HEAD, head_handler);
-
-        handler.get("/", root_handler);
-        handler.head("/", root_handler);
-
         if log::get_level() >= LogLevel::Info {
             handler.post_interceptor(log_stdout);
         }
@@ -455,15 +447,22 @@ pub fn log_file(filename: &str) -> crate::Result<Box<dyn Interceptor>> {
     }))
 }
 
-/// Rewrites / to /index.html
+/// Rewrites / to /index.[html|php]
 ///
 /// # Errors
 /// If the request returns an Error variant on send
 pub fn root_handler(req: &mut HttpRequest) -> Result<()> {
+    // TODO: This should be a pre-interceptor
     if file_exists("index.html") {
         req.set_url("/index.html");
+    } else if file_exists("index.php") {
+        file_exists("index.php");
     }
-    cat_handler(req)
+    if *req.method() == HttpMethod::GET {
+        cat_handler(req)
+    } else {
+        head_handler(req)
+    }
 }
 
 pub fn redirect(uri: impl Into<Box<str>>) -> impl RequestHandler {
@@ -472,5 +471,33 @@ pub fn redirect(uri: impl Into<Box<str>>) -> impl RequestHandler {
         req.set_header("Location", &*uri);
         req.set_header("Content-Length", "0");
         req.set_status(308).respond()
+    }
+}
+
+pub mod presets {
+    use http::HttpMethod;
+
+    use crate::handler::Handler;
+
+    pub fn read() -> Handler {
+        let mut h = Handler::default();
+        h.add_default(HttpMethod::GET, super::cat_handler);
+        h.add_default(HttpMethod::HEAD, super::head_handler);
+        h.get("/", super::root_handler);
+        h.head("/", super::root_handler);
+        h
+    }
+
+    pub fn read_write() -> Handler {
+        let mut h = read();
+        h.add_default(HttpMethod::POST, super::post_handler);
+        h.add_default(HttpMethod::DELETE, super::delete_handler);
+        h
+    }
+
+    pub fn post() -> Handler {
+        let mut h = Handler::default();
+        h.add_default(HttpMethod::POST, super::post_handler);
+        h
     }
 }
