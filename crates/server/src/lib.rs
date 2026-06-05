@@ -69,7 +69,7 @@ pub use config::ServerConfig;
 use http::HttpStream;
 use pool::ThreadPool;
 
-mod log;
+pub mod log;
 use log::prelude::*;
 
 /// HTTP Server

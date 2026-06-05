@@ -27,11 +27,13 @@ impl TryFrom<u8> for LogLevel {
     }
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub fn get_level() -> LogLevel {
     #[allow(clippy::unwrap_used)]
     LOGGER.lock().unwrap().get_level()
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub fn set_level(level: LogLevel) {
     #[allow(clippy::unwrap_used)]
     LOGGER.lock().unwrap().set_level(level);
