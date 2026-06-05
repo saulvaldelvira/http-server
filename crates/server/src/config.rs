@@ -330,6 +330,9 @@ impl ServerConfig {
                         }
                     }
                 }
+                "setup_lib" if self.setup_lib.is_none() => {
+                    self.setup_lib = Some(path!(v));
+                }
                 "pool_config" => {
                     for (k, v) in obj!() {
                         match &**k {
