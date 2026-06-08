@@ -222,15 +222,6 @@ impl Default for Handler {
     ///  - [`suffix_html`]
     ///  - Set Header: "Accept-Ranges: bytes"
     ///
-    /// # Handler Functions
-    /// - [GET](HttpMethod::GET): [`cat_handler`]
-    /// - [POST](HttpMethod::POST): [`post_handler`]
-    /// - [DELETE](HttpMethod::DELETE): [`delete_handler`]
-    /// - [HEAD](HttpMethod::HEAD): [`head_handler`]
-    ///
-    /// - [GET](HttpMethod::GET) "/": [`root_handler`]
-    /// - [HEAD](HttpMethod::HEAD) "/": [`root_handler`]
-    ///
     /// # Post Interceptors
     ///  - [`log_stdout`]
     ///
