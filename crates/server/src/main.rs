@@ -2,15 +2,25 @@ use std::{env, process, thread, time::Duration};
 
 use encoding::StreamReader;
 use http_srv::prelude::*;
-use libloading::{Library, Symbol};
 
-type Result<T> = ::core::result::Result<T, libloading::Error>;
+#[cfg(feature = "plugins")]
+type Library = libloading::Library;
+#[cfg(feature = "plugins")]
+type Error = libloading::Error;
 
+#[cfg(not(feature = "plugins"))]
+type Library = ();
+#[cfg(not(feature = "plugins"))]
+type Error = core::convert::Infallible;
+
+type Result<T> = ::core::result::Result<T, Error>;
+
+#[cfg(feature = "plugins")]
 fn load_lib(handler: &mut Handler, name: &str) -> Result<Library> {
     unsafe {
         let lib = libloading::Library::new(name)?;
 
-        let init_handler: Symbol<fn(*mut Handler)> = lib.get(b"init_handler")?;
+        let init_handler: libloading::Symbol<fn(*mut Handler)> = lib.get(b"init_handler")?;
 
         init_handler(handler);
 
@@ -26,6 +36,7 @@ fn get_handler(config: &ServerConfig) -> Result<(Option<Library>, Handler)> {
     };
     let mut _lib = None;
 
+    #[cfg(feature = "plugins")]
     if let Some(path) = &config.setup_lib {
         let mut handler = Handler::new();
         _lib = Some(load_lib(&mut handler, path)?);

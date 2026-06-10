@@ -16,7 +16,7 @@ pool = { package = "job-pool", version = ">=0.6.0", git = "https://github.com/sa
 jsonrs = { package = "jsonrs", version = ">=0.1.4", git = "https://github.com/saulvaldelvira/json.rs" }
 base64 = { package = "rb64", version = ">=0.1.0", git = "https://github.com/saulvaldelvira/rb64" }
 url = { package = "url-utils", version = ">=0.1.0", path = "../url" }
-libloading = "0.8.8"
+libloading = { version = "0.8.8", optional = true }
 
 [dependencies.rustls]
 version = ">=0.23.28"
@@ -25,7 +25,8 @@ default-features = false
 features = ["std", "aws_lc_rs"]
 
 [features]
-default = ["full"]
+default = ["regex", "tls"]
+plugins = ["dep:libloading"]
 regex = ["dep:regexpr"]
 tls = ["dep:rustls", "http/tls"]
-full = ["regex", "tls"]
+full = ["regex", "tls", "plugins"]

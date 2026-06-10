@@ -57,10 +57,11 @@ use prelude::*;
 /// It serves as a shortcut for an [`std::result::Result`]<T,[`HttpError`]>
 pub type Result<T> = std::result::Result<T, HttpError>;
 
+#[cfg(feature = "tls")]
+use std::sync::Arc;
 use std::{
     io::{self, BufRead, BufReader},
     net::{TcpListener, TcpStream},
-    sync::Arc,
     thread,
     time::{Duration, Instant},
 };

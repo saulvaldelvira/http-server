@@ -1,12 +1,13 @@
 #![allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
 
 use core::fmt;
+#[cfg(feature = "tls")]
+use std::sync::Arc;
 use std::{
     env, fs,
     path::{Path, PathBuf},
     process,
     str::FromStr,
-    sync::Arc,
     time::Duration,
 };
 
@@ -33,6 +34,7 @@ pub struct ServerConfig {
     pub keep_alive_timeout: Duration,
     pub keep_alive_requests: u16,
     pub log_file: Option<String>,
+    #[cfg(feature = "plugins")]
     pub setup_lib: Option<String>,
     pub preset: Preset,
 
@@ -47,12 +49,13 @@ impl fmt::Debug for ServerConfig {
             .field("pool_conf", &self.pool_conf)
             .field("keep_alive_timeout", &self.keep_alive_timeout)
             .field("keep_alive_requests", &self.keep_alive_requests)
-            .field("setup_lib", &self.setup_lib)
             .field("preset", &self.preset)
             .field("log_file", &self.log_file);
 
         #[cfg(feature = "tls")]
         deb.field("tls", &self.tls_config.is_some());
+        #[cfg(feature = "plugins")]
+        deb.field("setup_lib", &self.setup_lib);
 
         deb.finish()
     }
@@ -219,6 +222,7 @@ impl ServerConfig {
                     conf.preset = parse_preset(arg.as_ref(), true)?;
                 }
 
+                #[cfg(feature = "plugins")]
                 "--setup-lib" => conf.setup_lib = Some(parse_next!()),
 
                 #[cfg(feature = "tls")]
@@ -291,6 +295,7 @@ impl ServerConfig {
                     _n as $t
                 }};
             }
+            #[cfg(feature = "tls")]
             macro_rules! bool {
                 ($v:ident) => {
                     $v.boolean().ok_or_else(|| {
@@ -363,6 +368,8 @@ impl ServerConfig {
                         }
                     }
                 }
+
+                #[cfg(feature = "plugins")]
                 "setup_lib" if self.setup_lib.is_none() => {
                     self.setup_lib = Some(path!(v));
                 }
@@ -426,7 +433,7 @@ impl ServerConfig {
 
 fn help() -> ! {
     /* FIXME: Don't output tls options if the tls feature is disabled */
-    println!(
+    print!(
         "\
 http-srv: Copyright (C) 2025 Saúl Valdelvira
 
@@ -444,18 +451,31 @@ PARAMETERS:
     -r, --keep-alive-requests <num> Keep alive max requests
     -l, --log <file>   Set log file
     -h, --help      Display this help message
-    --log-level <n> Set log level
-    --setup-lib <file> Load the given file to setup the server
+    --log-level <n> Set log level"
+    );
+    #[cfg(feature = "plugins")]
+    print!(
+        "
+    --setup-lib <file> Load the given file to setup the server"
+    );
+    print!(
+        "
     --conf <file>   Use the given config file instead of the default one
     --license       Output the license of this program
     --preset <read|readwrite|post>  Sets a default handler preset
         read: Only GET and HEAD methods are allowed
         readwrite: GET, HEAD, POST and DELETE are allowed
-        post: Only POST is allowed
-
+        post: Only POST is allowed"
+    );
+    #[cfg(feature = "tls")]
+    print!(
+        "
     --tls           Enable TLS
     --cert-file     Certificate file for TLS
-    --private-key   Private key for TLS
+    --private-key   Private key for TLS"
+    );
+    println!(
+        "
 EXAMPLES:
   http-srv -p 8080 -d /var/html
   http-srv -d ~/desktop -n 1024 --keep-alive 120
@@ -498,6 +518,7 @@ impl Default for ServerConfig {
             keep_alive_timeout: Duration::from_secs(0),
             keep_alive_requests: 10000,
             log_file: None,
+            #[cfg(feature = "plugins")]
             setup_lib: None,
             preset: Preset::Read,
             #[cfg(feature = "tls")]
