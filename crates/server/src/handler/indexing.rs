@@ -84,14 +84,15 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     }
     for file in files {
         let path = file.path();
-        let file = path.metadata()?;
+        if !path.exists() { continue }
+        let size = path.metadata()?.len();
         let text = path.strip_prefix(filename)?;
         let text = path_to_str!(text)?.to_owned();
         if !show_hidden && text.starts_with('.') {
             continue;
         }
 
-        let icon = if file.is_dir() {
+        let icon = if path.is_dir() {
             "&#128447;"
         } else {
             "&#128456;"
@@ -102,7 +103,7 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
         html.write_fmt(format_args!(
             "<tr><td>{icon}</td><td><a href=\"{encoded_path}\">{text}</a></td>"
         ))?;
-        html.write_fmt(format_args!("<td>{}</td>", size_human(file.len())))?;
+        html.write_fmt(format_args!("<td>{}</td>", size_human(size)))?;
         html.write_str("</tr>")?;
     }
     html.push_str("</table></body></html>");
