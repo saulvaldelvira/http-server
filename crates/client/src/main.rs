@@ -195,7 +195,7 @@ pub fn main() -> http::Result<()> {
         return Ok(());
     }
 
-    match result.write_to(&mut out) {
+    match result.read_body(&mut out) {
         Ok(_) => { /* eprintln!("\n\n{n} bytes transfered") */ }
         Err(err) => {
             match err.kind() {

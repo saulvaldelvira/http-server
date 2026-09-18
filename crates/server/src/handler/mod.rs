@@ -346,7 +346,7 @@ pub fn post_handler(req: &mut HttpRequest) -> Result<()> {
             req.ok()
         }
         Err(err) => {
-            println!("Error opening {}: {err}", &filename);
+            println!("Error opening {filename}: {err}");
             match err.kind() {
                 io::ErrorKind::PermissionDenied => req.forbidden(),
                 _ => req.not_found(),

@@ -1,12 +1,15 @@
 use core::fmt;
 use std::{
     collections::HashMap,
-    io::{self, BufRead, BufReader, Read, Write},
+    io::{self, BufRead, BufReader, Write},
 };
 
 use parse::parse_response;
 
-use crate::{HttpStream, Result, response::builder::HttpResponseBuilder, stream::IntoHttpStream};
+use crate::{
+    HttpStream, Result, encoding::chunked::ChunkedDecoder, response::builder::HttpResponseBuilder,
+    stream::IntoHttpStream,
+};
 
 pub mod builder;
 mod parse;
@@ -83,7 +86,7 @@ impl HttpResponse {
     pub(crate) fn read_body_into_buffer(&mut self) -> std::io::Result<()> {
         let len = self.content_length();
         let mut buf = Vec::with_capacity(len);
-        self.stream.read_to_end(&mut buf)?;
+        self.read_body(&mut buf)?;
         self.body = Some(buf.into_boxed_slice());
         Ok(())
     }
@@ -132,26 +135,15 @@ impl HttpResponse {
     ///
     /// # Errors
     /// If, while reading or writing, some io Error is found
-    pub fn read_body(&mut self, writer: &mut dyn Write) -> Result<()> {
-        io::copy(&mut self.stream, writer)?;
-        Ok(())
-    }
-
-    pub fn write_to(&mut self, out: &mut dyn io::Write) -> io::Result<usize> {
-        let mut total = 0;
-        loop {
-            let slice = self.stream.fill_buf()?;
-            if slice.is_empty() {
-                break;
-            }
-            out.write_all(slice)?;
-
-            let len = slice.len();
-            self.stream.consume(len);
-            total += len;
+    pub fn read_body(&mut self, writer: &mut dyn Write) -> io::Result<u64> {
+        if let Some(enc) = self.headers.get("Transfer-Encoding")
+            && &**enc == "chunked"
+        {
+            let mut r = ChunkedDecoder::new(&mut self.stream);
+            io::copy(&mut r, writer)
+        } else {
+            io::copy(&mut self.stream, writer)
         }
-        out.flush()?;
-        Ok(total)
     }
 }
 

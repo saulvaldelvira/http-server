@@ -13,7 +13,7 @@ use parse::parse_request;
 
 use crate::{
     HttpMethod, HttpResponse, HttpStream, Result, StatusCode,
-    encoding::Chunked,
+    encoding::ChunkedEncoder,
     request::builder::{HttpRequestBuilder, NoUrl},
     stream::IntoHttpStream,
 };
@@ -349,7 +349,7 @@ impl HttpRequest {
     /// If some io error is produced while sending the request
     pub fn respond_chunked(&mut self, reader: &mut dyn Read) -> Result<()> {
         self.set_header("Transfer-Encoding", "chunked");
-        let mut reader = Chunked::with_default_size(reader);
+        let mut reader = ChunkedEncoder::with_default_size(reader);
         self.respond_reader(&mut reader)
     }
     /// Respond with a basic HTML error page

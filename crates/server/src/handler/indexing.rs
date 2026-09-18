@@ -84,7 +84,9 @@ pub fn index_of(filename: &str, show_hidden: bool) -> Result<String> {
     }
     for file in files {
         let path = file.path();
-        if !path.exists() { continue }
+        if !path.exists() {
+            continue;
+        }
         let size = path.metadata()?.len();
         let text = path.strip_prefix(filename)?;
         let text = path_to_str!(text)?.to_owned();
