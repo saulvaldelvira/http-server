@@ -108,6 +108,12 @@ fn get_handler(config: &ServerConfig) -> Result<(Option<Library>, Handler)> {
         },
     );
 
+    #[cfg(feature = "regex")]
+    handler.get(
+        handler::UrlMatcher::regex(".*\\.cgi").unwrap(),
+        handler::cgi_handler,
+    );
+
     if let Some(file) = &config.log_file {
         handler.post_interceptor(handler::log_file(file).unwrap_or_else(|err| {
             eprintln!("{err}");

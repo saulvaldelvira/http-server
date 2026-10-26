@@ -1,6 +1,8 @@
 mod auth;
 mod indexing;
 mod ranges;
+mod cgi;
+
 use std::{
     borrow::Cow,
     collections::HashMap,
@@ -14,6 +16,7 @@ use std::{
 pub use auth::AuthConfig;
 use http::HttpMethod;
 use mime::Mime;
+pub use cgi::cgi_handler;
 
 use self::{indexing::index_of, ranges::get_range_for};
 use crate::{
