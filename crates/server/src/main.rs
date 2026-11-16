@@ -1,3 +1,4 @@
+use core::fmt::Write;
 use std::{env, process, thread, time::Duration};
 
 use encoding::StreamReader;
@@ -48,16 +49,29 @@ fn get_handler(config: &ServerConfig) -> Result<(Option<Library>, Handler)> {
         req.ok()
     });
 
-    handler.get("/params", |req: &mut HttpRequest| {
-        let mut s = "".to_string();
-        for (k, v) in req.params() {
-            s.push_str(k);
-            s.push_str(" = ");
-            s.push_str(v);
-            s.push('\n');
+    fn echo_handler(req: &mut HttpRequest) -> http::Result<()> {
+        let m = *req.method();
+        let mut json = format!(
+            r#"{{
+            "method": "{m}", "params": [ "#
+        );
+        for (i, (k, v)) in req.params().iter().enumerate() {
+            if i > 0 {
+                json.push(',');
+            }
+            write!(json, "{{ {k:?}: {v:?} }}")?;
         }
-        req.respond_str(&s)
-    });
+        json.push(']');
+        let bod = req
+            .body()?
+            .and_then(|b| str::from_utf8(b).ok())
+            .unwrap_or("");
+        write!(json, r#", "body": "{bod}" }}"#)?;
+        req.respond_str(&json)
+    }
+
+    handler.get("/echo", echo_handler);
+    handler.post("/echo", echo_handler);
 
     handler.get("/inf", |req: &mut HttpRequest| {
         let mut i = 0;
