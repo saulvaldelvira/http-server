@@ -7,8 +7,8 @@ use std::{
 use parse::parse_response;
 
 use crate::{
-    HttpStream, Result, encoding::chunked::ChunkedDecoder, response::builder::HttpResponseBuilder,
-    stream::IntoHttpStream,
+    HttpStream, Result, StatusCode, encoding::chunked::ChunkedDecoder,
+    response::builder::HttpResponseBuilder, stream::IntoHttpStream,
 };
 
 pub mod builder;
@@ -144,6 +144,28 @@ impl HttpResponse {
         } else {
             io::copy(&mut self.stream, writer)
         }
+    }
+
+    /// Writes this [HttpResponse] in a raw format
+    pub fn write_raw(&mut self, out: &mut dyn Write) -> Result<()> {
+        let response_line = format!(
+            "HTTP/{} {} {}\r\n",
+            self.version,
+            self.status,
+            self.status().status_msg(),
+        );
+        out.write_all(response_line.as_bytes())?;
+        for (k, v) in &self.headers {
+            out.write_all(k.as_bytes())?;
+            out.write_all(b": ")?;
+            out.write_all(v.as_bytes())?;
+            out.write_all(b"\r\n")?;
+        }
+        out.write_all(b"\r\n")?;
+        if let Some(body) = self.body()? {
+            out.write_all(body)?;
+        }
+        Ok(())
     }
 }
 

@@ -137,11 +137,11 @@ impl HttpRequest {
             write!(f, "{k}: {v}\r\n")?;
         }
 
+        write!(f, "\r\n")?;
+
         if let Some(ref b) = self.body {
             f.write_all(b)?;
         }
-
-        write!(f, "\r\n")?;
 
         Ok(())
     }
@@ -219,7 +219,7 @@ impl HttpRequest {
     pub(crate) fn read_body_into_buffer(&mut self) -> Result<()> {
         let len = self.content_length();
         let mut buf = Vec::with_capacity(len);
-        self.stream.read_to_end(&mut buf)?;
+        self.read_body(&mut buf)?;
         self.body = Some(buf.into_boxed_slice());
         Ok(())
     }
@@ -271,7 +271,8 @@ impl HttpRequest {
     /// If, while reading or writing, some io Error is found
     pub fn read_body(&mut self, out: &mut dyn Write) -> Result<usize> {
         let mut total = 0;
-        loop {
+        let len = self.content_length();
+        while total < len {
             let slice = self.stream.fill_buf()?;
             if slice.is_empty() {
                 break;

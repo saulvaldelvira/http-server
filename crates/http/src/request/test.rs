@@ -46,13 +46,14 @@ fn send_to_test() {
     req.write_to(&mut b).unwrap();
 
     let s = String::from_utf8(b).unwrap();
-    assert_eq!(s, "GET /hello HTTP/1.1\r\nBODY\r\n");
+    assert_eq!(s, "GET /hello HTTP/1.1\r\n\r\nBODY");
 }
 
 #[test]
 fn parse() {
     let req = "GET /index?param=abc&param2=def HTTP/1.0
 HEADER1: header1
+Content-Length: 7
 
 Hellooo";
     let mut req = HttpRequest::parse(req).unwrap();
@@ -64,6 +65,7 @@ Hellooo";
         .method(HttpMethod::GET)
         .url("/index")
         .header("HEADER1", "header1")
+        .header("Content-Length", "7")
         .param("param", "abc")
         .param("param2", "def")
         .body(*b"Hellooo")
