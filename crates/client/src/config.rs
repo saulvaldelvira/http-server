@@ -1,18 +1,13 @@
 use std::{process, str::FromStr};
 
 use http::{HttpMethod, Result};
+use httpcli::{HttpType, parse_url};
 
 #[derive(Debug, Clone)]
 pub enum OutFile {
     Stdout,
     Filename(String),
     GetFromUrl,
-}
-
-#[derive(Clone, Debug)]
-pub enum HttpType {
-    Http,
-    Https,
 }
 
 #[derive(Clone, Debug)]
@@ -60,32 +55,9 @@ impl ClientConfig {
             }
         }
 
-        let mut host = conf.url.as_str();
-        if let Some(url) = conf.url.strip_prefix("http://") {
-            host = url;
-        }
-        if let Some(url) = conf.url.strip_prefix("https://") {
-            host = url;
-            conf.http_type = HttpType::Https;
-        }
-
-        let mut url = "/";
-
-        if let Some(i) = host.find('/') {
-            url = &host[i..];
-            host = &host[..i];
-        }
-
-        if let Some(i) = host.find(':') {
-            conf.port = host[i + 1..].parse()?;
-            host = &host[..i];
-        } else {
-            conf.port = match conf.http_type {
-                HttpType::Http => 80,
-                HttpType::Https => 443,
-            }
-        }
-
+        let (ty, port, host, url) = parse_url(&conf.url)?;
+        conf.http_type = ty;
+        conf.port = port as _;
         conf.host = host.to_string();
         conf.url = url.to_string();
 

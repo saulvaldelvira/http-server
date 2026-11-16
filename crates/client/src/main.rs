@@ -3,7 +3,7 @@ use std::{
     fs::File,
     io,
     io::{Write, stdout},
-    net::{TcpStream, ToSocketAddrs},
+    net::TcpStream,
     process,
     time::Instant,
 };
@@ -11,8 +11,7 @@ use std::{
 use http::{HttpMethod, HttpRequest, HttpResponse};
 mod config;
 use config::ClientConfig;
-
-use crate::config::HttpType;
+use httpcli::HttpType;
 
 pub struct ProgressWriter<W: Write> {
     max: usize,
@@ -99,53 +98,11 @@ fn open_file(fname: &str, max: usize) -> Box<dyn Write> {
     p
 }
 
-#[cfg(not(feature = "tls"))]
-#[inline]
-fn send_request(
-    tcp: TcpStream,
-    _http_type: HttpType,
-    _host: String,
-    req: HttpRequest,
-) -> http::Result<HttpResponse> {
-    req.send_to(tcp)
-}
-
-#[cfg(feature = "tls")]
-fn send_request(
-    tcp: TcpStream,
-    http_type: HttpType,
-    host: String,
-    req: HttpRequest,
-) -> http::Result<HttpResponse> {
-    use std::sync::Arc;
-
-    if matches!(http_type, HttpType::Https) {
-        let root_store = rustls::RootCertStore {
-            roots: webpki_roots::TLS_SERVER_ROOTS.into(),
-        };
-        let mut config = rustls::ClientConfig::builder()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
-
-        config.key_log = Arc::new(rustls::KeyLogFile::new());
-
-        let conn =
-            rustls::ClientConnection::new(Arc::new(config), host.try_into().unwrap()).unwrap();
-        let tls = rustls::StreamOwned::new(conn, tcp);
-        req.send_to(tls)
-    } else {
-        req.send_to(tcp)
-    }
-}
-
 pub fn main() -> http::Result<()> {
     let conf = ClientConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
         eprintln!("ERROR: {err}");
         std::process::exit(1)
     });
-
-    let addr = format!("{}:{}", conf.host, conf.port);
-    let addrs = addr.to_socket_addrs().unwrap().next().unwrap();
 
     let req = HttpRequest::builder()
         .method(conf.method)
@@ -158,16 +115,8 @@ pub fn main() -> http::Result<()> {
         .header("Accept-Encoding", "identity")
         .build();
 
-    let tcp = match TcpStream::connect(addrs) {
-        Ok(tcp) => tcp,
-        Err(e) => {
-            eprintln!("Error connecting to {addrs}: {e}");
-            process::exit(1);
-        }
-    };
-
-    let mut result =
-        send_request(tcp, conf.http_type, conf.host.clone(), req).unwrap_or_else(|err| {
+    let mut result = httpcli::send_request(req, &conf.host, conf.port, conf.http_type)
+        .unwrap_or_else(|err| {
             eprint!("ERROR: {err}");
             process::exit(1);
         });
