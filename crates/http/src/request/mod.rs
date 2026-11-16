@@ -95,6 +95,12 @@ impl HttpRequest {
     pub fn params(&self) -> &HashMap<Box<str>, Box<str>> {
         &self.params
     }
+    /// Get a mutable reference to the query parameters map
+    #[inline]
+    #[must_use]
+    pub fn params_mut(&mut self) -> &mut HashMap<Box<str>, Box<str>> {
+        &mut self.params
+    }
 
     #[inline]
     #[must_use]
