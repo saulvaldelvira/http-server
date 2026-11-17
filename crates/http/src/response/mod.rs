@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{
     collections::HashMap,
-    io::{self, BufRead, BufReader, Write},
+    io::{self, BufRead, BufReader, Read, Write},
 };
 
 use parse::parse_response;
@@ -142,7 +142,8 @@ impl HttpResponse {
             let mut r = ChunkedDecoder::new(&mut self.stream);
             io::copy(&mut r, writer)
         } else {
-            io::copy(&mut self.stream, writer)
+            let len = self.content_length();
+            io::copy(&mut (&mut self.stream).take(len as _), writer)
         }
     }
 

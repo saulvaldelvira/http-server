@@ -262,29 +262,20 @@ impl HttpRequest {
     ///
     /// [`stream`]: HttpStream
     pub fn has_body(&mut self) -> Result<bool> {
+        // FIXME
         Ok(self.body.is_some() || !self.stream.fill_buf()?.is_empty())
     }
 
-    /// Reads the request body into [writer](Write)
+    /// Reads the request body into [out](Write)
     ///
     /// # Errors
     /// If, while reading or writing, some io Error is found
     pub fn read_body(&mut self, out: &mut dyn Write) -> Result<usize> {
-        let mut total = 0;
         let len = self.content_length();
-        while total < len {
-            let slice = self.stream.fill_buf()?;
-            if slice.is_empty() {
-                break;
-            }
-            out.write_all(slice)?;
-
-            let len = slice.len();
-            self.stream.consume(len);
-            total += len;
-        }
+        let mut r = (&mut self.stream).take(len as _);
+        io::copy(&mut r, out)?;
         out.flush()?;
-        Ok(total)
+        Ok(len)
     }
     /// Respond to the request without a body
     ///
