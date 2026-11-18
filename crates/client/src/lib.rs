@@ -51,7 +51,10 @@ pub fn send_request(
     use std::sync::Arc;
 
     let addr = format!("{}:{}", host, port);
-    let addrs = addr.to_socket_addrs().unwrap().next().unwrap();
+    let addrs = addr
+        .to_socket_addrs()?
+        .next()
+        .ok_or_else(|| http::HttpError::new(format!("No address for \"{host}\"")))?;
 
     let tcp = TcpStream::connect(addrs)?;
 
