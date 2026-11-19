@@ -309,6 +309,7 @@ impl eframe::App for HttpClientApp {
                     if ui.button("Clear").clicked() {
                         self.clear();
                     }
+                    #[cfg(debug_assertions)]
                     if ui.button("Debug mode").clicked() {
                         ui.set_debug_on_hover(!ui.debug_on_hover());
                     }
