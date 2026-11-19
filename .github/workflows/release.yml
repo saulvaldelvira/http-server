@@ -61,14 +61,14 @@ jobs:
         with:
           use-cross: ${{ matrix.cross }}
           command: test
-          args: --release --target ${{ matrix.target }}
+          args: --release --all-features --target ${{ matrix.target }}
 
       - name: Build release binary
         uses: actions-rs/cargo@v1
         with:
           use-cross: ${{ matrix.cross }}
           command: build
-          args: --release --target ${{ matrix.target }} -p http-srv -p httpcli
+          args: --release --all-features --target ${{ matrix.target }} -p http-srv -p httpcli
 
       # TODO:
       # - name: Strip release binary (linux and macos)
