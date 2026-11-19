@@ -48,8 +48,6 @@ pub fn send_request(
     port: u16,
     http_type: HttpType,
 ) -> http::Result<HttpResponse> {
-    use std::sync::Arc;
-
     let addr = format!("{}:{}", host, port);
     let addrs = addr
         .to_socket_addrs()?
@@ -60,6 +58,7 @@ pub fn send_request(
 
     #[cfg(feature = "tls")]
     {
+        use std::sync::Arc;
         if matches!(http_type, HttpType::Https) {
             let root_store = rustls::RootCertStore {
                 roots: webpki_roots::TLS_SERVER_ROOTS.into(),
@@ -78,6 +77,11 @@ pub fn send_request(
             let tls = rustls::StreamOwned::new(conn, tcp);
             return req.send_to(tls);
         }
+    }
+
+    #[cfg(not(feature = "tls"))]
+    if matches!(http_type, HttpType::Https) {
+        return Err("HTTPS not supported".into());
     }
 
     req.send_to(tcp)

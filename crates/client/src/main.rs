@@ -3,15 +3,16 @@ use std::{
     fs::File,
     io,
     io::{Write, stdout},
-    net::TcpStream,
     process,
     time::Instant,
 };
 
-use http::{HttpMethod, HttpRequest, HttpResponse};
+use http::{HttpMethod, HttpRequest};
 mod config;
 use config::ClientConfig;
-use httpcli::HttpType;
+
+#[cfg(feature = "gui")]
+mod gui;
 
 pub struct ProgressWriter<W: Write> {
     max: usize,
@@ -99,6 +100,15 @@ fn open_file(fname: &str, max: usize) -> Box<dyn Write> {
 }
 
 pub fn main() -> http::Result<()> {
+    #[cfg(feature = "gui")]
+    if env::args().count() == 1 {
+        gui::launch().unwrap_or_else(|err| {
+            eprintln!("ERROR: {err}");
+            std::process::exit(1)
+        });
+        return Ok(());
+    }
+
     let conf = ClientConfig::parse(env::args().skip(1)).unwrap_or_else(|err| {
         eprintln!("ERROR: {err}");
         std::process::exit(1)
